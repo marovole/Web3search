@@ -1,0 +1,174 @@
+version: '3.8'
+
+services:
+  # ================================
+  # PostgreSQL Database
+  # ================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: web3search-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: web3search
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - web3search-network
+
+  # ================================
+  # Redis Cache
+  # ================================
+  redis:
+    image: redis:7-alpine
+    container_name: web3search-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - web3search-network
+
+  # ================================
+  # FastAPI Backend
+  # ================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: web3search-backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      # Database
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/web3search
+      REDIS_URL: redis://redis:6379/0
+
+      # Application
+      ENVIRONMENT: development
+      DEBUG: "true"
+      LOG_LEVEL: INFO
+
+      # CORS
+      CORS_ORIGINS: http://localhost:3000,http://localhost:5173
+
+      # OpenRouter API (需要在 .env 文件中配置)
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+
+      # Data Source APIs (可选)
+      COINGECKO_API_KEY: ${COINGECKO_API_KEY:-}
+      ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:-}
+      BSCSCAN_API_KEY: ${BSCSCAN_API_KEY:-}
+      TWITTER_BEARER_TOKEN: ${TWITTER_BEARER_TOKEN:-}
+      REDDIT_CLIENT_ID: ${REDDIT_CLIENT_ID:-}
+      REDDIT_CLIENT_SECRET: ${REDDIT_CLIENT_SECRET:-}
+      CRYPTOPANIC_API_KEY: ${CRYPTOPANIC_API_KEY:-}
+
+      # Celery
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    volumes:
+      # 挂载源代码，支持热重载
+      - ./backend:/app
+      # 挂载 prompts 目录
+      - ./prompts:/prompts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - web3search-network
+    restart: unless-stopped
+
+  # ================================
+  # Celery Worker (后台任务)
+  # ================================
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: web3search-celery-worker
+    command: celery -A app.tasks.celery_app worker --loglevel=info
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/web3search
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      ENVIRONMENT: development
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      COINGECKO_API_KEY: ${COINGECKO_API_KEY:-}
+      ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:-}
+      BSCSCAN_API_KEY: ${BSCSCAN_API_KEY:-}
+      TWITTER_BEARER_TOKEN: ${TWITTER_BEARER_TOKEN:-}
+      REDDIT_CLIENT_ID: ${REDDIT_CLIENT_ID:-}
+      REDDIT_CLIENT_SECRET: ${REDDIT_CLIENT_SECRET:-}
+      CRYPTOPANIC_API_KEY: ${CRYPTOPANIC_API_KEY:-}
+    volumes:
+      - ./backend:/app
+      - ./prompts:/prompts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - web3search-network
+    restart: unless-stopped
+
+  # ================================
+  # Celery Beat (定时任务调度)
+  # ================================
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: web3search-celery-beat
+    command: celery -A app.tasks.celery_app beat --loglevel=info
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/web3search
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      ENVIRONMENT: development
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - web3search-network
+    restart: unless-stopped
+
+# ================================
+# Volumes (数据持久化)
+# ================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# ================================
+# Networks
+# ================================
+networks:
+  web3search-network:
+    driver: bridge
