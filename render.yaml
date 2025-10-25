@@ -8,7 +8,7 @@ services:
     plan: free
     branch: main
     buildCommand: cd backend && pip install -r requirements.txt
-    startCommand: bash scripts/start.sh
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
     envVars:
       - key: ENVIRONMENT
         value: production
