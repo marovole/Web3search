@@ -1,6 +1,5 @@
 """
-pn!ã!W
-öI@	pnìh”Ñ
+Database Models
 """
 from app.models.project import Project, ProjectSnapshot
 from app.models.report import Report, ReportType, ReportStatus

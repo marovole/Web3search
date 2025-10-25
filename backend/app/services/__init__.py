@@ -1,6 +1,6 @@
 """
-服务层模块
-包含业务逻辑和外部服务集成
+Service Layer Module
+Contains business logic and external service integrations
 """
 from app.services.llm import LLMClient, llm_client, ModelConfig
 from app.services.data_aggregator import DataAggregator, data_aggregator
