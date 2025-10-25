@@ -42,7 +42,7 @@ class Conversation(Base):
     total_tokens: Mapped[int] = mapped_column(Integer, default=0)
 
     # 会话元数据
-    metadata: Mapped[Optional[dict]] = mapped_column(Text)  # JSON string
+    extra_metadata: Mapped[Optional[dict]] = mapped_column(Text)  # JSON string
     # 例: {"ip": "127.0.0.1", "user_agent": "..."}
 
     # 时间戳
