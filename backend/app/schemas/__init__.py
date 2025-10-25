@@ -1,6 +1,5 @@
 """
-APIpn!‹Schemas	
-šIAPI÷BŒÍ”„pnÓ„
+API Schemas
 """
 from app.schemas.chat import (
     QuickChatRequest,

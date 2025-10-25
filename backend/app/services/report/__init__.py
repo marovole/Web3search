@@ -1,6 +1,6 @@
 """
-•J!W
-#v”ú<:Markdown•J
+Report Generation Module
+Generates Markdown reports
 """
 from app.services.report.report_generator import ReportGenerator, report_generator
 

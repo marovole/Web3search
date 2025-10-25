@@ -1,6 +1,6 @@
 """
-pn«∆h!W
-∆*pnêÑAPI¢7Ô
+Data Collectors Module
+Collects data from various APIs
 """
 from app.services.collectors.coingecko import CoinGeckoCollector, coingecko_collector
 from app.services.collectors.etherscan import (
