@@ -3,12 +3,14 @@ import { useParams, Link } from 'react-router-dom'
 import { getSharedReport } from '../services/api'
 import type { SharedReportResponse } from '../types'
 import ReportViewer from '../components/Report/ReportViewer'
+import { useReportHistory } from '../hooks/useReportHistory'
 
 const SharedReportPage: React.FC = () => {
   const { shareToken } = useParams<{ shareToken: string }>()
   const [report, setReport] = useState<SharedReportResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { addToHistory } = useReportHistory()
 
   useEffect(() => {
     const loadReport = async () => {
@@ -21,6 +23,14 @@ const SharedReportPage: React.FC = () => {
       try {
         const data = await getSharedReport(shareToken)
         setReport(data)
+
+        // 添加到历史记录
+        addToHistory({
+          symbol: data.symbol,
+          title: data.title,
+          shareToken: shareToken,
+          reportType: 'deep_research',
+        })
       } catch (err) {
         setError(err instanceof Error ? err.message : '加载报告失败')
       } finally {
@@ -29,7 +39,7 @@ const SharedReportPage: React.FC = () => {
     }
 
     loadReport()
-  }, [shareToken])
+  }, [shareToken, addToHistory])
 
   if (loading) {
     return (

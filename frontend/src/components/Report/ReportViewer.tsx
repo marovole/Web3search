@@ -5,6 +5,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import type { SharedReportResponse } from '../../types'
 import ExportButton from './ExportButton'
+import AddButton from '../Watchlist/AddButton'
 
 interface ReportViewerProps {
   report: SharedReportResponse
@@ -129,13 +130,14 @@ const ReportViewer: React.FC<ReportViewerProps> = ({ report }) => {
             </div>
           </div>
 
-          {/* Export Buttons */}
-          <div className="mb-6 no-print">
+          {/* Action Buttons */}
+          <div className="mb-6 no-print flex flex-wrap gap-3">
             <ExportButton
               markdownContent={report.markdown_content}
               reportTitle={report.title}
               symbol={report.symbol}
             />
+            <AddButton symbol={report.symbol} name={report.title} />
           </div>
 
           {/* Markdown Content */}
