@@ -1,0 +1,251 @@
+import React, { useState, useRef, useEffect } from 'react'
+import type { Message, ChatMode } from '../../types'
+import { quickChat, deepResearchStream } from '../../services/api'
+import ModeSwitch from './ModeSwitch'
+import MessageList from './MessageList'
+import InputBox from './InputBox'
+import LoadingAnimation from '../Shared/LoadingAnimation'
+
+const ChatInterface: React.FC = () => {
+  // State
+  const [messages, setMessages] = useState<Message[]>([])
+  const [mode, setMode] = useState<ChatMode>(() => {
+    // Load from localStorage
+    const saved = localStorage.getItem('chatMode')
+    return (saved as ChatMode) || 'quick'
+  })
+  const [isLoading, setIsLoading] = useState(false)
+  const [loadingStage, setLoadingStage] = useState(0)
+  const [conversationId, setConversationId] = useState<string>()
+
+  // Refs
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const eventSourceRef = useRef<EventSource | null>(null)
+
+  // Scroll to bottom
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  // Handle mode change
+  const handleModeChange = (newMode: ChatMode) => {
+    setMode(newMode)
+    localStorage.setItem('chatMode', newMode)
+  }
+
+  // Handle send message
+  const handleSendMessage = async (userInput: string) => {
+    if (!userInput.trim()) return
+
+    // Add user message
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: userInput,
+      timestamp: new Date(),
+    }
+    setMessages((prev) => [...prev, userMessage])
+
+    setIsLoading(true)
+    setLoadingStage(0)
+
+    try {
+      if (mode === 'quick') {
+        // Quick Chat mode
+        const response = await quickChat({
+          query: userInput,
+          conversation_id: conversationId,
+        })
+
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: response.answer,
+          timestamp: new Date(),
+        }
+        setMessages((prev) => [...prev, assistantMessage])
+        setConversationId(response.conversation_id)
+      } else {
+        // Deep Research mode (SSE streaming)
+        handleDeepResearchStream(userInput)
+      }
+    } catch (error) {
+      console.error('Error sending message:', error)
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `❌ 抱歉，发生错误：${error instanceof Error ? error.message : '未知错误'}`,
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
+      if (mode === 'quick') {
+        setIsLoading(false)
+      }
+    }
+  }
+
+  // Handle Deep Research streaming
+  const handleDeepResearchStream = (query: string) => {
+    // Create placeholder message
+    const assistantMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isStreaming: true,
+    }
+    setMessages((prev) => [...prev, assistantMessage])
+
+    // Create EventSource
+    const eventSource = deepResearchStream({
+      query,
+      conversation_id: conversationId,
+    })
+    eventSourceRef.current = eventSource
+
+    let accumulatedContent = ''
+    let stageIndex = 0
+    const loadingStages = [
+      '正在采集市场数据...',
+      '正在分析链上活动...',
+      '正在评估社交情绪...',
+      '正在生成技术面分析...',
+      '正在组装报告...',
+    ]
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+
+        // Update loading stage
+        if (data.stage !== undefined && data.stage < loadingStages.length) {
+          setLoadingStage(data.stage)
+          stageIndex = data.stage
+        }
+
+        // Append content
+        if (data.content) {
+          accumulatedContent += data.content
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessage.id
+                ? { ...msg, content: accumulatedContent }
+                : msg
+            )
+          )
+        }
+
+        // Handle completion
+        if (data.done) {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessage.id
+                ? { ...msg, isStreaming: false }
+                : msg
+            )
+          )
+          setIsLoading(false)
+          if (data.conversation_id) {
+            setConversationId(data.conversation_id)
+          }
+          eventSource.close()
+          eventSourceRef.current = null
+        }
+      } catch (error) {
+        console.error('Error parsing SSE data:', error)
+      }
+    }
+
+    eventSource.onerror = (error) => {
+      console.error('EventSource error:', error)
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessage.id
+            ? {
+                ...msg,
+                content:
+                  accumulatedContent ||
+                  '❌ 抱歉，连接中断。请重试。',
+                isStreaming: false,
+              }
+            : msg
+        )
+      )
+      setIsLoading(false)
+      eventSource.close()
+      eventSourceRef.current = null
+    }
+  }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close()
+      }
+    }
+  }, [])
+
+  return (
+    <div className="flex flex-col h-full bg-white rounded-lg shadow-sm border border-gray-200">
+      {/* Mode Switch */}
+      <div className="px-6 py-4 border-b border-gray-200 no-print">
+        <ModeSwitch mode={mode} onChange={handleModeChange} />
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
+        {messages.length === 0 ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center max-w-md">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                👋 欢迎使用 Web3 AI 搜索引擎
+              </h2>
+              <p className="text-gray-600 mb-6">
+                {mode === 'quick'
+                  ? '输入问题，3秒内获得快速回答'
+                  : '输入项目名称，生成30秒深度研究报告'}
+              </p>
+              <div className="text-left bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-700 font-medium mb-2">
+                  💡 试试这些问题：
+                </p>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>• 分析比特币最近的价格走势</li>
+                  <li>• ETH 的链上数据如何？</li>
+                  <li>• UNI 和其他 DEX 代币对比</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <MessageList messages={messages} />
+            {isLoading && <LoadingAnimation stage={loadingStage} mode={mode} />}
+            <div ref={messagesEndRef} />
+          </>
+        )}
+      </div>
+
+      {/* Input Box */}
+      <div className="border-t border-gray-200 p-4 no-print">
+        <InputBox
+          onSend={handleSendMessage}
+          disabled={isLoading}
+          placeholder={
+            mode === 'quick'
+              ? '输入你的问题...'
+              : '输入加密货币项目名称（如：BTC, ETH, UNI）...'
+          }
+        />
+      </div>
+    </div>
+  )
+}
+
+export default ChatInterface
