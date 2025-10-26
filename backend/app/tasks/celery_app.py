@@ -105,6 +105,15 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(hour=3, minute=0),  # 每天凌晨3点
         "options": {"queue": "low_priority"},
     },
+
+    # ================================
+    # 热点识别更新（每小时）
+    # ================================
+    "update-hotspots": {
+        "task": "app.tasks.data_collection.update_hotspots",
+        "schedule": crontab(minute=15),  # 每小时的第15分钟
+        "options": {"queue": "default"},
+    },
 }
 
 # ================================
@@ -118,4 +127,5 @@ celery_app.conf.task_routes = {
     "app.tasks.data_collection.update_onchain_data": {"queue": "low_priority"},
     "app.tasks.data_collection.collect_crypto_news": {"queue": "default"},
     "app.tasks.data_collection.cleanup_expired_cache": {"queue": "low_priority"},
+    "app.tasks.data_collection.update_hotspots": {"queue": "default"},
 }

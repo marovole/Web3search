@@ -10,6 +10,7 @@ import type {
   Report,
 } from '../types'
 import type { AutocompleteResponse } from '../types/autocomplete'
+import type { HotspotsResponse } from '../types/hotspot'
 
 // Import Mock API
 import * as mockApi from './api.mock'
@@ -215,6 +216,19 @@ export const disableShareLink = USE_MOCK ? mockApi.disableShareLink : disableSha
 export const searchAutocomplete = async (query: string): Promise<AutocompleteResponse> => {
   const response = await api.get<AutocompleteResponse>('/api/v1/search/autocomplete', {
     params: { q: query },
+  })
+  return response.data
+}
+
+/**
+ * 获取市场热点
+ */
+export const getHotspots = async (
+  limit: number = 10,
+  forceRefresh: boolean = false
+): Promise<HotspotsResponse> => {
+  const response = await api.get<HotspotsResponse>('/api/v1/trending/hotspots', {
+    params: { limit, force_refresh: forceRefresh },
   })
   return response.data
 }

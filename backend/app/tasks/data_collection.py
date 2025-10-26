@@ -320,3 +320,48 @@ def cleanup_expired_cache(self: Task):
     except Exception as e:
         print(f"❌ 缓存清理任务失败: {e}")
         return {"status": "error", "message": str(e)}
+
+
+# ================================
+# 热点识别任务
+# ================================
+
+@celery_app.task(
+    name="app.tasks.data_collection.update_hotspots",
+    bind=True,
+    max_retries=3,
+)
+def update_hotspots(self: Task):
+    """
+    更新市场热点数据
+    每小时执行一次
+    """
+    try:
+        print("🔥 开始更新市场热点...")
+
+        # 导入热点分析器
+        from app.services.hotspot_analyzer import hotspot_analyzer
+
+        # 计算热点（force_refresh=True强制重新计算）
+        hotspots = run_async(hotspot_analyzer.get_hotspots(limit=20, force_refresh=True))
+
+        print(f"✅ 热点更新完成，共发现 {len(hotspots)} 个热点")
+
+        # 返回前3名热点的简要信息
+        top_3 = [
+            {
+                "symbol": h.get("symbol"),
+                "score": h.get("total_score"),
+            }
+            for h in hotspots[:3]
+        ]
+
+        return {
+            "status": "success",
+            "hotspots_count": len(hotspots),
+            "top_3": top_3,
+        }
+
+    except Exception as e:
+        print(f"❌ 热点更新任务失败: {e}")
+        raise self.retry(exc=e, countdown=1800)  # 30分钟后重试

@@ -5,6 +5,7 @@ import ModeSwitch from './ModeSwitch'
 import MessageList from './MessageList'
 import AutocompleteInput from './AutocompleteInput'
 import LoadingAnimation from '../Shared/LoadingAnimation'
+import HotspotPanel from '../Hotspot/HotspotPanel'
 
 const ChatInterface: React.FC = () => {
   // State
@@ -205,25 +206,35 @@ const ChatInterface: React.FC = () => {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
         {messages.length === 0 ? (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center max-w-md">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                👋 欢迎使用 Web3 AI 搜索引擎
-              </h2>
-              <p className="text-gray-600 mb-6">
-                {mode === 'quick'
-                  ? '输入问题，3秒内获得快速回答'
-                  : '输入项目名称，生成30秒深度研究报告'}
-              </p>
-              <div className="text-left bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-700 font-medium mb-2">
-                  💡 试试这些问题：
+          <div className="h-full flex flex-col">
+            {/* 热点面板 */}
+            <HotspotPanel
+              onSelectHotspot={(symbol, name) => {
+                setInputValue(`${symbol} (${name})`)
+              }}
+            />
+
+            {/* 欢迎信息 */}
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center max-w-md">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                  👋 欢迎使用 Web3 AI 搜索引擎
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  {mode === 'quick'
+                    ? '输入问题，3秒内获得快速回答'
+                    : '输入项目名称，生成30秒深度研究报告'}
                 </p>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• 分析比特币最近的价格走势</li>
-                  <li>• ETH 的链上数据如何？</li>
-                  <li>• UNI 和其他 DEX 代币对比</li>
-                </ul>
+                <div className="text-left bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-700 font-medium mb-2">
+                    💡 试试这些问题：
+                  </p>
+                  <ul className="text-sm text-gray-600 space-y-1">
+                    <li>• 分析比特币最近的价格走势</li>
+                    <li>• ETH 的链上数据如何？</li>
+                    <li>• UNI 和其他 DEX 代币对比</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
