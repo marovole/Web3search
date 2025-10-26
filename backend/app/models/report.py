@@ -100,6 +100,14 @@ class Report(Base):
     # PDF导出路径
     pdf_path: Mapped[Optional[str]] = mapped_column(String(500))
 
+    # 分享功能
+    share_token: Mapped[Optional[str]] = mapped_column(String(64), unique=True, index=True)
+    share_enabled: Mapped[bool] = mapped_column(default=False, nullable=False)
+    share_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+    # 用于项目识别的符号
+    symbol: Mapped[Optional[str]] = mapped_column(String(20), index=True)
+
     # 时间戳
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
@@ -115,7 +123,7 @@ class Report(Base):
     __table_args__ = (
         Index("ix_reports_project_created", "project_id", "created_at"),
         Index("ix_reports_type_status", "report_type", "status"),
-        Index("ix_reports_created_at", "created_at"),
+        # 注意：created_at已经通过 index=True 创建了索引，无需重复定义
     )
 
     def __repr__(self):
@@ -135,3 +143,32 @@ class Report(Base):
     def is_processing(self) -> bool:
         """报告是否正在生成"""
         return self.status == ReportStatus.PROCESSING
+
+    @property
+    def is_share_valid(self) -> bool:
+        """分享链接是否有效"""
+        if not self.share_enabled or not self.share_token:
+            return False
+        if self.share_expires_at and self.share_expires_at < datetime.utcnow():
+            return False
+        return True
+
+    def generate_share_token(self) -> str:
+        """生成分享令牌"""
+        import secrets
+        self.share_token = secrets.token_urlsafe(32)
+        return self.share_token
+
+    def enable_sharing(self, expires_in_days: Optional[int] = None) -> str:
+        """启用分享"""
+        if not self.share_token:
+            self.generate_share_token()
+        self.share_enabled = True
+        if expires_in_days:
+            from datetime import timedelta
+            self.share_expires_at = datetime.utcnow() + timedelta(days=expires_in_days)
+        return self.share_token
+
+    def disable_sharing(self):
+        """禁用分享"""
+        self.share_enabled = False
