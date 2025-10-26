@@ -759,13 +759,72 @@ class MarkdownBuilder:
         """构建报告元数据"""
         parts = ["## 📊 报告元数据\n\n"]
 
-        # 数据来源
+        # 数据来源（增强版 - 学术引用风格）
         data_sources = analyses.get("data_sources", [])
         if data_sources:
-            parts.append("### 数据来源\n\n")
+            parts.append("### 📚 数据来源与参考文献\n\n")
+            parts.append("*本报告综合以下可信数据源，确保信息准确性和时效性*\n\n")
+
+            # 数据源映射（增强的详细信息）
+            source_details = {
+                "CoinGecko": {
+                    "name": "CoinGecko",
+                    "url": "https://www.coingecko.com",
+                    "description": "全球最大的加密货币数据聚合平台，提供实时价格、市值、交易量等市场数据",
+                    "category": "Market Data"
+                },
+                "Etherscan": {
+                    "name": "Etherscan",
+                    "url": "https://etherscan.io",
+                    "description": "以太坊区块链浏览器，提供链上交易、智能合约、持有者分布等数据",
+                    "category": "On-chain Data"
+                },
+                "Twitter": {
+                    "name": "Twitter/X",
+                    "url": "https://twitter.com",
+                    "description": "社交媒体平台，用于分析社区讨论热度、项目官方动态和KOL观点",
+                    "category": "Social Sentiment"
+                },
+                "Reddit": {
+                    "name": "Reddit",
+                    "url": "https://reddit.com",
+                    "description": "全球最大的加密货币社区论坛，反映真实用户观点和讨论趋势",
+                    "category": "Community Sentiment"
+                },
+                "CryptoPanic": {
+                    "name": "CryptoPanic",
+                    "url": "https://cryptopanic.com",
+                    "description": "加密货币新闻聚合器，汇总全球主流媒体的最新资讯",
+                    "category": "News & Media"
+                }
+            }
+
+            # 按类别分组显示
+            categories = {}
             for source in data_sources:
-                parts.append(f"- {source}\n")
-            parts.append("\n")
+                detail = source_details.get(source, {
+                    "name": source,
+                    "url": "#",
+                    "description": "数据提供方",
+                    "category": "Other"
+                })
+                category = detail["category"]
+                if category not in categories:
+                    categories[category] = []
+                categories[category].append(detail)
+
+            # 生成引用列表
+            ref_index = 1
+            for category in sorted(categories.keys()):
+                parts.append(f"#### {category}\n\n")
+                for detail in categories[category]:
+                    parts.append(f"[{ref_index}] **{detail['name']}**  \n")
+                    parts.append(f"   {detail['description']}  \n")
+                    parts.append(f"   🔗 [{detail['url']}]({detail['url']})  \n")
+                    parts.append(f"   📅 访问时间: {analyses.get('timestamp', 'N/A')}\n\n")
+                    ref_index += 1
+
+            parts.append("---\n\n")
 
         # 使用的模型
         models_used = analyses.get("models_used", {})
