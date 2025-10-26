@@ -195,14 +195,19 @@ async def init_database(force: bool = False):
         if force:
             async with engine.begin() as conn:
                 # 删除所有表及其依赖对象（索引、约束等）
-                await conn.execute(text("DROP SCHEMA public CASCADE"))
+                await conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE"))
                 # 重新创建public schema
                 await conn.execute(text("CREATE SCHEMA public"))
                 # 恢复public schema的权限
                 await conn.execute(text("GRANT ALL ON SCHEMA public TO postgres"))
                 await conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
+        else:
+            # 非force模式：确保public schema存在
+            async with engine.begin() as conn:
+                await conn.execute(text("CREATE SCHEMA IF NOT EXISTS public"))
 
-        # 创建所有表
+        # 创建所有表（在新的连接中，确保看到最新的schema状态）
+        await engine.dispose()  # 关闭所有连接池连接
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
