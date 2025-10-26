@@ -171,6 +171,68 @@ async def root():
     }
 
 
+@app.post("/admin/init-db", tags=["Admin"])
+async def init_database():
+    """
+    【临时管理接口】初始化数据库表结构
+
+    警告: 这是一个临时接口，仅用于首次部署时创建表结构
+    完成后应该删除此端点
+
+    Returns:
+        dict: 初始化结果
+    """
+    try:
+        # 导入所有模型
+        from app.models import project, snapshot, report, conversation  # noqa: F401
+        from app.core.database import Base
+
+        # 创建所有表
+        async with engine.connect() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+        # 获取创建的表列表
+        tables = [table.name for table in Base.metadata.sorted_tables]
+
+        return {
+            "success": True,
+            "message": "数据库表创建成功",
+            "tables": tables
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@app.get("/admin/tables", tags=["Admin"])
+async def list_tables():
+    """
+    【临时管理接口】列出数据库中的所有表
+
+    Returns:
+        dict: 表列表
+    """
+    try:
+        from sqlalchemy import text
+        async with engine.connect() as conn:
+            result = await conn.execute(text(
+                "SELECT tablename FROM pg_tables WHERE schemaname='public'"
+            ))
+            tables = [row[0] for row in result]
+
+        return {
+            "success": True,
+            "tables": tables
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
 # ================================
 # 速率限制中间件
 # ================================
