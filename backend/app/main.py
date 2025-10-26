@@ -172,12 +172,15 @@ async def root():
 
 
 @app.post("/admin/init-db", tags=["Admin"])
-async def init_database():
+async def init_database(force: bool = False):
     """
     【临时管理接口】初始化数据库表结构
 
     警告: 这是一个临时接口，仅用于首次部署时创建表结构
     完成后应该删除此端点
+
+    Args:
+        force: 如果为True，先删除所有表再重新创建（危险操作！）
 
     Returns:
         dict: 初始化结果
@@ -187,16 +190,21 @@ async def init_database():
         from app.models import Project, ProjectSnapshot, Report, Conversation, Message  # noqa: F401
         from app.core.database import Base, engine
 
-        # 创建所有表
-        async with engine.connect() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+        # 如果force=True，先删除所有表
+        if force:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.drop_all)
+
+        # 创建所有表（checkfirst=True会检查表是否已存在）
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all, checkfirst=True)
 
         # 获取创建的表列表
         tables = [table.name for table in Base.metadata.sorted_tables]
 
         return {
             "success": True,
-            "message": "数据库表创建成功",
+            "message": "数据库表创建成功" + (" (force模式)" if force else ""),
             "tables": tables
         }
     except Exception as e:
