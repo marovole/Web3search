@@ -36,17 +36,79 @@ router = APIRouter()
     summary="快速对话",
     description="3秒内快速回答加密货币相关问题",
     tags=["Chat"],
+    responses={
+        200: {
+            "description": "成功返回回答",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "content": "Bitcoin (BTC) is currently trading at $45,000 with a 24h change of +2.5%...",
+                        "symbol": "BTC",
+                        "query_type": "price",
+                        "response_time": 2.3,
+                        "model": "anthropic/claude-3.5-sonnet",
+                        "session_id": "550e8400-e29b-41d4-a716-446655440000"
+                    }
+                }
+            }
+        },
+        429: {"description": "速率限制 - 每分钟最多10次请求"},
+        500: {"description": "服务器内部错误"},
+    }
 )
 async def quick_chat(
     request: QuickChatRequest,
     db: AsyncSession = Depends(get_db),
 ) -> QuickChatResponse:
     """
-    快速对话接口
+    快速对话接口 - 3秒内响应的AI问答
 
-    - 3秒内响应
-    - 支持加密货币查询、市场概览等
-    - 简洁准确的回答
+    该端点使用轻量级LLM模型快速回答加密货币相关问题。
+
+    **特性:**
+    - ⚡ 目标响应时间 < 3秒
+    - 🤖 使用Claude 3.5 Sonnet模型
+    - 💬 支持多轮对话（通过session_id）
+    - 🔄 自动识别查询类型（价格、新闻、技术分析等）
+
+    **支持的查询类型:**
+    - 价格查询: "What is the current price of Bitcoin?"
+    - 市场概览: "Tell me about Ethereum's performance today"
+    - 技术解释: "How does Uniswap work?"
+    - 对比分析: "Compare Bitcoin and Ethereum"
+
+    **速率限制:**
+    - 10次/分钟（基于IP）
+    - 超过限制返回429状态码
+
+    **请求示例:**
+    ```bash
+    curl -X POST "http://localhost:8000/api/v1/chat/quick-chat" \\
+      -H "Content-Type: application/json" \\
+      -d '{
+        "query": "What is the current price of Bitcoin?",
+        "session_id": null
+      }'
+    ```
+
+    **响应示例:**
+    ```json
+    {
+      "content": "Bitcoin (BTC) is currently trading at $45,000...",
+      "symbol": "BTC",
+      "query_type": "price",
+      "response_time": 2.3,
+      "model": "anthropic/claude-3.5-sonnet",
+      "session_id": "550e8400-e29b-41d4-a716-446655440000"
+    }
+    ```
+
+    **错误响应示例:**
+    ```json
+    {
+      "detail": "Quick Chat处理失败: API timeout"
+    }
+    ```
     """
     try:
         # 生成或使用现有session_id
@@ -139,17 +201,123 @@ async def quick_chat_stream(
     summary="深度研究",
     description="生成15-30秒的全面深度研究报告",
     tags=["Research"],
+    responses={
+        200: {
+            "description": "成功生成深度研究报告",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "report_id": 123,
+                        "symbol": "BTC",
+                        "query": "Bitcoin",
+                        "tldr": "Bitcoin is showing bullish momentum with strong fundamentals...",
+                        "sections": {
+                            "market_overview": "...",
+                            "technical_analysis": "...",
+                            "sentiment": "...",
+                            "onchain": "...",
+                            "tokenomics": "...",
+                            "risks": "..."
+                        },
+                        "conclusion": "Overall outlook is positive...",
+                        "markdown_content": "# Bitcoin Deep Research Report...",
+                        "data_sources": ["CoinGecko", "Etherscan", "Twitter"],
+                        "models_used": ["claude-3.5-sonnet", "llama-3.1-70b"],
+                        "generation_time": 25.3,
+                        "quality_score": 92,
+                        "timestamp": "2025-01-26T10:00:00",
+                        "session_id": "550e8400-e29b-41d4-a716-446655440000"
+                    }
+                }
+            }
+        },
+        404: {"description": "未找到指定的加密货币"},
+        429: {"description": "速率限制 - 每小时最多3次请求"},
+        500: {"description": "服务器内部错误"},
+    }
 )
 async def deep_research(
     request: DeepResearchRequest,
     db: AsyncSession = Depends(get_db),
 ) -> DeepResearchResponse:
     """
-    深度研究接口
+    深度研究接口 - 生成全面的加密货币研究报告
 
-    - 15-30秒生成时间
-    - 六维度全面分析
-    - 生成结构化Markdown报告
+    该端点使用多个AI模型和数据源生成全面的深度研究报告,包含六个核心维度的分析。
+
+    **特性:**
+    - 📊 六维度分析（市场、技术、情绪、链上、代币经济、风险）
+    - 🤖 多模型协同（Claude + Llama + GPT）
+    - 📈 5个数据源集成（CoinGecko, Etherscan, Twitter, Reddit, CryptoPanic）
+    - 📝 结构化Markdown报告
+    - 💾 自动保存到数据库
+    - 📊 质量评分（0-100分）
+
+    **六大分析维度:**
+    1. **市场概览** - 价格、市值、交易量、排名
+    2. **技术分析** - 趋势、支撑阻力、技术指标
+    3. **情绪分析** - 社交媒体、新闻情绪
+    4. **链上数据** - 活跃地址、交易量、持币分布
+    5. **代币经济** - 供应模型、分配机制
+    6. **风险评估** - 技术风险、监管风险、市场风险
+
+    **生成时间:**
+    - 目标: 15-30秒
+    - 最大: 60秒（超时）
+
+    **速率限制:**
+    - 3次/小时（基于IP）
+    - 超过限制返回429状态码
+
+    **请求示例:**
+    ```bash
+    curl -X POST "http://localhost:8000/api/v1/chat/deep-research" \\
+      -H "Content-Type: application/json" \\
+      -d '{
+        "query": "Bitcoin",
+        "symbol": "BTC",
+        "session_id": null
+      }'
+    ```
+
+    **响应示例:**
+    ```json
+    {
+      "report_id": 123,
+      "symbol": "BTC",
+      "query": "Bitcoin",
+      "tldr": "Bitcoin shows bullish momentum with strong fundamentals...",
+      "sections": {
+        "market_overview": "Current price: $45,000...",
+        "technical_analysis": "Strong uptrend with RSI at 65...",
+        "sentiment": "Positive sentiment across social media...",
+        "onchain": "Active addresses increasing...",
+        "tokenomics": "Fixed supply of 21M BTC...",
+        "risks": "Regulatory uncertainty remains..."
+      },
+      "conclusion": "Overall outlook is positive with moderate risk...",
+      "markdown_content": "# Bitcoin Deep Research Report\\n\\n## TLDR...",
+      "data_sources": ["CoinGecko", "Etherscan", "Twitter"],
+      "models_used": ["claude-3.5-sonnet", "llama-3.1-70b"],
+      "generation_time": 25.3,
+      "quality_score": 92,
+      "timestamp": "2025-01-26T10:00:00Z",
+      "session_id": "550e8400-e29b-41d4-a716-446655440000"
+    }
+    ```
+
+    **错误响应示例:**
+    ```json
+    {
+      "detail": "未找到加密货币: XYZ"
+    }
+    ```
+
+    **质量评分标准:**
+    - 90-100分: 优秀（所有维度完整，数据丰富）
+    - 70-89分: 良好（大部分维度完整）
+    - 50-69分: 一般（部分维度缺失）
+    - <50分: 需改进（多个维度缺失）
     """
     try:
         # 生成或使用现有session_id

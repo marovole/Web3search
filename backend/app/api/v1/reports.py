@@ -12,6 +12,9 @@ from app.schemas.report import (
     ReportResponse,
     ReportListResponse,
     ReportSummary,
+    ShareReportRequest,
+    ShareReportResponse,
+    SharedReportResponse,
 )
 from app.models.report import Report, ReportType, ReportStatus
 
@@ -29,6 +32,35 @@ router = APIRouter()
     summary="获取报告列表",
     description="分页查询报告列表，支持筛选和排序",
     tags=["Reports"],
+    responses={
+        200: {
+            "description": "成功返回报告列表",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "reports": [
+                            {
+                                "id": 123,
+                                "title": "Bitcoin 深度研究报告",
+                                "symbol": "BTC",
+                                "query": "Bitcoin",
+                                "tldr": "Bitcoin shows bullish momentum...",
+                                "report_type": "deep_research",
+                                "status": "completed",
+                                "quality_score": 92,
+                                "generation_time": 25.3,
+                                "created_at": "2025-01-26T10:00:00"
+                            }
+                        ],
+                        "total": 1,
+                        "page": 1,
+                        "page_size": 10
+                    }
+                }
+            }
+        },
+        500: {"description": "服务器内部错误"},
+    }
 )
 async def get_reports(
     symbol: Optional[str] = Query(None, description="按币种筛选"),
@@ -41,11 +73,60 @@ async def get_reports(
     db: AsyncSession = Depends(get_db),
 ) -> ReportListResponse:
     """
-    获取报告列表
+    获取报告列表 - 分页查询所有研究报告
 
-    - 支持分页
-    - 支持按币种、类型、状态筛选
-    - 支持排序
+    该端点返回分页的报告列表,支持多维度筛选和排序。
+
+    **筛选选项:**
+    - `symbol`: 按币种筛选（如 BTC, ETH）
+    - `report_type`: 按类型筛选（deep_research, quick_analysis）
+    - `status`: 按状态筛选（completed, processing, failed）
+
+    **排序选项:**
+    - `order_by`: 排序字段（created_at, quality_score, generation_time）
+    - `order_desc`: 是否降序（true/false）
+
+    **分页:**
+    - `page`: 页码（从1开始）
+    - `page_size`: 每页数量（1-100）
+
+    **速率限制:**
+    - 30次/分钟（基于IP）
+
+    **请求示例:**
+    ```bash
+    # 获取所有BTC报告，按创建时间降序
+    curl "http://localhost:8000/api/v1/reports?symbol=BTC&page=1&page_size=10&order_by=created_at&order_desc=true"
+
+    # 获取所有已完成的深度研究报告
+    curl "http://localhost:8000/api/v1/reports?report_type=deep_research&status=completed"
+
+    # 按质量评分降序获取报告
+    curl "http://localhost:8000/api/v1/reports?order_by=quality_score&order_desc=true"
+    ```
+
+    **响应示例:**
+    ```json
+    {
+      "reports": [
+        {
+          "id": 123,
+          "title": "Bitcoin 深度研究报告",
+          "symbol": "BTC",
+          "query": "Bitcoin",
+          "tldr": "Bitcoin shows bullish momentum with strong fundamentals...",
+          "report_type": "deep_research",
+          "status": "completed",
+          "quality_score": 92,
+          "generation_time": 25.3,
+          "created_at": "2025-01-26T10:00:00"
+        }
+      ],
+      "total": 1,
+      "page": 1,
+      "page_size": 10
+    }
+    ```
     """
     try:
         # 构建查询
@@ -125,16 +206,82 @@ async def get_reports(
     summary="获取报告详情",
     description="获取完整的报告内容",
     tags=["Reports"],
+    responses={
+        200: {
+            "description": "成功返回报告详情",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": 123,
+                        "symbol": "BTC",
+                        "query": "Bitcoin",
+                        "title": "Bitcoin 深度研究报告",
+                        "markdown_content": "# Bitcoin Deep Research Report\n\n## TLDR\n...",
+                        "tldr": "Bitcoin shows bullish momentum...",
+                        "report_type": "deep_research",
+                        "status": "completed",
+                        "quality_score": 92,
+                        "generation_time": 25.3,
+                        "data_sources": ["CoinGecko", "Etherscan"],
+                        "created_at": "2025-01-26T10:00:00",
+                        "completed_at": "2025-01-26T10:00:25"
+                    }
+                }
+            }
+        },
+        404: {"description": "报告不存在"},
+        500: {"description": "服务器内部错误"},
+    }
 )
 async def get_report(
     report_id: int,
     db: AsyncSession = Depends(get_db),
 ) -> ReportResponse:
     """
-    获取报告详情
+    获取报告详情 - 获取完整的研究报告内容
 
-    - 返回完整的Markdown报告
-    - 包含所有元数据
+    该端点返回指定报告的完整内容,包括Markdown格式的报告正文。
+
+    **返回内容:**
+    - 完整的Markdown报告
+    - 所有分析维度数据
+    - 质量评分和元数据
+    - 数据源列表
+    - 生成时间戳
+
+    **速率限制:**
+    - 30次/分钟（基于IP）
+
+    **请求示例:**
+    ```bash
+    curl "http://localhost:8000/api/v1/reports/123"
+    ```
+
+    **响应示例:**
+    ```json
+    {
+      "id": 123,
+      "symbol": "BTC",
+      "query": "Bitcoin",
+      "title": "Bitcoin 深度研究报告",
+      "markdown_content": "# Bitcoin Deep Research Report\\n\\n## TLDR\\nBitcoin shows bullish momentum...",
+      "tldr": "Bitcoin shows bullish momentum with strong fundamentals...",
+      "report_type": "deep_research",
+      "status": "completed",
+      "quality_score": 92,
+      "generation_time": 25.3,
+      "data_sources": ["CoinGecko", "Etherscan", "Twitter"],
+      "created_at": "2025-01-26T10:00:00",
+      "completed_at": "2025-01-26T10:00:25"
+    }
+    ```
+
+    **错误响应:**
+    ```json
+    {
+      "detail": "报告不存在"
+    }
+    ```
     """
     try:
         # 查询报告
@@ -285,4 +432,224 @@ async def get_report_stats(
         raise HTTPException(
             status_code=500,
             detail=f"查询失败: {str(e)}"
+        )
+
+
+# ================================
+# 报告分享API
+# ================================
+
+@router.post(
+    "/reports/{report_id}/share",
+    response_model=ShareReportResponse,
+    summary="创建分享链接",
+    description="为报告生成分享链接，可设置过期时间",
+    tags=["Reports"],
+    responses={
+        200: {
+            "description": "成功创建分享链接",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "share_token": "abc123def456",
+                        "share_url": "https://web3search.com/shared/abc123def456",
+                        "expires_at": "2025-02-26T10:00:00"
+                    }
+                }
+            }
+        },
+        400: {"description": "只能分享已完成的报告"},
+        404: {"description": "报告不存在"},
+        500: {"description": "服务器内部错误"},
+    }
+)
+async def create_share_link(
+    report_id: int,
+    request: ShareReportRequest,
+    db: AsyncSession = Depends(get_db),
+) -> ShareReportResponse:
+    """
+    创建报告分享链接 - 生成可公开访问的报告链接
+
+    该端点为已完成的报告生成唯一的分享链接,无需认证即可访问。
+
+    **特性:**
+    - 🔗 生成唯一的分享令牌
+    - ⏰ 可设置过期时间（1-365天）
+    - 🔒 只能分享已完成的报告
+    - 🚫 可随时禁用分享链接
+
+    **请求参数:**
+    - `expires_in_days`: 过期天数（1-365天，默认30天）
+
+    **请求示例:**
+    ```bash
+    curl -X POST "http://localhost:8000/api/v1/reports/123/share" \\
+      -H "Content-Type: application/json" \\
+      -d '{
+        "expires_in_days": 30
+      }'
+    ```
+
+    **响应示例:**
+    ```json
+    {
+      "share_token": "abc123def456",
+      "share_url": "https://web3search.com/shared/abc123def456",
+      "expires_at": "2025-02-26T10:00:00"
+    }
+    ```
+
+    **使用分享链接:**
+    ```bash
+    # 任何人都可以通过分享链接访问报告
+    curl "http://localhost:8000/api/v1/reports/shared/abc123def456"
+    ```
+
+    **错误响应:**
+    ```json
+    {
+      "detail": "只能分享已完成的报告"
+    }
+    ```
+    """
+    try:
+        # 查询报告
+        stmt = select(Report).where(Report.id == report_id)
+        result = await db.execute(stmt)
+        report = result.scalar_one_or_none()
+
+        if not report:
+            raise HTTPException(status_code=404, detail="报告不存在")
+
+        # 只能分享已完成的报告
+        if not report.is_completed:
+            raise HTTPException(status_code=400, detail="只能分享已完成的报告")
+
+        # 启用分享并生成令牌
+        share_token = report.enable_sharing(expires_in_days=request.expires_in_days)
+
+        # 保存到数据库
+        await db.commit()
+        await db.refresh(report)
+
+        # 构建分享URL（TODO: 从配置获取域名）
+        share_url = f"https://web3search.com/shared/{share_token}"
+
+        return ShareReportResponse(
+            share_token=share_token,
+            share_url=share_url,
+            expires_at=report.share_expires_at.isoformat() if report.share_expires_at else None
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ 创建分享链接错误: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"创建分享链接失败: {str(e)}"
+        )
+
+
+@router.get(
+    "/reports/shared/{share_token}",
+    response_model=SharedReportResponse,
+    summary="获取分享报告",
+    description="通过分享令牌获取报告内容",
+    tags=["Reports"],
+)
+async def get_shared_report(
+    share_token: str,
+    db: AsyncSession = Depends(get_db),
+) -> SharedReportResponse:
+    """
+    获取分享的报告
+
+    - 通过分享令牌访问
+    - 验证过期时间
+    - 不需要认证
+    """
+    try:
+        # 查询报告
+        stmt = select(Report).where(Report.share_token == share_token)
+        result = await db.execute(stmt)
+        report = result.scalar_one_or_none()
+
+        if not report:
+            raise HTTPException(status_code=404, detail="分享链接不存在")
+
+        # 验证分享链接是否有效
+        if not report.is_share_valid:
+            raise HTTPException(status_code=403, detail="分享链接已过期或已禁用")
+
+        # 构建响应（不包含敏感信息）
+        response = SharedReportResponse(
+            title=report.title or f"{report.symbol} 研究报告",
+            symbol=report.symbol or "Unknown",
+            markdown_content=report.content_markdown or "",
+            tldr=report.tldr or "",
+            report_type=report.report_type.value,
+            quality_score=report.quality_score,
+            data_sources=report.data_sources,
+            created_at=report.created_at.isoformat(),
+        )
+
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ 获取分享报告错误: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"获取分享报告失败: {str(e)}"
+        )
+
+
+@router.delete(
+    "/reports/{report_id}/share",
+    summary="禁用分享链接",
+    description="禁用报告的分享链接",
+    tags=["Reports"],
+)
+async def disable_share_link(
+    report_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    禁用分享链接
+
+    - 禁用后分享链接将无法访问
+    - 需要管理员权限（后续添加）
+    """
+    try:
+        # 查询报告
+        stmt = select(Report).where(Report.id == report_id)
+        result = await db.execute(stmt)
+        report = result.scalar_one_or_none()
+
+        if not report:
+            raise HTTPException(status_code=404, detail="报告不存在")
+
+        # 禁用分享
+        report.disable_sharing()
+        await db.commit()
+
+        return {
+            "message": "分享链接已禁用",
+            "report_id": report_id
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ 禁用分享链接错误: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"禁用分享链接失败: {str(e)}"
         )

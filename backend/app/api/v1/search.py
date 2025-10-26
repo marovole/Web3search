@@ -39,37 +39,95 @@ class AutocompleteResponse(BaseModel):
 # ================================
 
 
-@router.get("/search/autocomplete", response_model=AutocompleteResponse)
+@router.get(
+    "/search/autocomplete",
+    response_model=AutocompleteResponse,
+    summary="搜索自动补全",
+    description="根据用户输入返回匹配的加密货币列表",
+    tags=["Search"],
+    responses={
+        200: {
+            "description": "成功返回搜索结果",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "results": [
+                            {
+                                "coingecko_id": "bitcoin",
+                                "symbol": "BTC",
+                                "name": "Bitcoin",
+                                "market_cap_rank": 1,
+                                "thumb": "https://..."
+                            }
+                        ],
+                        "count": 1
+                    }
+                }
+            }
+        },
+        400: {"description": "搜索关键词无效"},
+        500: {"description": "服务器内部错误"},
+    }
+)
 async def autocomplete_search(
     q: str = Query(..., min_length=1, max_length=100, description="搜索关键词"),
 ) -> AutocompleteResponse:
     """
-    搜索自动补全API
+    搜索自动补全API - 实时搜索加密货币
 
-    根据用户输入的关键词，返回匹配的加密货币列表
+    该端点根据用户输入的关键词,返回匹配的加密货币列表。支持按币种名称或符号搜索。
 
-    Args:
-        q: 搜索关键词（币种名称或符号）
+    **特性:**
+    - ⚡ 快速响应（< 500ms）
+    - 🔍 模糊搜索（支持部分匹配）
+    - 📊 按市值排名排序
+    - 🖼️ 包含币种图标
+    - 💰 CoinGecko数据源
 
-    Returns:
-        AutocompleteResponse: 搜索结果列表
+    **搜索策略:**
+    - 优先匹配币种符号（如 "BTC" → Bitcoin）
+    - 其次匹配币种名称（如 "bit" → Bitcoin, BitTorrent）
+    - 最多返回10个结果
 
-    Example:
-        GET /api/v1/search/autocomplete?q=btc
+    **速率限制:**
+    - 30次/分钟（基于IP）
 
-        Response:
+    **请求示例:**
+    ```bash
+    # 搜索BTC
+    curl "http://localhost:8000/api/v1/search/autocomplete?q=btc"
+
+    # 搜索包含"uni"的币种
+    curl "http://localhost:8000/api/v1/search/autocomplete?q=uni"
+    ```
+
+    **响应示例:**
+    ```json
+    {
+      "results": [
         {
-            "results": [
-                {
-                    "coingecko_id": "bitcoin",
-                    "symbol": "BTC",
-                    "name": "Bitcoin",
-                    "market_cap_rank": 1,
-                    "thumb": "https://..."
-                }
-            ],
-            "count": 1
+          "coingecko_id": "bitcoin",
+          "symbol": "BTC",
+          "name": "Bitcoin",
+          "market_cap_rank": 1,
+          "thumb": "https://assets.coingecko.com/coins/images/1/thumb/bitcoin.png"
+        },
+        {
+          "coingecko_id": "bitcoin-cash",
+          "symbol": "BCH",
+          "name": "Bitcoin Cash",
+          "market_cap_rank": 20,
+          "thumb": "https://..."
         }
+      ],
+      "count": 2
+    }
+    ```
+
+    **用途:**
+    - 🔍 前端搜索框自动补全
+    - 📝 用户输入验证
+    - 🎯 币种选择器
     """
     # 调用CoinGecko搜索
     results = await coingecko_collector.search_coins(q)

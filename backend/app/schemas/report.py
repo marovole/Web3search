@@ -134,3 +134,61 @@ class ReportQueryParams(BaseModel):
                 "order_desc": True
             }
         }
+
+
+# ================================
+# Report Sharing Schemas
+# ================================
+
+class ShareReportRequest(BaseModel):
+    """创建分享链接请求"""
+    expires_in_days: Optional[int] = Field(None, description="过期天数（None表示永久）", ge=1, le=365)
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "expires_in_days": 30
+            }
+        }
+
+
+class ShareReportResponse(BaseModel):
+    """分享链接响应"""
+    share_token: str = Field(..., description="分享令牌")
+    share_url: str = Field(..., description="完整分享URL")
+    expires_at: Optional[str] = Field(None, description="过期时间")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "share_token": "abc123xyz789",
+                "share_url": "https://web3search.com/shared/abc123xyz789",
+                "expires_at": "2025-02-25T10:30:00Z"
+            }
+        }
+
+
+class SharedReportResponse(BaseModel):
+    """分享报告内容响应"""
+    title: str = Field(..., description="报告标题")
+    symbol: str = Field(..., description="币种符号")
+    markdown_content: str = Field(..., description="Markdown格式报告")
+    tldr: str = Field(..., description="TL;DR摘要")
+    report_type: str = Field(..., description="报告类型")
+    quality_score: Optional[int] = Field(None, description="质量得分")
+    data_sources: Optional[List[str]] = Field(None, description="数据来源")
+    created_at: str = Field(..., description="创建时间")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "title": "BTC 深度研究报告",
+                "symbol": "BTC",
+                "markdown_content": "# BTC 深度研究报告\n\n## TL;DR\n...",
+                "tldr": "比特币是第一大加密货币...",
+                "report_type": "deep_research",
+                "quality_score": 90,
+                "data_sources": ["CoinGecko", "Twitter", "Reddit"],
+                "created_at": "2025-01-25T10:30:00Z"
+            }
+        }

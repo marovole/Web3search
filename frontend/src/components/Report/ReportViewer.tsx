@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import type { SharedReportResponse } from '../../types'
 import ExportButton from './ExportButton'
 import AddButton from '../Watchlist/AddButton'
+import CodeBlock from '../Common/CodeBlock'
 
 interface ReportViewerProps {
   report: SharedReportResponse
@@ -170,26 +169,8 @@ const ReportViewer: React.FC<ReportViewerProps> = ({ report }) => {
                     .replace(/^-|-$/g, '')
                   return <h4 id={id}>{children}</h4>
                 },
-                // Code blocks
-                // @ts-ignore - react-markdown types compatibility
-                code({ node, inline, className, children, ...props }) {
-                  const match = /language-(\w+)/.exec(className || '')
-                  return !inline && match ? (
-                    // @ts-ignore - SyntaxHighlighter types compatibility
-                    <SyntaxHighlighter
-                      {...props}
-                      style={tomorrow}
-                      language={match[1]}
-                      PreTag="div"
-                    >
-                      {String(children).replace(/\n$/, '')}
-                    </SyntaxHighlighter>
-                  ) : (
-                    <code {...props} className={className}>
-                      {children}
-                    </code>
-                  )
-                },
+                // Code blocks - using type-safe CodeBlock component
+                code: CodeBlock,
                 // Tables
                 table({ children }) {
                   return (

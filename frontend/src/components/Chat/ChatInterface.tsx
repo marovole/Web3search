@@ -114,7 +114,6 @@ const ChatInterface: React.FC = () => {
     eventSourceRef.current = eventSource
 
     let accumulatedContent = ''
-    let stageIndex = 0
     const loadingStages = [
       '正在采集市场数据...',
       '正在分析链上活动...',
@@ -130,7 +129,6 @@ const ChatInterface: React.FC = () => {
         // Update loading stage
         if (data.stage !== undefined && data.stage < loadingStages.length) {
           setLoadingStage(data.stage)
-          stageIndex = data.stage
         }
 
         // Append content

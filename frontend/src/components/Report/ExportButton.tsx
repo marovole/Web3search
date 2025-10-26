@@ -22,7 +22,11 @@ const ExportButton: React.FC<ExportButtonProps> = ({
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${symbol}_report_${Date.now()}.md`
+    // Use reportTitle for better filename, fallback to symbol
+    const filename = reportTitle
+      ? `${reportTitle.replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, '_')}_${Date.now()}.md`
+      : `${symbol}_report_${Date.now()}.md`
+    a.download = filename
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)

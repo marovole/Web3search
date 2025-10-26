@@ -1,9 +1,8 @@
 import React from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import type { Message } from '../../types'
+import CodeBlock from '../Common/CodeBlock'
 
 interface MessageBubbleProps {
   message: Message
@@ -26,27 +25,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                // Code block with syntax highlighting
-                // @ts-ignore - react-markdown types compatibility
-                code({ node, inline, className, children, ...props }) {
-                  const match = /language-(\w+)/.exec(className || '')
-                  return !inline && match ? (
-                    // @ts-ignore - SyntaxHighlighter types compatibility
-                    <SyntaxHighlighter
-                      {...props}
-                      style={tomorrow}
-                      language={match[1]}
-                      PreTag="div"
-                      className="rounded-md text-sm"
-                    >
-                      {String(children).replace(/\n$/, '')}
-                    </SyntaxHighlighter>
-                  ) : (
-                    <code {...props} className={`${className} bg-gray-100 px-1 py-0.5 rounded text-sm`}>
-                      {children}
-                    </code>
-                  )
-                },
+                // Code block with syntax highlighting - using type-safe CodeBlock component
+                code: CodeBlock,
                 // Table styling
                 table({ children }) {
                   return (
