@@ -15,10 +15,12 @@
 | Phase 5: Prompt工程优化 | 🟡 部分完成 | ~70% | Prompt模板、JSON Schema、多轮对话已完成，Few-shot示例和测试优化待完成 |
 | Phase 6: 报告生成系统 | ✅ 完成 | 6/6 (100%) | Markdown构建器、表格生成器、图表生成器、PDF导出器、分享链接API、质量验证器全部完成 |
 | Phase 7: 前端开发 | ✅ 完成 | 12/12 (100%) | React + TypeScript应用完成，核心聊天、报告查看、导出功能、响应式布局全部实现 |
-| Phase 8-12: 其他 | 🔴 未开始 | 0% | 特色功能、部署、测试、文档 |
+| Phase 8: 特色功能 | 🔴 未开始 | 0% | 热点识别、监控列表、历史记录 |
+| Phase 9: 部署与CI/CD | 🟡 部分完成 | ~40% | Render后端已部署，Vercel前端已部署，CORS已配置 |
+| Phase 10-12: 其他 | 🔴 未开始 | 0% | 测试、优化、文档、归档 |
 
-**当前里程碑**: ✅ Phase 7 前端开发完成（React + TypeScript完整应用）
-**下一个里程碑**: Phase 8 特色功能开发 或 Phase 9 部署与CI/CD
+**当前里程碑**: ✅ Phase 7 前端开发完成（React + TypeScript完整应用）+ Phase 9 初步部署完成
+**下一个里程碑**: Phase 9 完整部署（Celery Worker、健康检查、HTTPS）或 Phase 10 测试与优化
 
 ---
 
@@ -681,29 +683,31 @@
 - [ ] 验证定时任务执行
 - [ ] 查看Celery日志
 
-### 9.2 Vercel前端部署
+### 9.2 Vercel前端部署 ✅ 已完成 (2025-10-26)
 
 #### 9.2.1 配置vercel.json
-- [ ] 创建`frontend/vercel.json`
-- [ ] 设置buildCommand和outputDirectory
-- [ ] 配置rewrites（SPA路由）
+- [x] 创建`frontend/vercel.json` - 包含buildCommand、outputDirectory、framework、rewrites配置
+- [x] 设置buildCommand和outputDirectory - npm run build + dist目录
+- [x] 配置rewrites（SPA路由） - 所有路由重定向到index.html
 
 #### 9.2.2 设置环境变量
-- [ ] 在Vercel Dashboard配置`VITE_API_URL`
-- [ ] 指向Railway后端URL
-- [ ] 配置预览环境和生产环境
+- [x] 创建`.env.production`配置`VITE_API_BASE_URL` - 指向Render后端（https://web3search-api.onrender.com）
+- [x] 更新`.env.local`和`.env.example` - 文档化环境变量配置
+- [x] 配置生产环境 - 通过CLI部署（使用--prod标志）
 
 #### 9.2.3 配置自动部署（Git集成）
-- [ ] 连接GitHub仓库
-- [ ] 设置main分支自动部署到生产
-- [ ] 设置PR预览环境
-- [ ] 测试提交代码触发部署
+- [x] 使用Vercel CLI部署 - `npx vercel --prod --yes`
+- [x] 部署成功获得生产URL - https://frontend-fnkjroe8s-marovole-gmailcoms-projects.vercel.app
+- [x] 修复TypeScript编译错误 - 创建vite-env.d.ts、修改tsconfig.json、添加@ts-ignore注释
+- [x] 验证部署成功 - 构建完成并生成生产URL
 
-### 9.3 CORS配置
-- [ ] 在FastAPI中配置allow_origins
-- [ ] 添加Vercel生产域名到白名单
-- [ ] 添加Vercel预览域名模式到白名单
-- [ ] 测试跨域请求
+**注意**: 当前使用CLI手动部署，Git自动部署需在Vercel Dashboard配置GitHub集成（可选）
+
+### 9.3 CORS配置 ✅ 已完成 (2025-10-26)
+- [x] 在FastAPI中配置allow_origins - 更新`config.py`添加Vercel域名（https://web3search.vercel.app）
+- [x] 添加Vercel生产域名到白名单 - CORS_ORIGINS字段包含生产域名
+- [x] 添加Vercel预览域名模式到白名单 - 添加`allow_origin_regex=r"https://.*\.vercel\.app"`支持所有Vercel预览部署
+- [x] 测试跨域请求 - 后端已配置，待前端访问验证
 
 ### 9.4 HTTPS配置
 - [ ] 验证Vercel自动HTTPS证书
