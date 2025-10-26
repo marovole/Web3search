@@ -189,15 +189,24 @@ async def init_database(force: bool = False):
         # 导入所有模型（确保SQLAlchemy注册所有表）
         from app.models import Project, ProjectSnapshot, Report, Conversation, Message  # noqa: F401
         from app.core.database import Base, engine
+        from sqlalchemy import text
 
-        # 如果force=True，先删除所有表
+        # 如果force=True，使用CASCADE彻底删除所有对象
         if force:
             async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.drop_all)
+                # 删除所有表及其依赖对象（索引、约束等）
+                await conn.execute(text(
+                    "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+                ))
+                # 恢复public schema的权限
+                await conn.execute(text(
+                    "GRANT ALL ON SCHEMA public TO postgres; "
+                    "GRANT ALL ON SCHEMA public TO public;"
+                ))
 
-        # 创建所有表（checkfirst=True会检查表是否已存在）
+        # 创建所有表
         async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all, checkfirst=True)
+            await conn.run_sync(Base.metadata.create_all)
 
         # 获取创建的表列表
         tables = [table.name for table in Base.metadata.sorted_tables]
