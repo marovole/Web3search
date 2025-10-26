@@ -185,7 +185,7 @@ async def init_database():
     try:
         # 导入所有模型
         from app.models import project, snapshot, report, conversation  # noqa: F401
-        from app.core.database import Base
+        from app.core.database import Base, engine
 
         # 创建所有表
         async with engine.connect() as conn:
@@ -216,6 +216,7 @@ async def list_tables():
     """
     try:
         from sqlalchemy import text
+        from app.core.database import engine
         async with engine.connect() as conn:
             result = await conn.execute(text(
                 "SELECT tablename FROM pg_tables WHERE schemaname='public'"
