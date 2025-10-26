@@ -149,7 +149,44 @@ async def health_check():
         health_status["redis"] = f"error: {str(e)}"
         health_status["status"] = "unhealthy"
 
-    # 如果有服务不健康，返回503状态码
+    # 检查Celery状态
+    try:
+        from app.tasks.celery_app import celery_app
+
+        # 检查broker连接（通过ping Redis）
+        redis = await get_async_redis()
+        await redis.ping()
+        broker_status = "connected"
+
+        # 尝试获取active workers信息
+        try:
+            # 使用Celery inspect获取worker状态
+            inspect = celery_app.control.inspect()
+            stats = inspect.stats(timeout=1.0)
+            active_workers = len(stats) if stats else 0
+
+            health_status["celery"] = {
+                "broker": broker_status,
+                "workers": active_workers,
+                "status": "running" if active_workers > 0 else "no_workers"
+            }
+
+            # 如果没有worker运行，标记为警告（不影响API服务）
+            if active_workers == 0:
+                health_status["celery"]["warning"] = "No active workers detected"
+        except Exception:
+            # 如果无法获取worker信息，标记为unknown（不影响API服务）
+            health_status["celery"] = {
+                "broker": broker_status,
+                "workers": "unknown",
+                "status": "unknown"
+            }
+    except Exception as e:
+        health_status["celery"] = f"error: {str(e)}"
+        # Celery问题不影响API服务的健康状态
+        # health_status["status"] = "unhealthy"
+
+    # 如果有关键服务不健康，返回503状态码
     status_code = 200 if health_status["status"] == "healthy" else 503
 
     return JSONResponse(content=health_status, status_code=status_code)

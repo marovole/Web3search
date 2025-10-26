@@ -26,8 +26,97 @@ services:
         fromDatabase:
           name: web3search-redis
           property: connectionString
+      - key: CELERY_BROKER_URL
+        fromDatabase:
+          name: web3search-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromDatabase:
+          name: web3search-redis
+          property: connectionString
       - key: CORS_ORIGINS
         value: "*"
+
+  # Celery Worker服务（执行异步任务）
+  - type: worker
+    name: web3search-celery-worker
+    env: python
+    runtime: python-3.11.0
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && celery -A app.tasks.celery_app worker -l info -Q high_priority,default,low_priority --concurrency 2
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: false
+      - key: LOG_LEVEL
+        value: INFO
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: web3search-db
+          property: connectionString
+      - key: REDIS_URL
+        fromDatabase:
+          name: web3search-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromDatabase:
+          name: web3search-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromDatabase:
+          name: web3search-redis
+          property: connectionString
+      # 数据源API Keys（需要在Render控制台设置）
+      - key: COINGECKO_API_KEY
+        sync: false
+      - key: ETHERSCAN_API_KEY
+        sync: false
+      - key: TWITTER_BEARER_TOKEN
+        sync: false
+      - key: REDDIT_CLIENT_ID
+        sync: false
+      - key: REDDIT_CLIENT_SECRET
+        sync: false
+
+  # Celery Beat服务（定时任务调度器）
+  - type: worker
+    name: web3search-celery-beat
+    env: python
+    runtime: python-3.11.0
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && celery -A app.tasks.celery_app beat -l info
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: false
+      - key: LOG_LEVEL
+        value: INFO
+      - key: DATABASE_URL
+        fromDatabase:
+          name: web3search-db
+          property: connectionString
+      - key: REDIS_URL
+        fromDatabase:
+          name: web3search-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromDatabase:
+          name: web3search-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromDatabase:
+          name: web3search-redis
+          property: connectionString
 
 databases:
   # PostgreSQL数据库

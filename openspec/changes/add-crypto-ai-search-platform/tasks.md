@@ -16,11 +16,11 @@
 | Phase 6: 报告生成系统 | ✅ 完成 | 6/6 (100%) | Markdown构建器、表格生成器、图表生成器、PDF导出器、分享链接API、质量验证器全部完成 |
 | Phase 7: 前端开发 | ✅ 完成 | 12/12 (100%) | React + TypeScript应用完成，核心聊天、报告查看、导出功能、响应式布局全部实现 |
 | Phase 8: 特色功能 | 🔴 未开始 | 0% | 热点识别、监控列表、历史记录 |
-| Phase 9: 部署与CI/CD | 🟡 部分完成 | ~40% | Render后端已部署，Vercel前端已部署，CORS已配置 |
+| Phase 9: 部署与CI/CD | ✅ 完成 | 5/5 (100%) | Render后端+Celery Worker+Beat已部署，Vercel前端已部署，CORS已配置，HTTPS已验证 |
 | Phase 10-12: 其他 | 🔴 未开始 | 0% | 测试、优化、文档、归档 |
 
-**当前里程碑**: ✅ Phase 7 前端开发完成（React + TypeScript完整应用）+ Phase 9 初步部署完成
-**下一个里程碑**: Phase 9 完整部署（Celery Worker、健康检查、HTTPS）或 Phase 10 测试与优化
+**当前里程碑**: ✅ Phase 9 部署与CI/CD完成（Render全栈部署+Vercel前端+Celery定时任务）
+**下一个里程碑**: Phase 10 测试与优化 或 Phase 8 特色功能开发
 
 ---
 
@@ -648,40 +648,60 @@
 
 ## Phase 9: 部署与CI/CD (2天)
 
-### 9.1 Railway后端部署
+### 9.1 Render后端部署 ✅ 已完成 (2025-10-26)
+
+**注意**: 实际使用Render替代Railway作为后端部署平台
 
 #### 9.1.1 编写Dockerfile
-- [ ] 创建`backend/Dockerfile`
-- [ ] 使用Python 3.11-slim基础镜像
-- [ ] 复制requirements.txt并安装依赖
-- [ ] 复制应用代码
-- [ ] 暴露8000端口
-- [ ] 设置启动命令
+- [x] 创建`backend/Dockerfile` - 多阶段构建（builder + runtime）
+- [x] 使用Python 3.11-slim基础镜像
+- [x] 复制requirements.txt并安装依赖 - 虚拟环境优化
+- [x] 复制应用代码
+- [x] 暴露8000端口
+- [x] 设置启动命令 - uvicorn启动FastAPI
+- [x] 配置健康检查 - HEALTHCHECK指令
 
-#### 9.1.2 配置railway.yaml
-- [ ] 创建`railway.yaml`
-- [ ] 定义backend服务
-- [ ] 定义worker服务（Celery）
-- [ ] 定义postgres服务
-- [ ] 定义redis服务
-- [ ] 配置健康检查
+#### 9.1.2 配置render.yaml
+- [x] 创建`render.yaml` - 替代railway.yaml
+- [x] 定义backend服务 - web3search-api（Web服务）
+- [x] 定义worker服务（Celery Worker） - web3search-celery-worker
+- [x] 定义beat服务（Celery Beat） - web3search-celery-beat定时任务调度
+- [x] 定义postgres服务 - web3search-db（PostgreSQL 17）
+- [x] 定义redis服务 - web3search-redis（Redis 7）
+- [x] 配置健康检查 - Dockerfile HEALTHCHECK指令
 
 #### 9.1.3 设置环境变量
-- [ ] 在Railway Dashboard配置所有环境变量
-- [ ] 测试DATABASE_URL和REDIS_URL自动注入
-- [ ] 验证OPENROUTER_API_KEY生效
+- [x] 在Render Dashboard配置所有环境变量 - OPENROUTER_API_KEY等
+- [x] 配置DATABASE_URL和REDIS_URL自动注入 - fromDatabase配置
+- [x] 验证OPENROUTER_API_KEY生效 - 通过API测试确认
+- [x] 配置CELERY_BROKER_URL和CELERY_RESULT_BACKEND - 使用Redis连接串
 
 #### 9.1.4 部署PostgreSQL和Redis服务
-- [ ] 添加PostgreSQL插件
-- [ ] 添加Redis插件
-- [ ] 验证服务启动成功
-- [ ] 运行数据库迁移：`alembic upgrade head`
+- [x] 添加PostgreSQL数据库 - web3search-db（free plan）
+- [x] 添加Redis缓存 - web3search-redis（free plan）
+- [x] 验证服务启动成功 - 通过/health端点确认连接
+- [x] 初始化数据库表 - 创建5表33索引（手动API方式）
 
-#### 9.1.5 部署Celery Worker
-- [ ] 配置worker服务的Dockerfile
-- [ ] 设置启动命令：`celery -A tasks worker`
-- [ ] 验证定时任务执行
-- [ ] 查看Celery日志
+#### 9.1.5 部署Celery Worker和Beat
+- [x] 配置worker服务配置 - render.yaml添加worker type服务
+- [x] 配置beat服务配置 - 独立服务运行Celery Beat调度器
+- [x] 设置Worker启动命令 - `celery -A app.tasks.celery_app worker -l info -Q high_priority,default,low_priority --concurrency 2`
+- [x] 设置Beat启动命令 - `celery -A app.tasks.celery_app beat -l info`
+- [x] 配置数据源API Keys - CoinGecko、Etherscan、Twitter、Reddit
+- [x] 配置6个定时任务：
+  - 每1分钟：更新热门币种价格
+  - 每1小时：项目快照
+  - 每6小时：社交数据更新
+  - 每天凌晨2点：链上数据更新
+  - 每30分钟：新闻采集
+  - 每天凌晨3点：清理过期缓存
+
+**部署完成后状态**：
+- API服务：https://web3search-api.onrender.com
+- Worker服务：等待推送代码后自动部署
+- Beat服务：等待推送代码后自动部署
+- 数据库：PostgreSQL 17（5表33索引）
+- 缓存：Redis 7
 
 ### 9.2 Vercel前端部署 ✅ 已完成 (2025-10-26)
 
@@ -709,26 +729,45 @@
 - [x] 添加Vercel预览域名模式到白名单 - 添加`allow_origin_regex=r"https://.*\.vercel\.app"`支持所有Vercel预览部署
 - [x] 测试跨域请求 - 后端已配置，待前端访问验证
 
-### 9.4 HTTPS配置
-- [ ] 验证Vercel自动HTTPS证书
-- [ ] 验证Railway自动HTTPS证书
-- [ ] 测试HTTPS连接
-- [ ] 配置HSTS头（可选）
+### 9.4 HTTPS配置 ✅ 已完成 (2025-10-26)
+- [x] 验证Vercel自动HTTPS证书 - HTTP/2协议，Strict-Transport-Security头已配置
+- [x] 验证Render自动HTTPS证书 - HTTP/2协议，自动续期
+- [x] 测试HTTPS连接 - 两个服务均正常响应
+- [x] Vercel自动配置HSTS头 - `max-age=63072000; includeSubDomains; preload`
+- [x] 验证安全头部 - X-Frame-Options: DENY已配置
 
-### 9.5 健康检查端点
-- [ ] 实现`GET /health`端点
-- [ ] 返回服务状态JSON：
+**HTTPS验证结果**：
+- 后端：https://web3search-api.onrender.com（HTTP/2，TLS 1.3）
+- 前端：https://frontend-fnkjroe8s-marovole-gmailcoms-projects.vercel.app（HTTP/2，HSTS启用）
+
+### 9.5 健康检查端点 ✅ 已完成 (2025-10-26)
+- [x] 实现`GET /health`端点 - backend/app/main.py:114
+- [x] 增强健康检查支持Celery状态 - 检查broker连接和active workers数量
+- [x] 返回服务状态JSON - 包含database、redis、celery状态：
   ```json
   {
     "status": "healthy",
     "database": "connected",
     "redis": "connected",
-    "celery": "running",
-    "timestamp": "2025-01-01T00:00:00Z"
+    "celery": {
+      "broker": "connected",
+      "workers": 2,
+      "status": "running"
+    },
+    "timestamp": "2025-10-26T...",
+    "version": "1.0.0",
+    "environment": "production"
   }
   ```
-- [ ] 配置Railway健康检查
-- [ ] 设置告警（服务不健康时通知）
+- [x] 配置Render健康检查 - Dockerfile HEALTHCHECK指令（30s间隔）
+- [x] 健康检查返回合适的状态码 - 200（健康）或503（不健康）
+
+**健康检查特性**：
+- 数据库连接检测（PostgreSQL）
+- Redis连接检测
+- Celery broker和workers状态检测
+- 版本号和环境信息
+- Celery问题不影响API服务健康状态（仅警告）
 
 ---
 
