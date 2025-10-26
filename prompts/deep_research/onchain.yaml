@@ -1,0 +1,438 @@
+# ================================
+# 链上数据分析提示词模板
+# 参考：openspec/changes/add-crypto-ai-search-platform/specs/ai-analysis/spec.md
+# Scenario: 链上数据分析（基本面）
+# ================================
+
+system_prompt: |
+  你是一位专业的区块链链上数据分析师，擅长解读链上活动、协议基本面和持币分布，评估项目的真实使用情况和价值捕获能力。
+  你的任务是分析用户活动、协议收入、TVL、持币集中度等链上指标，提供客观的基本面评估。
+
+user_prompt_template: |
+  请对 **{symbol}** 进行链上数据分析（基本面分析）：
+
+  # 基本信息
+  - 项目名称：{project_name}
+  - 当前价格：${current_price}
+  - 市值：${market_cap}
+  - 市值排名：#{market_cap_rank}
+
+  ---
+
+  ## 用户活动指标
+
+  ### 活跃地址
+  - 24h活跃地址：{active_addresses_24h}
+  - 7d活跃地址：{active_addresses_7d}
+  - 30d活跃地址：{active_addresses_30d}
+  - 活跃地址变化趋势：{active_addresses_trend}
+
+  ### 累计用户
+  - 累计唯一地址数：{total_unique_addresses}
+  - 30d新增地址：{new_addresses_30d}
+  - 新用户增长率：{new_user_growth_rate}%
+
+  ### 交易活动
+  - 24h交易数：{transactions_24h}
+  - 7d平均交易数：{avg_transactions_7d}
+  - 30d交易总数：{total_transactions_30d}
+  - 交易量趋势：{transaction_trend}
+
+  ---
+
+  ## 协议基本面（适用于DeFi/Layer1/Layer2）
+
+  ### 锁定价值（TVL）
+  - 当前TVL：${current_tvl}
+  - 30d TVL变化：{tvl_change_30d}%
+  - 90d TVL变化：{tvl_change_90d}%
+  - TVL排名：#{tvl_rank}
+
+  ### 协议收入
+  - 30d协议费用：${protocol_fees_30d}
+  - 30d协议收入：${protocol_revenue_30d}
+  - 年化收入（估算）：${annualized_revenue}
+  - 收入增长率：{revenue_growth_rate}%
+
+  ### 收入分配
+  - 质押者分成：{staker_share}%
+  - 国库/回购：{treasury_buyback_share}%
+  - 燃烧：{burn_share}%
+  - 团队/开发者：{team_share}%
+
+  ### 回购/燃烧活动
+  - 30d回购金额：${buyback_amount_30d}
+  - 30d燃烧数量：{burn_amount_30d} {symbol}
+  - 回购/燃烧对供应的影响：{supply_impact}%
+
+  ---
+
+  ## 持币分布与鲸鱼活动
+
+  ### 持币集中度
+  - Top 10持币者占比：{top_10_holders_pct}%
+  - Top 100持币者占比：{top_100_holders_pct}%
+  - 基尼系数：{gini_coefficient}（0=完全平等，1=完全集中）
+  - 集中度评级：{concentration_rating}
+
+  ### 鲸鱼活动（持仓>$1M的地址）
+  - 鲸鱼地址数量：{whale_count}
+  - 鲸鱼总持仓占比：{whale_holdings_pct}%
+  - 30d鲸鱼净流入/流出：{whale_net_flow_30d} {symbol}
+  - 鲸鱼活动趋势：{whale_activity_trend}
+
+  ### 机构持币者
+  - 已知机构地址数量：{institutional_addresses}
+  - 机构持币总量：{institutional_holdings} {symbol}
+  - 机构持币占比：{institutional_holdings_pct}%
+  - 主要机构：{major_institutions}
+
+  ### 交易所余额
+  - 交易所总余额：{exchange_balance} {symbol}
+  - 交易所余额占比：{exchange_balance_pct}%
+  - 30d交易所净流入/流出：{exchange_net_flow_30d} {symbol}
+  - 解读：流出表示投资者提币到钱包（看涨），流入表示准备卖出（看跌）
+
+  ---
+
+  ## 输出要求
+
+  请按照以下**JSON格式**输出分析结果：
+
+  ```json
+  {
+    "user_activity": {
+      "active_addresses": {
+        "daily": 50000,
+        "weekly": 200000,
+        "monthly": 500000,
+        "trend": "上升 | 稳定 | 下降",
+        "growth_rate_30d": "+15%",
+        "interpretation": "活跃地址持续增长，用户采纳加速。"
+      },
+      "new_users": {
+        "new_addresses_30d": 100000,
+        "growth_rate": "+20%",
+        "interpretation": "新用户涌入，生态扩张显著。"
+      },
+      "transaction_activity": {
+        "daily_txs": 150000,
+        "trend": "上升 | 稳定 | 下降",
+        "interpretation": "交易活动活跃，链上使用强劲。"
+      },
+      "overall_narrative": "用户活动指标强劲，日活地址和新用户增长均超过20%，显示项目吸引力增强。交易活动持续上升，链上使用真实且健康。"
+    },
+    "protocol_fundamentals": {
+      "tvl": {
+        "current": 5000000000,
+        "change_30d": "+25%",
+        "change_90d": "+50%",
+        "rank": 5,
+        "interpretation": "TVL快速增长，资金流入强劲，协议吸引力高。"
+      },
+      "revenue": {
+        "fees_30d": 10000000,
+        "revenue_30d": 7000000,
+        "annualized_revenue": 84000000,
+        "growth_rate": "+30%",
+        "interpretation": "协议收入快速增长，盈利能力强。"
+      },
+      "revenue_distribution": {
+        "staker_share": 70,
+        "treasury_buyback": 20,
+        "burn": 10,
+        "model": "质押者为主的收入分配模型",
+        "interpretation": "质押者获得大部分收入，激励机制良好。"
+      },
+      "buyback_burn": {
+        "buyback_30d": 2000000,
+        "burn_30d": 50000,
+        "supply_impact": "-0.5%",
+        "interpretation": "持续回购和燃烧减少供应，支撑代币价格。"
+      },
+      "valuation_metrics": {
+        "market_cap": 1500000000,
+        "tvl": 5000000000,
+        "mcap_to_tvl": 0.3,
+        "pe_ratio": 17.9,
+        "interpretation": "估值合理，MC/TVL=0.3低于行业平均，PE=17.9显示盈利质量高。"
+      },
+      "overall_narrative": "协议基本面优秀。TVL增长25%，年化收入$84M且持续增长30%。收入分配向质押者倾斜，持续回购减少供应。估值指标MC/TVL=0.3和PE=17.9均显示价值被低估。"
+    },
+    "token_distribution": {
+      "concentration": {
+        "top_10_pct": 35,
+        "top_100_pct": 65,
+        "gini_coefficient": 0.72,
+        "rating": "中等集中度 | 高集中度 | 低集中度",
+        "interpretation": "持币集中度适中，Top 10持有35%，筹码分布相对健康。"
+      },
+      "whale_activity": {
+        "whale_count": 150,
+        "whale_holdings_pct": 40,
+        "net_flow_30d": "+5000000",
+        "trend": "积累 | 分销 | 稳定",
+        "interpretation": "鲸鱼地址30天净流入$5M，大户在积极建仓，看涨信号。"
+      },
+      "institutional_holders": {
+        "count": 15,
+        "holdings_pct": 12,
+        "major_institutions": ["灰度信托", "Galaxy Digital", "Jump Crypto"],
+        "interpretation": "机构持仓12%，包含知名机构，资金结构成熟。"
+      },
+      "exchange_balance": {
+        "balance_pct": 15,
+        "net_flow_30d": "-50000000",
+        "interpretation": "交易所余额占比15%，30天净流出$50M，用户提币到钱包持有，看涨信号。"
+      },
+      "overall_narrative": "持币分布健康，集中度适中。鲸鱼和机构在积极建仓，交易所大量净流出显示持有者信心增强。筹码结构支持价格上涨。"
+    },
+    "onchain_health_score": {
+      "score": 85,
+      "rating": "优秀 | 良好 | 一般 | 差",
+      "strengths": [
+        "用户活动持续增长",
+        "协议收入快速增长",
+        "鲸鱼积极建仓",
+        "交易所净流出"
+      ],
+      "weaknesses": [
+        "TVL波动较大",
+        "持币集中度偏高"
+      ],
+      "outlook": "链上基本面强劲，用户增长和协议收入均健康。鲸鱼积累和交易所流出支持价格上涨。建议关注TVL稳定性。"
+    },
+    "data_sources": ["Etherscan", "Dune Analytics", "Nansen"],
+    "updated_at": "2025-10-25T14:30:00Z"
+  }
+  ```
+
+  ## 格式说明
+
+  ### user_activity（用户活动）
+  - active_addresses: 活跃地址数据和趋势
+  - new_users: 新用户增长数据
+  - transaction_activity: 交易活动数据
+  - overall_narrative: 100-150字的用户活动总结
+
+  ### protocol_fundamentals（协议基本面）
+  - tvl: TVL数据和变化趋势
+  - revenue: 收入数据和增长率
+  - revenue_distribution: 收入分配模型
+  - buyback_burn: 回购和燃烧数据
+  - valuation_metrics: 估值指标（MC/TVL、P/E等）
+  - overall_narrative: 150-200字的基本面总结
+
+  ### token_distribution（持币分布）
+  - concentration: 持币集中度和基尼系数
+  - whale_activity: 鲸鱼活动和趋势
+  - institutional_holders: 机构持币情况
+  - exchange_balance: 交易所余额和流向
+  - overall_narrative: 100-150字的持币分布总结
+
+  ### onchain_health_score（链上健康度评分）
+  - score: 0-100分
+  - rating: 优秀(80+)、良好(60-79)、一般(40-59)、差(<40)
+  - strengths: 优势点（3-5条）
+  - weaknesses: 劣势点（1-3条）
+  - outlook: 未来展望（50-100字）
+
+  ## 估值指标说明
+
+  ### MC/TVL（市值/锁定价值）
+  - < 0.5: 估值偏低，可能被低估
+  - 0.5-1.5: 合理估值区间
+  - > 1.5: 估值偏高，可能被高估
+
+  ### P/E（市盈率）
+  - 计算：市值 / 年化收入
+  - < 20: 估值合理
+  - 20-50: 增长溢价
+  - > 50: 估值偏高
+
+  ### P/S（市销率）
+  - 计算：市值 / 年化费用
+  - 用于尚未盈利的协议
+
+  ## 注意事项
+
+  1. **真实性验证**：区分真实用户和机器人/刷量地址
+  2. **数据时效性**：链上数据更新频率高，注意数据时间戳
+  3. **跨链分析**：多链部署的项目需要汇总所有链的数据
+  4. **收入质量**：区分可持续收入和一次性收入
+  5. **鲸鱼识别**：识别交易所、团队、基金会等非真实鲸鱼
+  6. **缺失数据处理**：某些指标可能不适用（如非DeFi项目无TVL），标注"N/A"
+
+  现在请开始对 **{symbol}** 进行链上数据分析：
+
+# ================================
+# 输出格式验证规则
+# ================================
+output_validation:
+  required_fields:
+    - user_activity
+    - protocol_fundamentals
+    - token_distribution
+    - onchain_health_score
+    - data_sources
+    - updated_at
+
+  user_activity_structure:
+    required_fields:
+      - active_addresses
+      - new_users
+      - transaction_activity
+      - overall_narrative
+
+  protocol_fundamentals_structure:
+    required_fields:
+      - tvl
+      - revenue
+      - revenue_distribution
+      - valuation_metrics
+      - overall_narrative
+
+  token_distribution_structure:
+    required_fields:
+      - concentration
+      - whale_activity
+      - exchange_balance
+      - overall_narrative
+
+  onchain_health_score_structure:
+    required_fields:
+      - score
+      - rating
+      - strengths
+      - weaknesses
+      - outlook
+    score_range:
+      min: 0
+      max: 100
+    rating_values:
+      - "优秀"
+      - "良好"
+      - "一般"
+      - "差"
+
+# ================================
+# 示例输出（参考）
+# ================================
+example_output:
+  ethereum_example: |
+    {
+      "user_activity": {
+        "active_addresses": {
+          "daily": 450000,
+          "weekly": 1500000,
+          "monthly": 3000000,
+          "trend": "稳定",
+          "growth_rate_30d": "+5%",
+          "interpretation": "ETH活跃地址稳定在高位，日活45万，显示网络使用成熟且持续。"
+        },
+        "new_users": {
+          "new_addresses_30d": 500000,
+          "growth_rate": "+8%",
+          "interpretation": "新用户持续涌入，月新增50万地址，生态扩张健康。"
+        },
+        "transaction_activity": {
+          "daily_txs": 1200000,
+          "trend": "上升",
+          "interpretation": "日交易量120万笔，Layer2采纳推动交易活动上升。"
+        },
+        "overall_narrative": "ETH用户活动健康，日活地址45万稳定在高位，新用户月增长8%显示生态持续扩张。交易活动上升得益于Layer2采纳。整体链上使用强劲。"
+      },
+      "protocol_fundamentals": {
+        "tvl": {
+          "current": 50000000000,
+          "change_30d": "+10%",
+          "change_90d": "+25%",
+          "rank": 1,
+          "interpretation": "ETH TVL达$50B，稳居第一，30天增长10%，资金持续流入。"
+        },
+        "revenue": {
+          "fees_30d": 150000000,
+          "revenue_30d": 150000000,
+          "annualized_revenue": 1800000000,
+          "growth_rate": "+15%",
+          "interpretation": "ETH年化收入$1.8B，月增长15%，盈利能力行业领先。"
+        },
+        "revenue_distribution": {
+          "staker_share": 100,
+          "treasury_buyback": 0,
+          "burn": 0,
+          "model": "质押者获得全部收入（EIP-1559燃烧base fee）",
+          "interpretation": "ETH采用燃烧+质押奖励模型，base fee燃烧减少供应，优先费奖励验证者。"
+        },
+        "buyback_burn": {
+          "buyback_30d": 0,
+          "burn_30d": 50000,
+          "supply_impact": "-0.3%",
+          "interpretation": "EIP-1559燃烧机制持续减少供应，30天燃烧5万ETH，年化通胀率降至0.5%。"
+        },
+        "valuation_metrics": {
+          "market_cap": 420000000000,
+          "tvl": 50000000000,
+          "mcap_to_tvl": 8.4,
+          "pe_ratio": 233,
+          "interpretation": "ETH估值较高，MC/TVL=8.4和PE=233反映其作为底层资产的溢价和网络效应。"
+        },
+        "overall_narrative": "ETH基本面强劲。TVL$50B稳居第一，年化收入$1.8B且持续增长。EIP-1559燃烧机制使ETH转为通缩，供应减少支撑价格。虽然估值指标偏高（MC/TVL=8.4），但作为Layer1龙头享受溢价合理。"
+      },
+      "token_distribution": {
+        "concentration": {
+          "top_10_pct": 25,
+          "top_100_pct": 45,
+          "gini_coefficient": 0.65,
+          "rating": "中等集中度",
+          "interpretation": "ETH持币分布相对分散，Top 10持有25%，基尼系数0.65，筹码结构健康。"
+        },
+        "whale_activity": {
+          "whale_count": 2500,
+          "whale_holdings_pct": 35,
+          "net_flow_30d": "+500000",
+          "trend": "积累",
+          "interpretation": "鲸鱼地址30天净流入50万ETH（约$17.5亿），大户持续建仓，看涨信号。"
+        },
+        "institutional_holders": {
+          "count": 50,
+          "holdings_pct": 8,
+          "major_institutions": ["灰度ETHE", "Galaxy Digital", "a16z", "Paradigm"],
+          "interpretation": "机构持仓8%，包含顶级加密基金，资金结构成熟。"
+        },
+        "exchange_balance": {
+          "balance_pct": 12,
+          "net_flow_30d": "-1000000",
+          "interpretation": "交易所余额占比12%，30天净流出100万ETH（约$35亿），持有者信心强，看涨信号。"
+        },
+        "overall_narrative": "ETH持币分布健康，集中度适中。鲸鱼和机构持续积累，交易所大量净流出（月流出$35亿）显示持有者长期看好。筹码结构稳固，支持价格上涨。"
+      },
+      "onchain_health_score": {
+        "score": 90,
+        "rating": "优秀",
+        "strengths": [
+          "活跃地址和交易量稳定在高位",
+          "协议收入$1.8B行业第一",
+          "EIP-1559燃烧使ETH转为通缩",
+          "鲸鱼和机构持续积累",
+          "交易所大量净流出"
+        ],
+        "weaknesses": [
+          "估值指标偏高（MC/TVL=8.4）",
+          "Layer2竞争分流部分价值"
+        ],
+        "outlook": "ETH链上基本面优秀，用户活动、协议收入、鲸鱼活动均健康。燃烧机制使供应减少，交易所净流出支持价格。虽然估值较高，但作为Layer1龙头享受溢价合理。长期看涨。"
+      },
+      "data_sources": ["Etherscan", "Glassnode", "Nansen", "Dune Analytics"],
+      "updated_at": "2025-10-25T14:30:00Z"
+    }
+
+# ================================
+# 模型配置
+# ================================
+model_config:
+  primary_model: "qwen/qwen3-235b-a22b:free"
+  fallback_model: "qwen/qwen3-30b-a3b:free"
+  temperature: 0.4  # 适中温度
+  max_tokens: 2000
+  response_format: "json_object"

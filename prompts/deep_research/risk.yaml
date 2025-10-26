@@ -1,0 +1,487 @@
+# Risk Assessment Prompt Template
+# 风险评估 - 识别催化剂、风险因素、影响评估
+
+system_prompt: |
+  你是一位专业的加密货币风险分析师，擅长识别项目的催化剂和风险因素，评估影响程度和发生概率。
+
+  你的分析应该：
+  1. **催化剂识别**：识别未来 4-8 周可能的利好事件（产品上线/合作公告/代币解锁结束/监管利好）
+  2. **风险因素识别**：识别监管风险、技术风险、竞争风险、市场风险、代币经济学风险
+  3. **影响评估**：评估每个催化剂/风险的潜在影响程度（高/中/低）
+  4. **概率评估**：评估事件发生的可能性（高/中/低）
+  5. **时间维度**：明确事件的时间窗口（短期 1-2 周/中期 1-2 月/长期 3-6 月）
+  6. **综合评估**：给出风险/回报比和整体风险评级
+
+  分析框架：
+  - 使用 SWOT 分析框架（优势/劣势/机会/威胁）
+  - 评估不对称风险（小概率高影响事件）
+  - 关注尾部风险（黑天鹅事件）
+  - 识别系统性风险 vs 项目特定风险
+  - 评估风险相关性（多个风险同时发生的可能性）
+
+user_prompt_template: |
+  请评估 **{symbol}** 的风险和催化剂：
+
+  ## 项目基本信息
+  - 项目名称：{name}
+  - 类别：{category}
+  - 市值：${market_cap:,.0f}
+  - 日活用户：{active_users_24h}
+
+  ## 近期事件和里程碑
+  {recent_events}
+
+  ## 竞争环境
+  {competition_summary}
+
+  ## 代币解锁情况
+  {unlock_summary}
+
+  ## 技术/产品状态
+  {tech_status}
+
+  ## 监管环境
+  {regulatory_environment}
+
+  ## 输出要求
+  请严格按照以下 JSON 格式输出分析结果：
+
+  ```json
+  {
+    "catalysts": {
+      "short_term": [
+        {
+          "event": "V3版本上线",
+          "timeframe": "2-4周",
+          "impact": "高 | 中 | 低",
+          "probability": "高 | 中 | 低",
+          "description": "详细描述催化剂及其影响",
+          "price_impact": "+10-15%"
+        }
+      ],
+      "medium_term": [
+        {
+          "event": "主网升级",
+          "timeframe": "1-2月",
+          "impact": "中",
+          "probability": "高",
+          "description": "描述",
+          "price_impact": "+5-10%"
+        }
+      ],
+      "long_term": [
+        {
+          "event": "监管明确",
+          "timeframe": "3-6月",
+          "impact": "高",
+          "probability": "中",
+          "description": "描述",
+          "price_impact": "+20-30%"
+        }
+      ]
+    },
+    "risks": {
+      "regulatory": [
+        {
+          "risk": "SEC执法行动",
+          "severity": "高 | 中 | 低",
+          "probability": "高 | 中 | 低",
+          "timeframe": "1-3月",
+          "impact_description": "详细描述风险及其影响",
+          "price_impact": "-30-50%",
+          "mitigation": "项目已采取的缓解措施"
+        }
+      ],
+      "technical": [
+        {
+          "risk": "智能合约漏洞",
+          "severity": "高",
+          "probability": "低",
+          "timeframe": "随时",
+          "impact_description": "描述",
+          "price_impact": "-20-40%",
+          "mitigation": "多次审计、漏洞赏金计划"
+        }
+      ],
+      "competitive": [
+        {
+          "risk": "竞品推出更优产品",
+          "severity": "中",
+          "probability": "中",
+          "timeframe": "2-4月",
+          "impact_description": "描述",
+          "price_impact": "-10-20%",
+          "mitigation": "持续产品创新"
+        }
+      ],
+      "market": [
+        {
+          "risk": "加密市场整体下跌",
+          "severity": "高",
+          "probability": "中",
+          "timeframe": "不确定",
+          "impact_description": "描述",
+          "price_impact": "-40-60%",
+          "mitigation": "无法控制（系统性风险）"
+        }
+      ],
+      "tokenomics": [
+        {
+          "risk": "大额代币解锁抛压",
+          "severity": "中",
+          "probability": "高",
+          "timeframe": "3月",
+          "impact_description": "描述",
+          "price_impact": "-15-25%",
+          "mitigation": "团队承诺不抛售"
+        }
+      ]
+    },
+    "risk_reward_analysis": {
+      "upside_potential": "+50-80%",
+      "downside_risk": "-30-50%",
+      "risk_reward_ratio": 1.5,
+      "asymmetry": "正向不对称 | 负向不对称 | 对称",
+      "rationale": "催化剂多于风险，上涨潜力大于下跌风险"
+    },
+    "tail_risks": [
+      {
+        "event": "智能合约被黑客攻击",
+        "probability": "极低",
+        "impact": "极高",
+        "description": "虽然概率极低，但一旦发生将导致协议崩溃"
+      },
+      {
+        "event": "创始人跑路",
+        "probability": "极低",
+        "impact": "极高",
+        "description": "团队信誉良好，但不排除此类极端风险"
+      }
+    ],
+    "scenario_analysis": {
+      "bull_case": {
+        "triggers": ["所有催化剂兑现", "市场情绪转好", "无重大风险发生"],
+        "price_target": "+100-150%",
+        "probability": "20%"
+      },
+      "base_case": {
+        "triggers": ["部分催化剂兑现", "市场中性", "小风险发生"],
+        "price_target": "+20-40%",
+        "probability": "50%"
+      },
+      "bear_case": {
+        "triggers": ["催化剂未兑现", "市场下跌", "重大风险发生"],
+        "price_target": "-30-50%",
+        "probability": "30%"
+      }
+    },
+    "overall_risk_rating": {
+      "rating": "低风险 | 中等风险 | 高风险 | 极高风险",
+      "score": 6,
+      "risk_factors_summary": "主要风险为监管不确定性和代币解锁抛压",
+      "catalyst_summary": "多个近期催化剂，上涨潜力较大",
+      "recommendation": "可以配置 | 谨慎配置 | 建议观望 | 建议规避"
+    },
+    "summary": "风险评估总结（2-3句话）"
+  }
+  ```
+
+output_format:
+  catalysts:
+    short_term: "短期催化剂列表（2-4周）"
+    medium_term: "中期催化剂列表（1-2月）"
+    long_term: "长期催化剂列表（3-6月）"
+
+  risks:
+    regulatory: "监管风险列表"
+    technical: "技术风险列表"
+    competitive: "竞争风险列表"
+    market: "市场风险列表"
+    tokenomics: "代币经济学风险列表"
+
+  risk_reward_analysis:
+    upside_potential: "上涨潜力"
+    downside_risk: "下跌风险"
+    risk_reward_ratio: "风险回报比（数字）"
+    asymmetry: "不对称性"
+    rationale: "分析理由"
+
+  tail_risks:
+    - event: "尾部风险事件"
+      probability: "发生概率"
+      impact: "影响程度"
+      description: "描述"
+
+  scenario_analysis:
+    bull_case: "牛市情景"
+    base_case: "基准情景"
+    bear_case: "熊市情景"
+
+  overall_risk_rating:
+    rating: "整体风险评级"
+    score: "风险分数（0-10，10为最高风险）"
+    risk_factors_summary: "风险因素总结"
+    catalyst_summary: "催化剂总结"
+    recommendation: "投资建议"
+
+  summary: "简洁总结"
+
+validation_rules:
+  required_fields:
+    - catalysts
+    - risks
+    - risk_reward_analysis
+    - tail_risks
+    - scenario_analysis
+    - overall_risk_rating
+    - summary
+
+  catalysts_rules:
+    - 每个时间段必须包含至少1个催化剂
+    - impact必须是"高/中/低"之一
+    - probability必须是"高/中/低"之一
+
+  risks_rules:
+    - 每个风险类别必须包含至少1个风险
+    - severity必须是"高/中/低"之一
+    - probability必须是"高/中/低"之一
+
+  risk_reward_analysis_rules:
+    - risk_reward_ratio必须是正数
+    - asymmetry必须是"正向不对称/负向不对称/对称"之一
+
+  tail_risks_rules:
+    - 必须包含至少2个尾部风险
+    - probability必须是"极低/低/中"之一
+    - impact必须是"极高/高/中"之一
+
+  scenario_analysis_rules:
+    - 必须包含bull_case、base_case、bear_case
+    - 每个场景必须包含triggers、price_target、probability
+
+  overall_risk_rating_rules:
+    - rating必须是"低风险/中等风险/高风险/极高风险"之一
+    - score必须在0-10之间
+    - recommendation必须是预定义建议之一
+
+examples:
+  - input:
+      symbol: "UNI"
+      name: "Uniswap"
+      category: "DEX"
+      market_cap: 4500000000
+      active_users_24h: 150000
+      recent_events: |
+        - Uniswap X 聚合器测试版上线（2周前）
+        - Uniswap V4 开发中，预计 Q2 上线
+        - 社区提议开启费用开关投票（1月内）
+      competition_summary: |
+        - 主要竞品：PancakeSwap, SushiSwap, Curve
+        - Uniswap 市场份额稳定（60% ETH DEX）
+        - Layer2 DEX 崛起带来竞争压力
+      unlock_summary: |
+        - 未来6个月解锁 25M UNI（3.3%流通量）
+        - 解锁压力较小，分散在多个月份
+      tech_status: |
+        - V3 运行稳定，无重大安全事件
+        - V4 开发进展顺利，引入 Hooks 机制创新
+        - 已通过多次智能合约审计
+      regulatory_environment: |
+        - SEC 将部分 DeFi 协议列为执法目标
+        - Uniswap Labs 曾收到 SEC 问询（2021年）
+        - 监管不确定性仍存在
+
+    output:
+      catalysts:
+        short_term:
+          - event: "费用开关投票"
+            timeframe: "2-4周"
+            impact: "高"
+            probability: "高"
+            description: "社区投票决定是否开启 0.05% 协议费用。若通过，UNI 质押者将获得交易费分成，年化收入可达 $500M+"
+            price_impact: "+15-25%"
+          - event: "Uniswap X 正式上线"
+            timeframe: "1-2月"
+            impact: "中"
+            probability: "高"
+            description: "聚合器正式上线，整合跨链流动性，提升用户体验和交易量"
+            price_impact: "+10-15%"
+
+        medium_term:
+          - event: "Uniswap V4 主网上线"
+            timeframe: "2-3月"
+            impact: "高"
+            probability: "中"
+            description: "V4 引入 Hooks 机制，允许自定义流动性池逻辑，技术领先优势扩大"
+            price_impact: "+20-30%"
+          - event: "主流 CEX 上线 UNI 永续合约"
+            timeframe: "1-2月"
+            impact: "中"
+            probability: "中"
+            description: "增加 UNI 流动性和曝光度，吸引更多投机需求"
+            price_impact: "+5-10%"
+
+        long_term:
+          - event: "监管明确（DeFi 豁免）"
+            timeframe: "6-12月"
+            impact: "高"
+            probability: "低"
+            description: "若监管明确 DeFi 不受证券法监管，将消除最大不确定性"
+            price_impact: "+50-80%"
+          - event: "以太坊 Dencun 升级降低 L2 成本"
+            timeframe: "3-6月"
+            impact: "中"
+            probability: "高"
+            description: "L2 成本降低，Uniswap L2 版本吸引更多用户"
+            price_impact: "+10-20%"
+
+      risks:
+        regulatory:
+          - risk: "SEC 将 UNI 定义为证券"
+            severity: "高"
+            probability: "中"
+            timeframe: "6-12月"
+            impact_description: "若 SEC 认定 UNI 为证券，Uniswap Labs 可能面临巨额罚款，CEX 可能下架 UNI"
+            price_impact: "-50-70%"
+            mitigation: "Uniswap Labs 与监管机构沟通，强调 UNI 为治理代币而非证券"
+
+          - risk: "全球 DeFi 监管趋严"
+            severity: "中"
+            probability: "高"
+            timeframe: "持续"
+            impact_description: "全球监管趋严可能限制 DeFi 发展，影响用户增长"
+            price_impact: "-20-30%"
+            mitigation: "协议去中心化程度高，难以被关闭"
+
+        technical:
+          - risk: "智能合约漏洞被利用"
+            severity: "高"
+            probability: "低"
+            timeframe: "随时"
+            impact_description: "智能合约漏洞可能导致资金被盗，协议信誉受损"
+            price_impact: "-40-60%"
+            mitigation: "已通过 Trail of Bits、Consensys 等多次审计，漏洞赏金计划运行中"
+
+          - risk: "V4 上线延迟或出现 Bug"
+            severity: "中"
+            probability: "中"
+            timeframe: "Q2-Q3"
+            impact_description: "V4 开发复杂度高，可能延迟上线或出现技术问题"
+            price_impact: "-10-20%"
+            mitigation: "充分测试，分阶段上线"
+
+        competitive:
+          - risk: "Layer2 原生 DEX 抢夺市场份额"
+            severity: "中"
+            probability: "高"
+            timeframe: "持续"
+            impact_description: "dYdX、Vertex 等 L2 原生 DEX 性能更优，可能分流用户"
+            price_impact: "-15-25%"
+            mitigation: "Uniswap 已部署多个 L2，品牌优势明显"
+
+          - risk: "聚合器降低协议直接流量"
+            severity: "低"
+            probability: "高"
+            timeframe: "持续"
+            impact_description: "1inch、Matcha 等聚合器降低用户对单一 DEX 的依赖"
+            price_impact: "-5-10%"
+            mitigation: "Uniswap X 本身是聚合器，化被动为主动"
+
+        market:
+          - risk: "加密市场熊市"
+            severity: "高"
+            probability: "中"
+            timeframe: "不确定"
+            impact_description: "整体市场下跌，DeFi 代币普遍下跌"
+            price_impact: "-50-70%"
+            mitigation: "无法控制，系统性风险"
+
+          - risk: "ETH 价格大跌影响 DeFi"
+            severity: "中"
+            probability: "中"
+            timeframe: "不确定"
+            impact_description: "ETH 下跌影响 DeFi 协议 TVL 和交易量"
+            price_impact: "-30-40%"
+            mitigation: "多链部署分散风险"
+
+        tokenomics:
+          - risk: "投资人和团队解锁抛售"
+            severity: "低"
+            probability: "中"
+            timeframe: "未来 6 个月"
+            impact_description: "25M UNI 解锁（3.3% 流通量），可能带来抛压"
+            price_impact: "-10-15%"
+            mitigation: "解锁量较小，分散在多个月份"
+
+          - risk: "费用开关投票未通过"
+            severity: "中"
+            probability: "低"
+            timeframe: "1 个月"
+            impact_description: "若费用开关未通过，UNI 价值捕获机制继续缺失"
+            price_impact: "-15-20%"
+            mitigation: "社区普遍支持费用开关"
+
+      risk_reward_analysis:
+        upside_potential: "+50-100%"
+        downside_risk: "-30-50%"
+        risk_reward_ratio: 2.0
+        asymmetry: "正向不对称"
+        rationale: "多个近期催化剂（费用开关、V4 上线），上涨潜力大于下跌风险。监管风险虽存在，但概率中等且有缓解措施"
+
+      tail_risks:
+        - event: "智能合约被黑客攻击，资金被盗"
+          probability: "极低"
+          impact: "极高"
+          description: "虽然 Uniswap 已通过多次审计且无重大安全事件，但不排除未发现的漏洞。一旦发生，协议信誉崩溃"
+
+        - event: "SEC 紧急冻结 Uniswap Labs 资产"
+          probability: "极低"
+          impact: "极高"
+          description: "极端监管场景，概率极低但影响巨大"
+
+        - event: "以太坊网络长时间停机"
+          probability: "极低"
+          impact: "高"
+          description: "以太坊网络出现重大技术故障，影响所有 DeFi 协议"
+
+      scenario_analysis:
+        bull_case:
+          triggers:
+            - "费用开关投票通过"
+            - "Uniswap V4 成功上线"
+            - "监管明确 DeFi 豁免"
+            - "ETH 价格上涨带动 DeFi 复苏"
+          price_target: "+100-150%"
+          probability: "25%"
+
+        base_case:
+          triggers:
+            - "费用开关通过或 V4 上线"
+            - "市场中性，无重大监管风险"
+            - "Layer2 发展带来用户增长"
+          price_target: "+30-50%"
+          probability: "50%"
+
+        bear_case:
+          triggers:
+            - "SEC 将 UNI 定义为证券"
+            - "加密市场熊市"
+            - "竞品推出更优产品抢夺份额"
+          price_target: "-40-60%"
+          probability: "25%"
+
+      overall_risk_rating:
+        rating: "中等风险"
+        score: 5
+        risk_factors_summary: "主要风险为监管不确定性（SEC 执法可能性中等）和市场系统性风险。技术风险较低，竞争风险可控"
+        catalyst_summary: "短期催化剂丰富（费用开关投票、Uniswap X 上线），中期 V4 上线潜力大。长期监管明确将消除最大不确定性"
+        recommendation: "可以配置"
+
+      summary: "Uniswap 具备多个短中期催化剂，风险回报比为 2.0（正向不对称）。主要风险为监管不确定性，但协议去中心化程度高、技术领先，整体风险可控。建议在基准情景下配置，并密切关注费用开关投票和 SEC 监管动态。"
+
+model_config:
+  primary_model: "meta-llama/llama-3.3-70b-instruct:free"
+  fallback_model: "qwen/qwen3-30b:free"
+  temperature: 0.6
+  max_tokens: 4000
+  top_p: 0.9

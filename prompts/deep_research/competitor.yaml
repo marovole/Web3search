@@ -1,0 +1,337 @@
+# Competitor Analysis Prompt Template
+# 竞品对比分析 - 识别竞品、对比关键指标、计算估值倍数
+
+system_prompt: |
+  你是一位专业的加密货币赛道分析专家，擅长识别竞争对手、对比关键指标、评估市场定位。
+
+  你的分析应该：
+  1. **赛道识别**：准确识别项目所在的细分赛道（DEX/借贷/衍生品/Layer1/Layer2/NFT市场等）
+  2. **竞品选择**：选择3-5个最直接的竞争对手（同赛道、同功能）
+  3. **指标对比**：对比市值、TVL、用户数、交易量、协议收入等关键指标
+  4. **估值分析**：计算并对比估值倍数（P/S、FDV/Revenue、FDV/TVL、P/E）
+  5. **竞争优势**：客观评估目标项目的竞争优势和劣势
+  6. **市场定位**：判断项目在赛道中的位置（领导者/挑战者/跟随者/创新者）
+
+  分析框架：
+  - 使用Porter五力模型评估竞争格局
+  - 对比技术架构、用户体验、生态系统成熟度
+  - 关注护城河（网络效应/品牌/技术壁垒/流动性）
+  - 评估市场份额趋势（增长/稳定/下降）
+
+user_prompt_template: |
+  请分析 **{symbol}** 在其赛道中的竞争地位：
+
+  ## 目标项目信息
+  - 项目名称：{name}
+  - 类别：{category}
+  - 市值：${market_cap:,.0f}
+  - TVL：${tvl:,.0f}
+  - 日活用户：{active_users_24h}
+  - 日交易量：${volume_24h:,.0f}
+  - 月协议收入：${protocol_revenue_30d:,.0f}
+
+  ## 竞品数据
+  {competitors_data}
+
+  ## 输出要求
+  请严格按照以下 JSON 格式输出分析结果：
+
+  ```json
+  {
+    "competitive_landscape": {
+      "sector": "DEX | 借贷协议 | Layer1 | Layer2 | NFT市场 | 衍生品交易所 | 跨链桥 | 稳定币 | 其他",
+      "market_size": "赛道总市值（美元）",
+      "growth_trend": "高速增长 | 稳定增长 | 成熟期 | 衰退期",
+      "key_trends": ["趋势1", "趋势2", "趋势3"],
+      "competition_intensity": "激烈 | 中等 | 温和"
+    },
+    "competitors": [
+      {
+        "name": "竞品1名称",
+        "symbol": "代币符号",
+        "market_cap": 5000000000,
+        "tvl": 3000000000,
+        "active_users_24h": 100000,
+        "volume_24h": 500000000,
+        "protocol_revenue_30d": 50000000,
+        "market_share": "15%",
+        "differentiation": "核心差异化点"
+      }
+    ],
+    "comparison_table": {
+      "metrics": ["市值", "TVL", "日活用户", "日交易量", "月收入"],
+      "target_project": {
+        "name": "{symbol}",
+        "values": [市值, TVL, 用户数, 交易量, 收入]
+      },
+      "competitors": [
+        {
+          "name": "竞品1",
+          "values": [市值, TVL, 用户数, 交易量, 收入]
+        }
+      ]
+    },
+    "valuation_multiples": {
+      "target_project": {
+        "ps_ratio": 5.2,
+        "fdv_to_revenue": 12.5,
+        "fdv_to_tvl": 1.8,
+        "pe_ratio": 25.0
+      },
+      "sector_median": {
+        "ps_ratio": 8.0,
+        "fdv_to_revenue": 15.0,
+        "fdv_to_tvl": 2.5,
+        "pe_ratio": 30.0
+      },
+      "valuation_assessment": "被低估 | 合理估值 | 被高估",
+      "rationale": "估值判断理由（1-2句话）"
+    },
+    "competitive_advantages": {
+      "strengths": [
+        "优势1（如：最低手续费）",
+        "优势2（如：最强流动性）",
+        "优势3（如：最佳用户体验）"
+      ],
+      "moat_score": 7,
+      "moat_types": ["网络效应", "品牌优势", "技术壁垒", "流动性护城河"]
+    },
+    "competitive_risks": {
+      "threats": [
+        "威胁1（如：竞品A推出新功能）",
+        "威胁2（如：市场份额被蚕食）",
+        "威胁3（如：监管压力）"
+      ],
+      "risk_level": "高 | 中 | 低"
+    },
+    "market_position": {
+      "ranking": "第1名 | 第2名 | 第3-5名 | 其他",
+      "position_type": "领导者 | 挑战者 | 跟随者 | 创新者",
+      "market_share_trend": "快速增长 | 稳定增长 | 持平 | 下降",
+      "strategic_recommendation": "积极持有 | 谨慎观望 | 建议规避"
+    },
+    "summary": "竞争分析总结（2-3句话）"
+  }
+  ```
+
+output_format:
+  competitive_landscape:
+    sector: "项目所在细分赛道"
+    market_size: "赛道总市值"
+    growth_trend: "赛道增长趋势"
+    key_trends: "3个关键趋势"
+    competition_intensity: "竞争激烈程度"
+
+  competitors:
+    - name: "竞品名称"
+      symbol: "代币符号"
+      market_cap: "市值（数字）"
+      tvl: "TVL（数字）"
+      active_users_24h: "日活用户（数字）"
+      volume_24h: "日交易量（数字）"
+      protocol_revenue_30d: "月收入（数字）"
+      market_share: "市场份额（百分比）"
+      differentiation: "差异化点"
+
+  comparison_table:
+    metrics: "对比指标列表"
+    target_project: "目标项目数据"
+    competitors: "竞品数据列表"
+
+  valuation_multiples:
+    target_project: "目标项目估值倍数"
+    sector_median: "赛道中位数"
+    valuation_assessment: "估值评估"
+    rationale: "判断理由"
+
+  competitive_advantages:
+    strengths: "3-5个竞争优势"
+    moat_score: "护城河分数（0-10）"
+    moat_types: "护城河类型列表"
+
+  competitive_risks:
+    threats: "3-5个竞争威胁"
+    risk_level: "风险等级"
+
+  market_position:
+    ranking: "赛道排名"
+    position_type: "市场定位类型"
+    market_share_trend: "份额趋势"
+    strategic_recommendation: "战略建议"
+
+  summary: "简洁总结"
+
+validation_rules:
+  required_fields:
+    - competitive_landscape
+    - competitors
+    - comparison_table
+    - valuation_multiples
+    - competitive_advantages
+    - competitive_risks
+    - market_position
+    - summary
+
+  competitive_landscape_rules:
+    - sector必须是预定义类别之一
+    - growth_trend必须是预定义趋势之一
+    - key_trends必须包含2-4个元素
+    - competition_intensity必须是"激烈/中等/温和"之一
+
+  competitors_rules:
+    - 必须包含2-5个竞品
+    - 每个竞品必须有name、symbol、market_cap
+    - market_share必须是百分比字符串
+
+  valuation_multiples_rules:
+    - 所有倍数必须是正数或0
+    - valuation_assessment必须是"被低估/合理估值/被高估"之一
+    - rationale不能为空
+
+  competitive_advantages_rules:
+    - strengths必须包含2-5个元素
+    - moat_score必须在0-10之间
+    - moat_types必须包含至少1个类型
+
+  competitive_risks_rules:
+    - threats必须包含2-5个元素
+    - risk_level必须是"高/中/低"之一
+
+  market_position_rules:
+    - position_type必须是"领导者/挑战者/跟随者/创新者"之一
+    - market_share_trend必须是预定义趋势之一
+    - strategic_recommendation必须是预定义建议之一
+
+examples:
+  - input:
+      symbol: "UNI"
+      name: "Uniswap"
+      category: "DEX"
+      market_cap: 4500000000
+      tvl: 3200000000
+      active_users_24h: 150000
+      volume_24h: 1200000000
+      protocol_revenue_30d: 45000000
+      competitors_data: |
+        竞品1: PancakeSwap (CAKE) - 市值$800M, TVL$1.5B, 日活80K, 日交易量$400M, 月收入$15M
+        竞品2: SushiSwap (SUSHI) - 市值$300M, TVL$600M, 日活30K, 日交易量$200M, 月收入$8M
+        竞品3: Curve (CRV) - 市值$500M, TVL$2.5B, 日活20K, 日交易量$300M, 月收入$12M
+        竞品4: Balancer (BAL) - 市值$200M, TVL$1.2B, 日活15K, 日交易量$150M, 月收入$5M
+
+    output:
+      competitive_landscape:
+        sector: "DEX"
+        market_size: "$15B"
+        growth_trend: "稳定增长"
+        key_trends:
+          - "Layer2扩展方案成为标配"
+          - "聚合器蚕食直接交易流量"
+          - "ve(3,3)代币模型兴起"
+        competition_intensity: "激烈"
+
+      competitors:
+        - name: "PancakeSwap"
+          symbol: "CAKE"
+          market_cap: 800000000
+          tvl: 1500000000
+          active_users_24h: 80000
+          volume_24h: 400000000
+          protocol_revenue_30d: 15000000
+          market_share: "12%"
+          differentiation: "BSC生态最大DEX，手续费更低"
+
+        - name: "SushiSwap"
+          symbol: "SUSHI"
+          market_cap: 300000000
+          tvl: 600000000
+          active_users_24h: 30000
+          volume_24h: 200000000
+          protocol_revenue_30d: 8000000
+          market_share: "5%"
+          differentiation: "多链部署，社区治理"
+
+        - name: "Curve"
+          symbol: "CRV"
+          market_cap: 500000000
+          tvl: 2500000000
+          active_users_24h: 20000
+          volume_24h: 300000000
+          protocol_revenue_30d: 12000000
+          market_share: "8%"
+          differentiation: "稳定币交易专家，滑点最低"
+
+        - name: "Balancer"
+          symbol: "BAL"
+          market_cap: 200000000
+          tvl: 1200000000
+          active_users_24h: 15000
+          volume_24h: 150000000
+          protocol_revenue_30d: 5000000
+          market_share: "3%"
+          differentiation: "可定制流动性池，适合机构"
+
+      comparison_table:
+        metrics: ["市值", "TVL", "日活用户", "日交易量", "月收入"]
+        target_project:
+          name: "Uniswap"
+          values: [4500000000, 3200000000, 150000, 1200000000, 45000000]
+        competitors:
+          - name: "PancakeSwap"
+            values: [800000000, 1500000000, 80000, 400000000, 15000000]
+          - name: "SushiSwap"
+            values: [300000000, 600000000, 30000, 200000000, 8000000]
+          - name: "Curve"
+            values: [500000000, 2500000000, 20000, 300000000, 12000000]
+          - name: "Balancer"
+            values: [200000000, 1200000000, 15000, 150000000, 5000000]
+
+      valuation_multiples:
+        target_project:
+          ps_ratio: 8.3
+          fdv_to_revenue: 10.0
+          fdv_to_tvl: 1.4
+          pe_ratio: 22.5
+        sector_median:
+          ps_ratio: 12.0
+          fdv_to_revenue: 18.0
+          fdv_to_tvl: 2.0
+          pe_ratio: 30.0
+        valuation_assessment: "被低估"
+        rationale: "Uniswap的估值倍数显著低于赛道中位数，但市场份额和品牌优势明显，存在估值修复空间"
+
+      competitive_advantages:
+        strengths:
+          - "最强品牌认知度和网络效应（ETH生态首选DEX）"
+          - "最深流动性池（$3.2B TVL），滑点最优"
+          - "Uniswap V3 集中流动性创新，资本效率高3-5倍"
+          - "VC支持强（a16z领投），技术研发持续投入"
+          - "即将推出Uniswap X聚合器，巩固护城河"
+        moat_score: 9
+        moat_types:
+          - "网络效应"
+          - "品牌优势"
+          - "流动性护城河"
+          - "技术壁垒"
+
+      competitive_risks:
+        threats:
+          - "Layer2 DEX（如dYdX）抢夺衍生品交易份额"
+          - "聚合器（1inch/Matcha）降低协议直接流量"
+          - "Curve在稳定币交易领域占据主导"
+          - "监管不确定性（SEC可能将UNI定义为证券）"
+        risk_level: "中"
+
+      market_position:
+        ranking: "第1名"
+        position_type: "领导者"
+        market_share_trend: "稳定增长"
+        strategic_recommendation: "积极持有"
+
+      summary: "Uniswap是DEX赛道的绝对领导者，拥有最强品牌、最深流动性和持续创新能力。尽管面临Layer2和聚合器竞争，但护城河稳固，估值相对赛道中位数被低估，战略地位优势明显。"
+
+model_config:
+  primary_model: "meta-llama/llama-3.3-70b-instruct:free"
+  fallback_model: "qwen/qwen3-30b:free"
+  temperature: 0.5
+  max_tokens: 3000
+  top_p: 0.9

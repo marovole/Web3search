@@ -1,0 +1,216 @@
+# ================================
+# TL;DR 生成专用提示词模板
+# 参考：openspec/changes/add-crypto-ai-search-platform/specs/ai-analysis/spec.md
+# Scenario: TL;DR生成符合标准格式
+# ================================
+
+system_prompt: |
+  你是一位资深的加密货币分析师，擅长快速提炼核心观点。
+  你的任务是为项目生成简洁专业的TL;DR（Too Long; Didn't Read）摘要。
+
+user_prompt_template: |
+  基于以下数据，为 **{symbol}** 项目生成TL;DR摘要：
+
+  ## 用户查询
+  {query}
+
+  ## 市场数据
+  - 当前价格：${current_price}
+  - 市值：${market_cap} (排名：#{market_rank})
+  - 24h涨跌幅：{price_change_24h}%
+  - 7d涨跌幅：{price_change_7d}%
+  - 30d涨跌幅：{price_change_30d}%
+  - 24h交易量：${volume_24h}
+  - 流通量/总量：{circulating_supply}/{total_supply}
+
+  ## 项目信息
+  - 名称：{project_name}
+  - 类别：{categories}
+  - 描述：{description}
+
+  ## 社交数据
+  - Twitter粉丝：{twitter_followers}
+  - Reddit订阅者：{reddit_subscribers}
+  - 情绪倾向：{social_sentiment}
+  - 讨论热度：{discussion_heat}
+
+  ## 链上数据
+  - 日活地址：{active_addresses}
+  - 持币地址：{holder_count}
+  - 大额转账：{whale_activity}
+
+  ## 要求：
+  请按照以下**精确格式**输出TL;DR：
+
+  ### 格式要求：
+  1. **核心判断**（必须是以下之一）：
+     - 🟢 BULL (看多)
+     - 🟡 NEUTRAL (中性)
+     - 🔴 BEAR (看空)
+
+  2. **置信度**（0-100的整数）：
+     - 90-100：极高
+     - 70-89：高
+     - 50-69：中等
+     - 30-49：低
+     - 0-29：极低
+
+     置信度计算考虑因素：
+     - 数据完整性（市场数据、社交数据、链上数据是否齐全）
+     - 趋势一致性（价格、交易量、社区热度是否方向一致）
+     - 信号强度（涨跌幅度、交易量变化、情绪强弱）
+
+  3. **一句话总结**（50-150字）：
+     - 突出最关键的事实（价格、市值、排名、热度）
+     - 说明核心趋势（上涨/下跌/横盘）
+     - 指出主要驱动因素（技术突破、社区增长、市场情绪等）
+     - 使用精确数据支撑观点
+
+  ### 输出格式（JSON）：
+  ```json
+  {
+    "judgment": "BULL | NEUTRAL | BEAR",
+    "judgment_emoji": "🟢 | 🟡 | 🔴",
+    "confidence": 85,
+    "confidence_level": "高",
+    "summary": "一句话总结内容...",
+    "key_metrics": {
+      "price": "$XX,XXX",
+      "market_cap_rank": 5,
+      "24h_change": "+12.5%",
+      "social_heat": "高"
+    },
+    "reasoning": "为什么做出此判断的2-3句话理由"
+  }
+  ```
+
+  ### 示例输出：
+
+  #### 示例1：BULL（看多）
+  ```json
+  {
+    "judgment": "BULL",
+    "judgment_emoji": "🟢",
+    "confidence": 85,
+    "confidence_level": "高",
+    "summary": "Hyperliquid（HYPE）是新兴的去中心化永续合约交易所，当前价格$18.50，市值$6.3B，排名第35。过去7天上涨42%，社区讨论热度极高，Twitter提及量暴涨300%。链上活跃地址达到15万，显示强劲的用户增长。",
+    "key_metrics": {
+      "price": "$18.50",
+      "market_cap_rank": 35,
+      "24h_change": "+15.2%",
+      "social_heat": "极高"
+    },
+    "reasoning": "强劲的价格上涨+社区热度暴增+活跃用户增长，三重信号指向看多。市值排名进入前40，显示市场认可度提升。"
+  }
+  ```
+
+  #### 示例2：NEUTRAL（中性）
+  ```json
+  {
+    "judgment": "NEUTRAL",
+    "judgment_emoji": "🟡",
+    "confidence": 60,
+    "confidence_level": "中等",
+    "summary": "Ethereum（ETH）是市值第2大的智能合约平台，当前价格$3,456，市值$415B。过去30天横盘震荡在$3,200-$3,600区间，交易量稳定在$180亿/日。社区情绪中性，等待上海升级的消息明确。",
+    "key_metrics": {
+      "price": "$3,456",
+      "market_cap_rank": 2,
+      "24h_change": "-0.8%",
+      "social_heat": "中等"
+    },
+    "reasoning": "价格在区间震荡，缺乏明确方向。交易量和社区热度保持稳定，但无明显催化剂。等待技术升级进展。"
+  }
+  ```
+
+  #### 示例3：BEAR（看空）
+  ```json
+  {
+    "judgment": "BEAR",
+    "judgment_emoji": "🔴",
+    "confidence": 75,
+    "confidence_level": "高",
+    "summary": "TerraClassicUSD（USTC）是已崩盘的算法稳定币，当前价格$0.02，市值$1.8B。脱锚99%后持续下跌，交易量萎缩至日均$50M。社区大量抛售，Reddit情绪极度悲观（负面情绪占78%）。",
+    "key_metrics": {
+      "price": "$0.02",
+      "market_cap_rank": 150,
+      "24h_change": "-5.2%",
+      "social_heat": "低"
+    },
+    "reasoning": "算法机制失败导致死亡螺旋，交易量萎缩，社区情绪崩溃。无恢复希望，建议远离。"
+  }
+  ```
+
+  ## 注意事项：
+  - 必须严格遵循JSON格式，不要添加markdown代码块标记
+  - 判断必须基于数据，不要主观臆测
+  - 如果数据不足，降低置信度而非拒绝分析
+  - 对于稳定币，通常判断为NEUTRAL（除非严重脱锚）
+  - 对于新项目（<30天），置信度不应超过70
+
+  现在请生成 **{symbol}** 的TL;DR：
+
+# ================================
+# 输出格式验证规则
+# ================================
+output_validation:
+  required_fields:
+    - judgment
+    - judgment_emoji
+    - confidence
+    - confidence_level
+    - summary
+    - key_metrics
+    - reasoning
+
+  judgment_values:
+    - "BULL"
+    - "NEUTRAL"
+    - "BEAR"
+
+  confidence_range:
+    min: 0
+    max: 100
+
+  summary_length:
+    min: 50
+    max: 200
+
+  reasoning_length:
+    min: 30
+    max: 300
+
+# ================================
+# 置信度计算参考公式
+# ================================
+confidence_calculation: |
+  基础分：50分
+
+  数据完整性加分（最多+30分）：
+  - 有完整市场数据：+10分
+  - 有社交数据：+10分
+  - 有链上数据：+10分
+
+  趋势一致性加分/减分（±20分）：
+  - 价格、交易量、情绪三者方向一致：+20分
+  - 两者一致：+10分
+  - 完全矛盾：-20分
+
+  信号强度调整（±20分）：
+  - 价格变化幅度>20%：±15分（根据方向）
+  - 社区热度极高/极低：±10分
+  - 链上活跃度显著变化：±10分
+
+  特殊情况：
+  - 新项目（<30天）：最多70分
+  - 稳定币脱锚：如果偏离>5%，置信度至少70
+  - 数据缺失>50%：最多50分
+
+# ================================
+# 模型配置
+# ================================
+model_config:
+  primary_model: "qwen/qwen3-235b-a22b:free"
+  fallback_model: "qwen/qwen3-30b-a3b:free"
+  temperature: 0.3  # 较低温度确保输出稳定
+  max_tokens: 800
+  response_format: "json_object"  # 强制JSON输出

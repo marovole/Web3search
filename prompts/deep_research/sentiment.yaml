@@ -1,0 +1,393 @@
+# ================================
+# 社媒情绪分析提示词模板
+# 参考：openspec/changes/add-crypto-ai-search-platform/specs/ai-analysis/spec.md
+# Scenario: 社媒情绪分析
+# ================================
+
+system_prompt: |
+  你是一位专业的社交媒体情绪分析师，擅长从Twitter、Reddit、新闻等渠道解读加密货币项目的社区情绪和舆论趋势。
+  你的任务是分析社交媒体数据，识别情绪倾向、热门话题、关键意见领袖（KOL）的观点，并评估社区健康度。
+
+user_prompt_template: |
+  请分析 **{symbol}** 在社交媒体上的情绪表现：
+
+  # 基本信息
+  - 项目名称：{project_name}
+  - 当前价格：${current_price}
+  - 24h价格变化：{price_change_24h}%
+
+  ---
+
+  ## Twitter数据
+
+  ### 社区规模
+  - 官方账号粉丝数：{twitter_followers}
+  - 近7天提及量：{twitter_mentions_7d}
+  - 近7天互动量：{twitter_engagement_7d}
+
+  ### 情绪分布（基于关键词和语义分析）
+  - 正面推文：{twitter_positive_count} 条 ({twitter_positive_percent}%)
+  - 中性推文：{twitter_neutral_count} 条 ({twitter_neutral_percent}%)
+  - 负面推文：{twitter_negative_count} 条 ({twitter_negative_percent}%)
+
+  ### 热门推文示例（近7天）
+  {twitter_sample_tweets}
+
+  ---
+
+  ## Reddit数据
+
+  ### 社区规模
+  - Subreddit订阅数：{reddit_subscribers}
+  - 近7天帖子数：{reddit_posts_7d}
+  - 近7天评论数：{reddit_comments_7d}
+
+  ### 情绪分布
+  - 正面帖子：{reddit_positive_count} 条 ({reddit_positive_percent}%)
+  - 中性帖子：{reddit_neutral_count} 条 ({reddit_neutral_percent}%)
+  - 负面帖子：{reddit_negative_count} 条 ({reddit_negative_percent}%)
+
+  ### 热门帖子示例（近7天）
+  {reddit_sample_posts}
+
+  ---
+
+  ## 新闻媒体数据
+
+  ### 媒体曝光
+  - 近7天新闻报道数：{news_count_7d}
+  - 主流媒体覆盖：{mainstream_media_coverage}
+
+  ### 新闻情绪
+  - 正面报道：{news_positive_count} 条 ({news_positive_percent}%)
+  - 中性报道：{news_neutral_count} 条 ({news_neutral_percent}%)
+  - 负面报道：{news_negative_count} 条 ({news_negative_percent}%)
+
+  ### 重要新闻标题（近7天）
+  {news_sample_headlines}
+
+  ---
+
+  ## 输出要求
+
+  请按照以下**JSON格式**输出分析结果：
+
+  ```json
+  {
+    "overall_sentiment": {
+      "label": "积极 | 中性 | 消极",
+      "score": 75,
+      "confidence": 85,
+      "summary": "一句话总结整体情绪（50-100字）"
+    },
+    "sentiment_breakdown": {
+      "positive_percent": 60,
+      "neutral_percent": 30,
+      "negative_percent": 10,
+      "trend": "情绪上升 | 情绪稳定 | 情绪下降",
+      "comparison_7d": "相比7天前，正面情绪上升15%"
+    },
+    "top_topics": [
+      {
+        "topic": "主网升级",
+        "mentions": 1500,
+        "sentiment": "积极",
+        "keywords": ["upgrade", "mainnet", "v2.0"],
+        "impact": "高 | 中 | 低"
+      },
+      {
+        "topic": "代币解锁",
+        "mentions": 800,
+        "sentiment": "担忧",
+        "keywords": ["unlock", "vesting", "sell pressure"],
+        "impact": "高 | 中 | 低"
+      }
+    ],
+    "key_influencers": [
+      {
+        "name": "@CryptoWhale",
+        "platform": "Twitter",
+        "followers": 500000,
+        "recent_stance": "看涨",
+        "key_message": "技术升级将带来10x增长潜力",
+        "engagement": 15000,
+        "credibility": "高 | 中 | 低"
+      },
+      {
+        "name": "u/DeFiResearcher",
+        "platform": "Reddit",
+        "karma": 50000,
+        "recent_stance": "中性",
+        "key_message": "需要观察解锁后的价格表现",
+        "engagement": 2500,
+        "credibility": "高 | 中 | 低"
+      }
+    ],
+    "community_health": {
+      "activity_level": "高 | 中 | 低",
+      "growth_trend": "快速增长 | 稳定增长 | 停滞 | 下降",
+      "engagement_quality": "高质量讨论 | 一般 | 低质量/spam",
+      "fud_level": "无明显FUD | 轻度FUD | 严重FUD",
+      "fomo_level": "无 | 轻度 | 严重",
+      "concerns": [
+        "代币解锁压力",
+        "竞品威胁",
+        "监管不确定性"
+      ]
+    },
+    "narrative_analysis": {
+      "dominant_narrative": "技术创新驱动",
+      "narrative_strength": "强 | 中 | 弱",
+      "competing_narratives": [
+        "短期投机炒作",
+        "长期价值投资"
+      ],
+      "narrative_shift": "叙事从炒作转向基本面"
+    },
+    "risk_signals": [
+      {
+        "signal": "突然负面情绪激增",
+        "severity": "高 | 中 | 低",
+        "description": "Reddit上出现大量关于代币解锁的担忧帖子"
+      }
+    ],
+    "data_sources": ["Twitter", "Reddit", "CryptoPanic"],
+    "updated_at": "2025-10-25T14:30:00Z"
+  }
+  ```
+
+  ## 格式说明
+
+  ### overall_sentiment（整体情绪）
+  - **label**: 积极/中性/消极
+  - **score**: 0-100（0=极度消极，50=中性，100=极度积极）
+  - **confidence**: 分析置信度（0-100）
+  - **summary**: 50-100字的情绪总结
+
+  ### sentiment_breakdown（情绪分布）
+  - **三个百分比相加必须等于100%**
+  - **trend**: 与过去对比的趋势
+  - **comparison_7d**: 7天前的对比说明
+
+  ### top_topics（热门话题）
+  - **至少3个，最多5个话题**
+  - 按提及量（mentions）降序排列
+  - **impact**: 对价格/项目的影响程度
+
+  ### key_influencers（关键意见领袖）
+  - **至少2个，最多5个KOL**
+  - 包含Twitter和Reddit的关键人物
+  - **credibility**: 基于粉丝数、历史准确度评估
+
+  ### community_health（社区健康度）
+  - **activity_level**: 基于互动量评估
+  - **fud_level**: FUD（恐惧、不确定、怀疑）程度
+  - **fomo_level**: FOMO（害怕错过）程度
+  - **concerns**: 社区主要担忧点（2-5条）
+
+  ### narrative_analysis（叙事分析）
+  - **dominant_narrative**: 当前主导叙事
+  - **competing_narratives**: 竞争叙事（1-3个）
+
+  ### risk_signals（风险信号）
+  - 识别潜在的情绪风险
+  - 每个信号包含严重程度和描述
+
+  ## 注意事项
+
+  1. **数据驱动**：基于提供的数据分析，不要编造数字
+  2. **客观中立**：不做投资建议，只陈述情绪事实
+  3. **时效性**：注意数据的时间范围（主要是近7天）
+  4. **区分平台**：Twitter偏短期情绪，Reddit偏深度讨论
+  5. **识别操纵**：警惕水军、机器人、付费宣传
+  6. **缺失数据处理**：如果某些数据缺失，在对应字段标注"数据不足"
+
+  现在请开始分析 **{symbol}** 的社交媒体情绪：
+
+# ================================
+# 输出格式验证规则
+# ================================
+output_validation:
+  required_fields:
+    - overall_sentiment
+    - sentiment_breakdown
+    - top_topics
+    - key_influencers
+    - community_health
+    - narrative_analysis
+    - data_sources
+    - updated_at
+
+  overall_sentiment_structure:
+    required_fields:
+      - label
+      - score
+      - confidence
+      - summary
+    label_values:
+      - "积极"
+      - "中性"
+      - "消极"
+    score_range:
+      min: 0
+      max: 100
+    confidence_range:
+      min: 0
+      max: 100
+
+  sentiment_breakdown_structure:
+    required_fields:
+      - positive_percent
+      - neutral_percent
+      - negative_percent
+      - trend
+    percent_sum: 100
+    trend_values:
+      - "情绪上升"
+      - "情绪稳定"
+      - "情绪下降"
+
+  top_topics:
+    min_count: 3
+    max_count: 5
+    required_fields:
+      - topic
+      - mentions
+      - sentiment
+      - keywords
+      - impact
+    impact_values:
+      - "高"
+      - "中"
+      - "低"
+
+  key_influencers:
+    min_count: 2
+    max_count: 5
+    required_fields:
+      - name
+      - platform
+      - followers
+      - recent_stance
+      - key_message
+      - credibility
+    platform_values:
+      - "Twitter"
+      - "Reddit"
+      - "YouTube"
+    credibility_values:
+      - "高"
+      - "中"
+      - "低"
+
+  community_health_structure:
+    required_fields:
+      - activity_level
+      - growth_trend
+      - engagement_quality
+      - fud_level
+      - fomo_level
+
+# ================================
+# 示例输出（参考）
+# ================================
+example_output:
+  bitcoin_example: |
+    {
+      "overall_sentiment": {
+        "label": "积极",
+        "score": 72,
+        "confidence": 85,
+        "summary": "BTC社区情绪整体积极，ETF持续流入和机构增持成为主流叙事。Reddit讨论深度高，Twitter热度攀升。部分投资者担心短期回调，但长期持有者信心坚定。"
+      },
+      "sentiment_breakdown": {
+        "positive_percent": 58,
+        "neutral_percent": 32,
+        "negative_percent": 10,
+        "trend": "情绪上升",
+        "comparison_7d": "相比7天前，正面情绪上升12%，负面情绪下降5%"
+      },
+      "top_topics": [
+        {
+          "topic": "ETF资金流入",
+          "mentions": 3500,
+          "sentiment": "积极",
+          "keywords": ["ETF", "inflow", "BlackRock", "institutions"],
+          "impact": "高"
+        },
+        {
+          "topic": "全网算力创新高",
+          "mentions": 1800,
+          "sentiment": "积极",
+          "keywords": ["hashrate", "mining", "security"],
+          "impact": "中"
+        },
+        {
+          "topic": "短期回调风险",
+          "mentions": 1200,
+          "sentiment": "担忧",
+          "keywords": ["correction", "pullback", "resistance"],
+          "impact": "中"
+        }
+      ],
+      "key_influencers": [
+        {
+          "name": "@DocumentingBTC",
+          "platform": "Twitter",
+          "followers": 800000,
+          "recent_stance": "看涨",
+          "key_message": "ETF累计流入$10B，机构配置需求强劲",
+          "engagement": 25000,
+          "credibility": "高"
+        },
+        {
+          "name": "u/BitcoinMagazine",
+          "platform": "Reddit",
+          "karma": 150000,
+          "recent_stance": "看涨",
+          "key_message": "闪电网络容量增长20%，支付用例扩大",
+          "engagement": 5000,
+          "credibility": "高"
+        }
+      ],
+      "community_health": {
+        "activity_level": "高",
+        "growth_trend": "稳定增长",
+        "engagement_quality": "高质量讨论",
+        "fud_level": "无明显FUD",
+        "fomo_level": "轻度",
+        "concerns": [
+          "$70,000阻力位突破难度",
+          "短期获利盘抛压",
+          "山寨币资金分流"
+        ]
+      },
+      "narrative_analysis": {
+        "dominant_narrative": "机构采纳与长期价值存储",
+        "narrative_strength": "强",
+        "competing_narratives": [
+          "短期交易机会",
+          "避险资产配置"
+        ],
+        "narrative_shift": "叙事从零售炒作转向机构配置"
+      },
+      "risk_signals": [
+        {
+          "signal": "衍生品市场杠杆率上升",
+          "severity": "中",
+          "description": "期货未平仓合约创历史新高，清算风险增加"
+        }
+      ],
+      "data_sources": ["Twitter", "Reddit", "CryptoPanic"],
+      "updated_at": "2025-10-25T14:30:00Z"
+    }
+
+# ================================
+# 模型配置
+# ================================
+model_config:
+  primary_model: "qwen/qwen3-30b-a3b:free"
+  fallback_model: "qwen/qwen3-30b-a3b:free"  # 情绪分析用30b模型
+  temperature: 0.4  # 适中温度，平衡创造性和准确性
+  max_tokens: 2000
+  response_format: "json_object"

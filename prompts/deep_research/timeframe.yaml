@@ -1,0 +1,274 @@
+# ================================
+# 时间窗分析提示词模板
+# 参考：openspec/changes/add-crypto-ai-search-platform/specs/ai-analysis/spec.md
+# Scenario: 时间窗分析多维度输出
+# ================================
+
+system_prompt: |
+  你是一位专业的加密货币时间序列分析师，擅长从不同时间维度解读市场动态。
+  你的任务是分析项目在24小时、7天、30天三个时间窗口的表现，识别关键趋势和驱动因素。
+
+user_prompt_template: |
+  请分析 **{symbol}** 在以下3个时间窗口的表现：
+
+  # 基本信息
+  - 项目名称：{project_name}
+  - 当前价格：${current_price}
+  - 市值排名：#{market_rank}
+
+  ---
+
+  ## 24小时窗口数据
+
+  ### 价格与成交量
+  - 价格变化：{price_change_24h}%
+  - 当前价格：${current_price}
+  - 24h成交量：${volume_24h}
+  - 成交量变化：{volume_change_24h}%
+
+  ### 链上活动（如果有）
+  - 24h交易数：{tx_count_24h}
+  - 活跃地址：{active_addresses_24h}
+
+  ### 近期事件（过去24小时）
+  {events_24h}
+
+  ---
+
+  ## 7天窗口数据
+
+  ### 价格与成交量
+  - 7日价格变化：{price_change_7d}%
+  - 7日最高价：${high_7d}
+  - 7日最低价：${low_7d}
+  - 7日平均成交量：${avg_volume_7d}
+
+  ### 社区热度
+  - Twitter提及量：{twitter_mentions_7d}
+  - Reddit讨论数：{reddit_posts_7d}
+  - 社区情绪：{social_sentiment_7d}
+
+  ### 主要事件（过去7天）
+  {events_7d}
+
+  ---
+
+  ## 30天窗口数据
+
+  ### 价格与市值
+  - 30日价格变化：{price_change_30d}%
+  - 距离历史最高点：{ath_distance}%
+  - 距离历史最低点：{atl_distance}%
+  - 30日市值变化：{market_cap_change_30d}%
+
+  ### 协议指标（如果有）
+  - TVL变化：{tvl_change_30d}%
+  - 用户增长：{user_growth_30d}%
+  - 收入变化：{revenue_change_30d}%
+
+  ### 里程碑事件（过去30天）
+  {events_30d}
+
+  ---
+
+  ## 输出要求
+
+  请按照以下**JSON格式**输出分析结果：
+
+  ```json
+  {
+    "timeframe_24h": {
+      "price_change": "+2.5%",
+      "volume_change": "+15.2%",
+      "key_events": [
+        "主要交易所上线新交易对",
+        "项目方发布技术更新",
+        "市场整体回暖带动上涨"
+      ],
+      "narrative": "过去24小时，{symbol}价格上涨2.5%，成交量大幅增加15.2%。主要驱动因素是新交易对上线和市场整体情绪转好。短期动能强劲。",
+      "trend": "上涨 | 下跌 | 横盘"
+    },
+    "timeframe_7d": {
+      "price_change": "+8.2%",
+      "volume_trend": "稳定增长",
+      "key_events": [
+        "主网升级成功",
+        "合作伙伴公告",
+        "社区活动增加"
+      ],
+      "narrative": "过去7天，{symbol}展现出强劲的上涨势头，累计涨幅8.2%。主网升级和新合作伙伴公告是主要催化剂。社区讨论热度攀升，Twitter提及量增加40%。",
+      "trend": "上涨 | 下跌 | 横盘",
+      "sector_comparison": "{symbol}在DeFi板块中表现优于平均水平（板块平均+3.5%）"
+    },
+    "timeframe_30d": {
+      "price_change": "+15.6%",
+      "milestone_events": [
+        "季度产品发布",
+        "TVL突破$500M",
+        "月活用户增长50%"
+      ],
+      "protocol_metrics": {
+        "tvl_change": "+35%",
+        "user_growth": "+50%",
+        "revenue_change": "+28%"
+      },
+      "narrative": "过去30天，{symbol}实现了显著增长，价格上涨15.6%。关键里程碑包括TVL突破$500M和用户数增长50%。基本面指标强劲，协议收入同比增长28%。长期趋势向上。",
+      "trend": "上涨 | 下跌 | 横盘",
+      "long_term_outlook": "看涨 | 中性 | 看跌"
+    },
+    "cross_timeframe_analysis": {
+      "consistency": "高 | 中 | 低",
+      "momentum": "加速上涨 | 稳定上涨 | 放缓 | 下跌",
+      "risk_signal": "无明显风险 | 需关注 | 高风险",
+      "summary": "跨时间窗口分析显示{symbol}在短中长期均表现出上涨趋势，动能持续增强。基本面指标支撑价格上涨，风险可控。建议持续关注主网升级进展和用户增长情况。"
+    },
+    "data_sources": ["CoinGecko", "Etherscan", "Twitter", "Reddit"],
+    "updated_at": "2025-10-25T14:30:00Z"
+  }
+  ```
+
+  ## 格式说明
+
+  ### key_events（关键事件）
+  - 每个时间窗口**最多3个**事件
+  - 按重要性排序
+  - 简洁描述（每个事件<30字）
+  - 优先选择对价格有直接影响的事件
+
+  ### narrative（叙事描述）
+  - 长度：50-100字
+  - 内容：价格变化 + 主要驱动因素 + 市场反应
+  - 风格：专业、客观、数据驱动
+  - 避免主观判断，多用事实和数据
+
+  ### trend（趋势）
+  - 上涨：价格上涨幅度 > 5%
+  - 下跌：价格下跌幅度 > 5%
+  - 横盘：价格变化在 ±5% 区间内
+
+  ### cross_timeframe_analysis（跨时间窗分析）
+  - consistency：三个时间窗的趋势是否一致
+  - momentum：动能是否在加速/减速
+  - risk_signal：识别潜在风险信号（如背离、突然放量等）
+  - summary：综合分析，100字以内
+
+  ## 注意事项
+
+  1. **数据优先**：基于提供的数据分析，不要编造数字
+  2. **客观中立**：不做投资建议，只陈述事实和趋势
+  3. **时间关联**：解释不同时间窗口的关联性（短期波动vs长期趋势）
+  4. **事件归因**：将价格变化与关键事件关联
+  5. **数据缺失处理**：如果某些数据缺失，说明"数据不足"而非猜测
+
+  现在请开始分析 **{symbol}** 的时间窗表现：
+
+# ================================
+# 输出格式验证规则
+# ================================
+output_validation:
+  required_fields:
+    - timeframe_24h
+    - timeframe_7d
+    - timeframe_30d
+    - cross_timeframe_analysis
+    - data_sources
+    - updated_at
+
+  timeframe_structure:
+    required_fields:
+      - price_change
+      - key_events
+      - narrative
+      - trend
+    optional_fields:
+      - volume_change
+      - volume_trend
+      - milestone_events
+      - protocol_metrics
+      - sector_comparison
+      - long_term_outlook
+
+  key_events:
+    max_count: 3
+    min_length: 5
+    max_length: 50
+
+  narrative:
+    min_length: 50
+    max_length: 150
+
+  trend_values:
+    - "上涨"
+    - "下跌"
+    - "横盘"
+
+  cross_timeframe_fields:
+    - consistency
+    - momentum
+    - risk_signal
+    - summary
+
+# ================================
+# 示例输出（参考）
+# ================================
+example_output:
+  bitcoin_example: |
+    {
+      "timeframe_24h": {
+        "price_change": "+2.1%",
+        "volume_change": "+8.5%",
+        "key_events": [
+          "美联储利率决议前市场情绪转好",
+          "大型机构增持BTC ETF",
+          "链上大额转账减少"
+        ],
+        "narrative": "过去24小时，BTC价格稳步上涨2.1%，成交量增加8.5%。主要由机构资金流入和宏观情绪改善驱动。链上活动显示持有者信心增强，短期抛压减轻。",
+        "trend": "上涨"
+      },
+      "timeframe_7d": {
+        "price_change": "+6.8%",
+        "volume_trend": "持续增长",
+        "key_events": [
+          "突破$68,000关键阻力位",
+          "矿工抛压下降至年内低点",
+          "衍生品市场资金费率转正"
+        ],
+        "narrative": "过去7天，BTC累计上涨6.8%，成功突破$68,000技术阻力。矿工抛售压力降至年内低点，衍生品市场显示多头情绪主导。链上指标和市场结构均支持进一步上涨。",
+        "trend": "上涨",
+        "sector_comparison": "BTC作为市场龙头，涨幅略低于山寨币平均水平（+8.2%），显示市场风险偏好提升。"
+      },
+      "timeframe_30d": {
+        "price_change": "+12.5%",
+        "milestone_events": [
+          "现货ETF净流入创月度新高",
+          "全网算力突破600 EH/s",
+          "闪电网络容量增长20%"
+        ],
+        "protocol_metrics": {
+          "network_hashrate": "+15%",
+          "lightning_capacity": "+20%",
+          "hodl_waves": "长期持有者占比上升"
+        },
+        "narrative": "过去30天，BTC上涨12.5%，基本面持续改善。ETF资金持续流入，全网算力创新高显示矿工信心。闪电网络增长20%表明支付用例扩大。长期持有者占比上升，筹码结构健康。",
+        "trend": "上涨",
+        "long_term_outlook": "看涨"
+      },
+      "cross_timeframe_analysis": {
+        "consistency": "高",
+        "momentum": "稳定上涨",
+        "risk_signal": "无明显风险",
+        "summary": "BTC在短中长三个时间窗口均呈现稳定上涨态势，基本面和技术面共振向上。机构资金持续流入，链上指标健康，矿工抛压低位。建议关注$70,000心理阻力突破情况。"
+      },
+      "data_sources": ["CoinGecko", "Glassnode", "Twitter"],
+      "updated_at": "2025-10-25T14:30:00Z"
+    }
+
+# ================================
+# 模型配置
+# ================================
+model_config:
+  primary_model: "qwen/qwen3-235b-a22b:free"
+  fallback_model: "qwen/qwen3-30b-a3b:free"
+  temperature: 0.4  # 适中温度，平衡创造性和准确性
+  max_tokens: 1500
+  response_format: "json_object"

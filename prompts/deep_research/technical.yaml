@@ -1,0 +1,425 @@
+# ================================
+# 技术面分析提示词模板
+# 参考：openspec/changes/add-crypto-ai-search-platform/specs/ai-analysis/spec.md
+# Scenario: 技术面分析
+# ================================
+
+system_prompt: |
+  你是一位专业的加密货币技术分析师，擅长使用技术指标、图表形态和衍生品数据来判断市场趋势和交易机会。
+  你的任务是分析价格走势、技术指标、支撑阻力位和衍生品市场数据，提供客观的技术面评估。
+
+user_prompt_template: |
+  请对 **{symbol}** 进行技术面分析：
+
+  # 基本信息
+  - 项目名称：{project_name}
+  - 当前价格：${current_price}
+  - 24h价格变化：{price_change_24h}%
+
+  ---
+
+  ## 价格数据
+
+  ### 当前价格
+  - 当前价格：${current_price}
+  - 24h最高：${high_24h}
+  - 24h最低：${low_24h}
+  - 24h成交量：${volume_24h}
+
+  ### 历史价格（用于技术指标计算）
+  - 7日价格序列：{price_history_7d}
+  - 30日价格序列：{price_history_30d}
+
+  ### 价格变化
+  - 24h变化：{price_change_24h}%
+  - 7d变化：{price_change_7d}%
+  - 30d变化：{price_change_30d}%
+
+  ---
+
+  ## 技术指标
+
+  ### RSI（相对强弱指标，14周期）
+  - RSI值：{rsi_value}
+  - 解读：
+    - RSI > 70: 超买区域，可能回调
+    - RSI < 30: 超卖区域，可能反弹
+    - 30-70: 正常区间
+
+  ### MACD（移动平均收敛/发散）
+  - MACD线：{macd_line}
+  - 信号线：{macd_signal}
+  - 柱状图：{macd_histogram}
+  - 解读：
+    - MACD > 信号线：看涨信号
+    - MACD < 信号线：看跌信号
+    - 柱状图由负转正：买入信号
+    - 柱状图由正转负：卖出信号
+
+  ### 布林带（20日，2倍标准差）
+  - 上轨：${bollinger_upper}
+  - 中轨：${bollinger_middle}
+  - 下轨：${bollinger_lower}
+  - 当前位置：{bollinger_position}
+  - 带宽：{bollinger_width}
+  - 解读：
+    - 价格触及上轨：可能超买
+    - 价格触及下轨：可能超卖
+    - 布林带收窄：波动率降低，可能酝酿大行情
+
+  ---
+
+  ## 支撑与阻力位
+
+  ### 关键价格水平（基于历史高低点）
+  - 即时支撑位：{immediate_support}
+  - 即时阻力位：{immediate_resistance}
+  - 强支撑位：{strong_support}
+  - 强阻力位：{strong_resistance}
+
+  ### 历史关键价格
+  - 历史最高价（ATH）：${ath_price}（距离：{ath_distance}%）
+  - 历史最低价（ATL）：${atl_price}（距离：{atl_distance}%）
+
+  ---
+
+  ## 衍生品市场数据
+
+  ### 未平仓合约（Open Interest）
+  - 当前OI：${open_interest_value}
+  - 24h变化：{open_interest_change_24h}%
+  - 解读：
+    - OI上升 + 价格上涨：看涨趋势强劲
+    - OI上升 + 价格下跌：看跌趋势强劲
+    - OI下降：趋势可能逆转
+
+  ### 资金费率（Funding Rate）
+  - 当前资金费率：{funding_rate}%
+  - 解读：
+    - 正费率且高：多头过热，空头收取费用
+    - 负费率且低：空头过热，多头收取费用
+    - 接近0：市场平衡
+
+  ### 清算数据
+  - 24h多头清算：${long_liquidations_24h}
+  - 24h空头清算：${short_liquidations_24h}
+  - 清算风险：{liquidation_risk}
+  - 解读：大量清算可能引发瀑布/拉升
+
+  ---
+
+  ## 输出要求
+
+  请按照以下**JSON格式**输出分析结果：
+
+  ```json
+  {
+    "technical_indicators": {
+      "rsi": {
+        "value": 65.5,
+        "signal": "中性 | 超买 | 超卖",
+        "interpretation": "RSI位于中性区间，市场情绪平衡。"
+      },
+      "macd": {
+        "macd_line": 150.5,
+        "signal_line": 120.3,
+        "histogram": 30.2,
+        "signal": "看涨 | 看跌 | 中性",
+        "interpretation": "MACD线位于信号线上方，柱状图为正，多头占优。"
+      },
+      "bollinger_bands": {
+        "upper": 3800,
+        "middle": 3500,
+        "lower": 3200,
+        "current_position": "中轨附近 | 上轨附近 | 下轨附近",
+        "bandwidth": "收窄 | 正常 | 扩张",
+        "interpretation": "价格位于中轨附近，布林带正常宽度，波动率适中。"
+      }
+    },
+    "support_resistance": {
+      "immediate_support": ["$3200", "$3000"],
+      "immediate_resistance": ["$3600", "$3800"],
+      "strong_support": ["$2800", "$2500"],
+      "strong_resistance": ["$4000", "$4200"],
+      "key_levels_narrative": "当前价格位于$3200支撑位和$3600阻力位之间，突破$3600后上方空间打开。"
+    },
+    "trend_analysis": {
+      "short_term_trend": "上涨 | 下跌 | 横盘",
+      "medium_term_trend": "上涨 | 下跌 | 横盘",
+      "long_term_trend": "上涨 | 下跌 | 横盘",
+      "trend_strength": "强 | 中 | 弱",
+      "momentum": "加速 | 稳定 | 减速",
+      "narrative": "短期上涨趋势明确，中长期趋势向上，动能稳定。价格持续创新高，趋势强劲。"
+    },
+    "derivatives_analysis": {
+      "open_interest": {
+        "value": 5000000000,
+        "change_24h": "+5.2%",
+        "signal": "看涨 | 看跌 | 中性",
+        "interpretation": "OI上升且价格上涨，多头建仓积极，趋势可能持续。"
+      },
+      "funding_rate": {
+        "value": 0.015,
+        "interpretation": "资金费率为正且偏高，多头支付费用给空头，市场偏多但需警惕过热。"
+      },
+      "liquidation_risk": {
+        "level": "低 | 中 | 高",
+        "long_liquidations_24h": 50000000,
+        "short_liquidations_24h": 120000000,
+        "interpretation": "24h空头清算远超多头，说明上涨动能强，但需警惕多头杠杆过高。"
+      }
+    },
+    "chart_patterns": {
+      "identified_patterns": [
+        "上升三角形",
+        "金叉形态"
+      ],
+      "breakout_potential": "高 | 中 | 低",
+      "narrative": "识别到上升三角形形态，突破$3600阻力位后可能加速上涨。"
+    },
+    "trading_signals": {
+      "entry_zones": ["$3200-$3300"],
+      "take_profit_targets": ["$3800", "$4000"],
+      "stop_loss": "$3000",
+      "risk_reward_ratio": "1:2.5"
+    },
+    "overall_technical_view": {
+      "bias": "看涨 | 中性 | 看跌",
+      "confidence": 75,
+      "time_horizon": "短期（1-2周）",
+      "narrative": "技术面整体看涨。RSI中性，MACD多头信号，价格位于布林带中轨上方。支撑位坚实，阻力位清晰。衍生品数据显示多头占优但杠杆率偏高，需警惕短期回调。建议在$3200-$3300区域分批建仓，目标$3800-$4000，止损$3000。"
+    },
+    "risk_warnings": [
+      {
+        "warning": "多头杠杆率偏高",
+        "severity": "中",
+        "description": "资金费率持续为正且偏高，多头持仓成本上升，可能引发获利回吐。"
+      },
+      {
+        "warning": "成交量萎缩",
+        "severity": "低",
+        "description": "价格上涨但成交量萎缩，需关注放量突破确认。"
+      }
+    ],
+    "data_sources": ["CoinGecko", "Binance Futures"],
+    "updated_at": "2025-10-25T14:30:00Z"
+  }
+  ```
+
+  ## 格式说明
+
+  ### technical_indicators（技术指标）
+  - 每个指标包含数值和信号判断
+  - interpretation字段提供简短解读（30-50字）
+
+  ### support_resistance（支撑阻力）
+  - immediate: 最近的支撑/阻力（2-3个价位）
+  - strong: 强支撑/阻力（历史关键价位）
+  - 价格从低到高排列
+
+  ### trend_analysis（趋势分析）
+  - short_term: 1-7天趋势
+  - medium_term: 7-30天趋势
+  - long_term: 30天以上趋势
+  - narrative: 100-150字综合叙述
+
+  ### derivatives_analysis（衍生品分析）
+  - 包含OI、资金费率、清算数据
+  - 每项都有interpretation解读
+
+  ### chart_patterns（图表形态）
+  - 识别经典技术形态（如三角形、旗形、头肩顶等）
+  - 评估突破潜力
+
+  ### trading_signals（交易信号）
+  - 提供入场区域、止盈目标、止损位
+  - 计算风险收益比
+  - **注意**：这是技术分析，非投资建议
+
+  ### overall_technical_view（整体技术观点）
+  - bias: 技术面倾向
+  - confidence: 0-100
+  - narrative: 150-200字的技术面总结
+
+  ### risk_warnings（风险警示）
+  - 识别技术面风险信号
+  - 每个警示包含严重程度和描述
+
+  ## 注意事项
+
+  1. **客观分析**：基于数据和指标，不做主观臆测
+  2. **风险提示**：技术分析有局限性，需结合基本面
+  3. **非投资建议**：仅提供技术分析视角，不构成买卖建议
+  4. **数据时效性**：技术分析基于历史数据，市场可能突然变化
+  5. **缺失数据处理**：如果某些数据缺失（如衍生品数据），标注"数据不足"
+
+  现在请开始对 **{symbol}** 进行技术面分析：
+
+# ================================
+# 输出格式验证规则
+# ================================
+output_validation:
+  required_fields:
+    - technical_indicators
+    - support_resistance
+    - trend_analysis
+    - derivatives_analysis
+    - overall_technical_view
+    - data_sources
+    - updated_at
+
+  technical_indicators_structure:
+    required_fields:
+      - rsi
+      - macd
+      - bollinger_bands
+    rsi_range:
+      min: 0
+      max: 100
+    signal_values:
+      - "看涨"
+      - "看跌"
+      - "中性"
+      - "超买"
+      - "超卖"
+
+  trend_analysis_structure:
+    required_fields:
+      - short_term_trend
+      - medium_term_trend
+      - trend_strength
+      - narrative
+    trend_values:
+      - "上涨"
+      - "下跌"
+      - "横盘"
+    strength_values:
+      - "强"
+      - "中"
+      - "弱"
+
+  derivatives_analysis_structure:
+    required_fields:
+      - open_interest
+      - funding_rate
+      - liquidation_risk
+
+  overall_technical_view_structure:
+    required_fields:
+      - bias
+      - confidence
+      - narrative
+    bias_values:
+      - "看涨"
+      - "中性"
+      - "看跌"
+    confidence_range:
+      min: 0
+      max: 100
+
+# ================================
+# 示例输出（参考）
+# ================================
+example_output:
+  bitcoin_example: |
+    {
+      "technical_indicators": {
+        "rsi": {
+          "value": 62.5,
+          "signal": "中性",
+          "interpretation": "RSI位于中性区间，未进入超买或超卖区域，市场情绪相对平衡。"
+        },
+        "macd": {
+          "macd_line": 850.5,
+          "signal_line": 720.3,
+          "histogram": 130.2,
+          "signal": "看涨",
+          "interpretation": "MACD线位于信号线上方，柱状图为正且扩大，多头动能增强。"
+        },
+        "bollinger_bands": {
+          "upper": 69000,
+          "middle": 67000,
+          "lower": 65000,
+          "current_position": "上轨附近",
+          "bandwidth": "正常",
+          "interpretation": "价格接近布林带上轨，短期可能面临压力，但布林带宽度正常，未显示超买。"
+        }
+      },
+      "support_resistance": {
+        "immediate_support": ["$66000", "$65000"],
+        "immediate_resistance": ["$69000", "$70000"],
+        "strong_support": ["$60000", "$58000"],
+        "strong_resistance": ["$73000", "$75000"],
+        "key_levels_narrative": "当前价格位于$66000支撑位上方，短期目标$69000-$70000。突破$70000后将打开上行空间，下方$66000和$65000是关键支撑。"
+      },
+      "trend_analysis": {
+        "short_term_trend": "上涨",
+        "medium_term_trend": "上涨",
+        "long_term_trend": "上涨",
+        "trend_strength": "强",
+        "momentum": "稳定",
+        "narrative": "BTC处于多周期上涨趋势中，短中长期均向上。价格连续突破关键阻力位，创出新高，上涨动能稳定。均线系统呈多头排列，趋势强劲且持续性强。"
+      },
+      "derivatives_analysis": {
+        "open_interest": {
+          "value": 15000000000,
+          "change_24h": "+3.5%",
+          "signal": "看涨",
+          "interpretation": "未平仓合约持续上升且价格上涨，多头主动建仓，趋势延续概率高。"
+        },
+        "funding_rate": {
+          "value": 0.012,
+          "interpretation": "资金费率为正1.2%，多头支付费用，市场偏多，但费率适中，未显示过度狂热。"
+        },
+        "liquidation_risk": {
+          "level": "中",
+          "long_liquidations_24h": 80000000,
+          "short_liquidations_24h": 150000000,
+          "interpretation": "空头清算额高于多头，上涨趋势获空头止损支持。多头清算额适中，杠杆率可控。"
+        }
+      },
+      "chart_patterns": {
+        "identified_patterns": [
+          "上升通道",
+          "突破整理平台"
+        ],
+        "breakout_potential": "高",
+        "narrative": "BTC突破$65000-$67000整理平台，进入加速上涨阶段。上升通道保持完好，只要价格守住通道下轨（约$66000），上涨趋势将延续。"
+      },
+      "trading_signals": {
+        "entry_zones": ["$66000-$67000"],
+        "take_profit_targets": ["$70000", "$73000"],
+        "stop_loss": "$65000",
+        "risk_reward_ratio": "1:3"
+      },
+      "overall_technical_view": {
+        "bias": "看涨",
+        "confidence": 80,
+        "time_horizon": "短期（1-2周）",
+        "narrative": "BTC技术面整体看涨。多项技术指标支持上涨，RSI中性未超买，MACD多头信号明确，价格接近布林带上轨但未过度延伸。支撑位坚实（$66000/$65000），短期目标$70000阻力位。衍生品数据显示多头占优，未平仓合约上升，资金费率适中。图表形态呈上升通道，突破平台后动能增强。建议在$66000-$67000区域分批布局，目标$70000-$73000，止损$65000以下。风险点：接近$70000心理关口可能遇阻，多头杠杆率需关注。"
+      },
+      "risk_warnings": [
+        {
+          "warning": "$70000心理阻力",
+          "severity": "中",
+          "description": "$70000是重要心理关口和历史阻力位，突破需要放量配合，否则可能面临回调。"
+        },
+        {
+          "warning": "布林带上轨压力",
+          "severity": "低",
+          "description": "价格接近布林带上轨，短期可能震荡整固，但整体趋势未改变。"
+        }
+      ],
+      "data_sources": ["CoinGecko", "Binance Futures", "Bybit"],
+      "updated_at": "2025-10-25T14:30:00Z"
+    }
+
+# ================================
+# 模型配置
+# ================================
+model_config:
+  primary_model: "deepseek/deepseek-r1-0528:free"
+  fallback_model: "qwen/qwen3-235b-a22b:free"
+  temperature: 0.3  # 低温度，确保准确性
+  max_tokens: 2000
+  response_format: "json_object"

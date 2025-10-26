@@ -1,0 +1,433 @@
+# Tokenomics Analysis Prompt Template
+# 代币经济学分析 - 供应结构、解锁时间表、价值捕获路径
+
+system_prompt: |
+  你是一位专业的加密货币代币经济学分析师，擅长评估代币供应设计、解锁机制、价值捕获路径和通胀/通缩动态。
+
+  你的分析应该：
+  1. **供应结构**：分析总供应、流通供应、分配比例（团队/投资人/社区/生态）
+  2. **解锁时间表**：识别即将解锁的代币数量和时间，评估抛压风险
+  3. **价值捕获**：分析代币如何从协议增长中捕获价值（治理/质押/回购/销毁）
+  4. **通胀/通缩**：评估代币供应增长率和通缩机制（销毁/回购）
+  5. **实用性**：评估代币在协议中的实际用途和需求驱动
+  6. **激励对齐**：评估代币经济学是否与长期协议成功对齐
+
+  分析框架：
+  - 使用 Circulating Supply / Total Supply 比率评估代币流通度
+  - 关注未来 6-12 个月的解锁压力
+  - 对比协议收入与代币持有者分配比例
+  - 评估是否存在"死亡螺旋"风险（高解锁+低需求）
+  - 识别"飞轮效应"机制（协议增长 → 代币需求 → 价格上涨 → 更多增长）
+
+user_prompt_template: |
+  请分析 **{symbol}** 的代币经济学设计：
+
+  ## 供应信息
+  - 总供应量：{total_supply:,.0f} {symbol}
+  - 流通供应量：{circulating_supply:,.0f} {symbol}
+  - 流通率：{circulation_rate:.1f}%
+  - 最大供应量：{max_supply}
+
+  ## 分配结构
+  {allocation_data}
+
+  ## 解锁时间表
+  {unlock_schedule}
+
+  ## 价值捕获机制
+  {value_capture_mechanisms}
+
+  ## 协议指标
+  - 当前市值：${market_cap:,.0f}
+  - 完全稀释估值：${fdv:,.0f}
+  - 月协议收入：${protocol_revenue_30d:,.0f}
+  - 月销毁/回购：${buyback_burn_30d:,.0f}
+
+  ## 输出要求
+  请严格按照以下 JSON 格式输出分析结果：
+
+  ```json
+  {
+    "supply_structure": {
+      "total_supply": 1000000000,
+      "circulating_supply": 400000000,
+      "circulation_rate": 40.0,
+      "max_supply": "1000000000 (固定) | 无上限",
+      "emission_rate": "每年新增5% | 无新增 | 递减中",
+      "allocation_breakdown": {
+        "team": {"percent": 20, "vesting_period": "4年线性解锁"},
+        "investors": {"percent": 15, "vesting_period": "2年解锁"},
+        "community": {"percent": 40, "vesting_period": "即时流通"},
+        "ecosystem": {"percent": 15, "vesting_period": "5年释放"},
+        "foundation": {"percent": 10, "vesting_period": "3年解锁"}
+      },
+      "distribution_fairness": "公平 | 中等 | 集中",
+      "fairness_rationale": "社区占比40%，分配较公平"
+    },
+    "unlock_schedule": {
+      "upcoming_unlocks": [
+        {
+          "date": "2025-03-01",
+          "amount": 50000000,
+          "percent_of_circulating": 12.5,
+          "beneficiary": "投资人",
+          "impact": "高 | 中 | 低"
+        },
+        {
+          "date": "2025-06-01",
+          "amount": 30000000,
+          "percent_of_circulating": 7.5,
+          "beneficiary": "团队",
+          "impact": "中"
+        }
+      ],
+      "next_6months_unlock": 80000000,
+      "next_12months_unlock": 150000000,
+      "unlock_pressure": "高 | 中 | 低",
+      "pressure_rationale": "未来6个月解锁20%流通量，抛压较大"
+    },
+    "value_capture": {
+      "mechanisms": [
+        {
+          "type": "质押奖励",
+          "description": "质押代币获得协议收入分成",
+          "apy": "15%",
+          "participation_rate": "35%"
+        },
+        {
+          "type": "回购销毁",
+          "description": "用协议收入回购并销毁代币",
+          "monthly_amount": 5000000,
+          "annualized_deflation": "2%"
+        },
+        {
+          "type": "治理",
+          "description": "代币持有者投票决定协议参数",
+          "governance_power": "1 token = 1 vote"
+        }
+      ],
+      "revenue_share_to_holders": "70%",
+      "deflationary": true,
+      "flywheel_effect": "强 | 中 | 弱",
+      "flywheel_description": "协议收入增长 → 回购销毁 → 供应减少 → 价格上涨 → 吸引更多用户"
+    },
+    "token_utility": {
+      "use_cases": [
+        "治理投票",
+        "质押赚取收益",
+        "支付交易手续费折扣",
+        "参与流动性挖矿"
+      ],
+      "demand_drivers": [
+        "质押锁仓需求（35%参与率）",
+        "手续费折扣需求",
+        "治理权需求"
+      ],
+      "utility_score": 7,
+      "utility_rating": "强 | 中 | 弱"
+    },
+    "inflation_deflation": {
+      "current_inflation_rate": "5% 每年",
+      "future_inflation_rate": "3% 每年（2026年起）",
+      "deflation_mechanisms": ["回购销毁", "质押锁仓"],
+      "net_inflation": "+3% 每年",
+      "inflation_vs_revenue_growth": "收入增长30% > 通胀5%，可持续",
+      "sustainability": "可持续 | 需观察 | 不可持续"
+    },
+    "risk_assessment": {
+      "tokenomics_risks": [
+        "未来6个月大额解锁（20%流通量）",
+        "团队和投资人持仓集中（35%）",
+        "实用性有限，主要依赖投机需求"
+      ],
+      "death_spiral_risk": "低 | 中 | 高",
+      "risk_rationale": "协议收入增长强劲，回购销毁抵消通胀，但需警惕解锁抛压",
+      "mitigation_factors": [
+        "协议收入高速增长（+30% MoM）",
+        "高质押率（35%）锁定供应",
+        "活跃回购销毁计划"
+      ]
+    },
+    "incentive_alignment": {
+      "aligned_with_protocol_success": true,
+      "alignment_score": 8,
+      "alignment_factors": [
+        "代币持有者获得协议收入分成（70%）",
+        "回购销毁与收入挂钩",
+        "团队代币长期锁定（4年）"
+      ],
+      "misalignment_concerns": [
+        "投资人解锁压力可能影响短期价格",
+        "治理参与度较低（仅20%投票率）"
+      ]
+    },
+    "tokenomics_health_score": {
+      "score": 75,
+      "rating": "优秀 (80+) | 良好 (60-79) | 一般 (40-59) | 差 (<40)",
+      "strengths": [
+        "强价值捕获机制（70%收入分配）",
+        "活跃通缩机制（2%年化销毁）",
+        "社区分配占比高（40%）"
+      ],
+      "weaknesses": [
+        "即将面临大额解锁（6个月20%）",
+        "团队投资人持仓较集中（35%）"
+      ]
+    },
+    "summary": "代币经济学总结（2-3句话）"
+  }
+  ```
+
+output_format:
+  supply_structure:
+    total_supply: "总供应量（数字）"
+    circulating_supply: "流通供应量（数字）"
+    circulation_rate: "流通率（百分比）"
+    max_supply: "最大供应量"
+    emission_rate: "新增发行率"
+    allocation_breakdown: "分配明细"
+    distribution_fairness: "分配公平性"
+    fairness_rationale: "公平性理由"
+
+  unlock_schedule:
+    upcoming_unlocks: "即将解锁列表"
+    next_6months_unlock: "未来6个月解锁总量"
+    next_12months_unlock: "未来12个月解锁总量"
+    unlock_pressure: "解锁压力等级"
+    pressure_rationale: "压力评估理由"
+
+  value_capture:
+    mechanisms: "价值捕获机制列表"
+    revenue_share_to_holders: "收入分配比例"
+    deflationary: "是否通缩"
+    flywheel_effect: "飞轮效应强度"
+    flywheel_description: "飞轮效应描述"
+
+  token_utility:
+    use_cases: "使用场景列表"
+    demand_drivers: "需求驱动因素"
+    utility_score: "实用性分数（0-10）"
+    utility_rating: "实用性评级"
+
+  inflation_deflation:
+    current_inflation_rate: "当前通胀率"
+    future_inflation_rate: "未来通胀率"
+    deflation_mechanisms: "通缩机制列表"
+    net_inflation: "净通胀率"
+    inflation_vs_revenue_growth: "通胀vs收入增长对比"
+    sustainability: "可持续性"
+
+  risk_assessment:
+    tokenomics_risks: "代币经济学风险列表"
+    death_spiral_risk: "死亡螺旋风险等级"
+    risk_rationale: "风险评估理由"
+    mitigation_factors: "风险缓解因素"
+
+  incentive_alignment:
+    aligned_with_protocol_success: "是否与协议成功对齐"
+    alignment_score: "对齐分数（0-10）"
+    alignment_factors: "对齐因素列表"
+    misalignment_concerns: "不对齐担忧列表"
+
+  tokenomics_health_score:
+    score: "健康分数（0-100）"
+    rating: "健康评级"
+    strengths: "优势列表"
+    weaknesses: "劣势列表"
+
+  summary: "简洁总结"
+
+validation_rules:
+  required_fields:
+    - supply_structure
+    - unlock_schedule
+    - value_capture
+    - token_utility
+    - inflation_deflation
+    - risk_assessment
+    - incentive_alignment
+    - tokenomics_health_score
+    - summary
+
+  supply_structure_rules:
+    - circulation_rate必须在0-100之间
+    - distribution_fairness必须是"公平/中等/集中"之一
+    - allocation_breakdown必须包含至少2个分配项
+
+  unlock_schedule_rules:
+    - upcoming_unlocks必须是列表
+    - unlock_pressure必须是"高/中/低"之一
+    - next_6months_unlock和next_12months_unlock必须是数字
+
+  value_capture_rules:
+    - mechanisms必须包含至少1个机制
+    - deflationary必须是布尔值
+    - flywheel_effect必须是"强/中/弱"之一
+
+  token_utility_rules:
+    - use_cases必须包含至少2个场景
+    - utility_score必须在0-10之间
+    - utility_rating必须是"强/中/弱"之一
+
+  inflation_deflation_rules:
+    - sustainability必须是"可持续/需观察/不可持续"之一
+
+  risk_assessment_rules:
+    - tokenomics_risks必须包含至少2个风险
+    - death_spiral_risk必须是"低/中/高"之一
+
+  incentive_alignment_rules:
+    - aligned_with_protocol_success必须是布尔值
+    - alignment_score必须在0-10之间
+
+  tokenomics_health_score_rules:
+    - score必须在0-100之间
+    - rating必须是预定义评级之一
+    - strengths必须包含至少2个优势
+    - weaknesses必须包含至少2个劣势
+
+examples:
+  - input:
+      symbol: "UNI"
+      total_supply: 1000000000
+      circulating_supply: 753766667
+      circulation_rate: 75.4
+      max_supply: "1000000000"
+      allocation_data: |
+        - 团队和顾问：21.51%（4年线性解锁）
+        - 投资人：17.8%（4年线性解锁）
+        - 社区：43%（社区金库）
+        - 流动性挖矿：17.69%（4年分发）
+      unlock_schedule: |
+        - 2025-03-17: 4,166,666 UNI（投资人解锁，占流通量0.55%）
+        - 2025-04-17: 4,166,666 UNI（团队解锁，占流通量0.55%）
+        - 未来6个月总解锁：25,000,000 UNI（3.3%流通量）
+      value_capture_mechanisms: |
+        - 治理：UNI持有者投票决定协议费用开关、金库使用等
+        - 费用开关：协议可开启0.05%交易费，归UNI质押者
+        - 社区金库：43%供应用于生态激励和回购
+      market_cap: 4500000000
+      fdv: 6000000000
+      protocol_revenue_30d: 45000000
+      buyback_burn_30d: 0
+
+    output:
+      supply_structure:
+        total_supply: 1000000000
+        circulating_supply: 753766667
+        circulation_rate: 75.4
+        max_supply: "1000000000 (固定)"
+        emission_rate: "无新增（已停止增发）"
+        allocation_breakdown:
+          team: {"percent": 21.51, "vesting_period": "4年线性解锁"}
+          investors: {"percent": 17.8, "vesting_period": "4年线性解锁"}
+          community: {"percent": 43, "vesting_period": "社区金库管理"}
+          liquidity_mining: {"percent": 17.69, "vesting_period": "4年分发"}
+        distribution_fairness: "公平"
+        fairness_rationale: "社区占比43%为行业最高，且团队投资人锁定期长达4年"
+
+      unlock_schedule:
+        upcoming_unlocks:
+          - date: "2025-03-17"
+            amount: 4166666
+            percent_of_circulating: 0.55
+            beneficiary: "投资人"
+            impact: "低"
+          - date: "2025-04-17"
+            amount: 4166666
+            percent_of_circulating: 0.55
+            beneficiary: "团队"
+            impact: "低"
+        next_6months_unlock: 25000000
+        next_12months_unlock: 50000000
+        unlock_pressure: "低"
+        pressure_rationale: "未来6个月解锁仅占流通量3.3%，且分散在多个月份，抛压可控"
+
+      value_capture:
+        mechanisms:
+          - type: "治理权"
+            description: "UNI持有者投票决定协议费用开关、金库使用、协议升级等关键决策"
+            apy: "N/A"
+            participation_rate: "20%"
+          - type: "潜在费用分成"
+            description: "协议可开启0.05%交易费，归UNI质押者。当前未激活，为潜在价值捕获"
+            apy: "待激活"
+            participation_rate: "0%"
+          - type: "社区金库回购"
+            description: "43%供应在社区金库，可投票决定用于回购或生态激励"
+            monthly_amount: 0
+            annualized_deflation: "0%"
+        revenue_share_to_holders: "0%（费用开关未激活）"
+        deflationary: false
+        flywheel_effect: "弱"
+        flywheel_description: "当前无直接价值捕获机制，主要依赖治理权和未来费用开关预期"
+
+      token_utility:
+        use_cases:
+          - "治理投票（协议参数、金库使用、费用开关）"
+          - "潜在质押赚取交易费（未激活）"
+          - "社区提案投票权"
+        demand_drivers:
+          - "治理权需求（Uniswap为最大DEX，治理权价值高）"
+          - "费用开关激活预期（潜在每年$500M+收入分配）"
+          - "品牌价值和投机需求"
+        utility_score: 5
+        utility_rating: "中"
+
+      inflation_deflation:
+        current_inflation_rate: "0%（已停止增发）"
+        future_inflation_rate: "0%"
+        deflation_mechanisms: ["潜在回购（需治理投票）"]
+        net_inflation: "0%"
+        inflation_vs_revenue_growth: "无通胀，协议收入增长稳定"
+        sustainability: "可持续"
+
+      risk_assessment:
+        tokenomics_risks:
+          - "费用开关未激活，代币无直接现金流捕获"
+          - "治理参与度低（仅20%），治理权价值未充分体现"
+          - "投资人和团队持仓仍在解锁中（未来12个月5%流通量）"
+          - "缺乏强制性代币需求（无质押、无回购）"
+        death_spiral_risk: "低"
+        risk_rationale: "虽无直接价值捕获，但Uniswap协议地位稳固，费用开关激活预期支撑代币需求。解锁压力小，死亡螺旋风险低"
+        mitigation_factors:
+          - "Uniswap为DEX赛道龙头，品牌价值极高"
+          - "协议收入强劲（月$45M），费用开关激活潜力大"
+          - "社区金库可用于回购（43%供应）"
+          - "解锁压力温和（12个月仅5%）"
+
+      incentive_alignment:
+        aligned_with_protocol_success: false
+        alignment_score: 4
+        alignment_factors:
+          - "团队和投资人长期锁定（4年）"
+          - "社区金库占比高（43%），可用于生态发展"
+        misalignment_concerns:
+          - "代币持有者无法直接获得协议收入（费用开关未激活）"
+          - "协议收入增长不直接转化为代币价值"
+          - "治理参与度低，治理权价值未体现"
+          - "缺乏'飞轮效应'机制"
+
+      tokenomics_health_score:
+        score: 65
+        rating: "良好 (60-79)"
+        strengths:
+          - "无通胀压力（已停止增发）"
+          - "社区分配占比行业最高（43%）"
+          - "解锁压力小（12个月仅5%流通量）"
+          - "团队投资人长期锁定（4年）"
+          - "协议收入强劲，费用开关激活潜力大"
+        weaknesses:
+          - "费用开关未激活，代币无直接价值捕获"
+          - "治理权需求有限（参与率仅20%）"
+          - "缺乏强制性代币需求（无质押、无回购）"
+          - "激励对齐度低（持有者不分享协议收入）"
+
+      summary: "UNI的代币经济学设计注重去中心化和公平分配（社区43%），但价值捕获机制薄弱。费用开关未激活导致协议收入无法分配给代币持有者，主要依赖治理权和未来费用开关预期。解锁压力小，无通胀风险，但缺乏'飞轮效应'机制限制了代币价值增长。"
+
+model_config:
+  primary_model: "meta-llama/llama-3.3-70b-instruct:free"
+  fallback_model: "qwen/qwen3-30b:free"
+  temperature: 0.5
+  max_tokens: 3500
+  top_p: 0.9

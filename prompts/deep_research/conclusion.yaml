@@ -1,0 +1,464 @@
+# Conclusion Synthesizer Prompt Template
+# 结论综合器 - 综合所有分析、生成最终观点和建议
+
+system_prompt: |
+  你是一位资深的加密货币投资分析师，擅长综合多维度分析结果，生成清晰的投资结论和建议。
+
+  你的任务是综合以下 9 个维度的分析结果：
+  1. **TL;DR** - 项目核心价值主张
+  2. **时间窗分析** - 短中长期趋势和催化剂
+  3. **社媒情绪** - 社区情绪和热度
+  4. **技术面** - 价格走势和技术指标
+  5. **链上基本面** - 用户增长、TVL、协议收入
+  6. **竞品对比** - 市场定位和竞争优势
+  7. **代币经济学** - 供应结构、解锁、价值捕获
+  8. **风险评估** - 催化剂和风险因素
+  9. **以上所有维度的综合**
+
+  你的分析应该：
+  1. **综合判断**：整合所有维度，形成统一的投资观点
+  2. **短中期观点**：明确 1-2 周和 1-2 月的价格预期和关键事件
+  3. **关键指标**：识别 5 个最重要的跟踪指标（用于验证论点）
+  4. **置信度评估**：量化分析的确定性程度（0-100）
+  5. **投资建议**：给出清晰的操作建议和风险提示
+  6. **简洁表达**：避免重复，突出核心论点和关键信息
+
+  分析框架：
+  - 使用"牛熊框架"（Bull Thesis vs Bear Thesis）组织论点
+  - 识别"关键假设"（如果假设不成立，论点崩塌）
+  - 评估"催化剂密度"（近期催化剂数量和质量）
+  - 计算"风险调整后收益"（考虑下行风险后的预期收益）
+
+user_prompt_template: |
+  请综合以下 **{symbol}** 的多维度分析结果，生成最终投资结论：
+
+  ## 1. TL;DR 分析
+  {tldr_summary}
+
+  ## 2. 时间窗分析
+  {timeframe_summary}
+
+  ## 3. 社媒情绪分析
+  {sentiment_summary}
+
+  ## 4. 技术面分析
+  {technical_summary}
+
+  ## 5. 链上基本面分析
+  {onchain_summary}
+
+  ## 6. 竞品对比分析
+  {competitor_summary}
+
+  ## 7. 代币经济学分析
+  {tokenomics_summary}
+
+  ## 8. 风险评估分析
+  {risk_summary}
+
+  ## 输出要求
+  请严格按照以下 JSON 格式输出分析结果：
+
+  ```json
+  {
+    "executive_summary": {
+      "one_sentence_thesis": "一句话投资论点（核心观点）",
+      "bull_thesis": [
+        "看涨论点1（如：协议收入高速增长+30% MoM）",
+        "看涨论点2（如：V4上线将扩大技术领先优势）",
+        "看涨论点3（如：费用开关激活将创造强价值捕获）"
+      ],
+      "bear_thesis": [
+        "看跌论点1（如：监管风险未消除，SEC执法可能性中等）",
+        "看跌论点2（如：Layer2竞争加剧，市场份额可能下降）",
+        "看跌论点3（如：代币缺乏强制性需求，主要依赖治理权）"
+      ],
+      "key_assumptions": [
+        "关键假设1（如：费用开关投票将通过）",
+        "关键假设2（如：以太坊生态继续主导DeFi）",
+        "关键假设3（如：无重大安全事件发生）"
+      ],
+      "invalidation_triggers": [
+        "论点失效触发1（如：SEC将UNI定义为证券）",
+        "论点失效触发2（如：V4上线严重延迟或失败）",
+        "论点失效触发3（如：TVL下降超过30%）"
+      ]
+    },
+    "investment_outlook": {
+      "short_term": {
+        "timeframe": "1-2周",
+        "view": "看涨 | 中性 | 看跌",
+        "price_target": "+10-15%",
+        "key_events": [
+          "费用开关投票（2周内）",
+          "Uniswap X 正式上线（预期利好）"
+        ],
+        "rationale": "短期有明确催化剂，技术面突破关键阻力位"
+      },
+      "medium_term": {
+        "timeframe": "1-2月",
+        "view": "看涨 | 中性 | 看跌",
+        "price_target": "+30-50%",
+        "key_events": [
+          "Uniswap V4 主网上线（Q2）",
+          "主流CEX上线UNI永续合约"
+        ],
+        "rationale": "V4上线将强化技术领先地位，估值仍被低估"
+      }
+    },
+    "key_metrics_to_watch": [
+      {
+        "metric": "协议交易量",
+        "current_value": "$1.2B/日",
+        "target": "维持或增长",
+        "importance": "高",
+        "rationale": "交易量直接影响协议收入和费用开关吸引力"
+      },
+      {
+        "metric": "TVL",
+        "current_value": "$3.2B",
+        "target": ">$3B",
+        "importance": "高",
+        "rationale": "TVL反映流动性深度和市场信心"
+      },
+      {
+        "metric": "日活用户",
+        "current_value": "150K",
+        "target": ">140K",
+        "importance": "中",
+        "rationale": "用户增长是协议健康的核心指标"
+      },
+      {
+        "metric": "市场份额",
+        "current_value": "60%",
+        "target": ">55%",
+        "importance": "高",
+        "rationale": "市场份额流失将削弱网络效应"
+      },
+      {
+        "metric": "费用开关投票结果",
+        "current_value": "未投票",
+        "target": "通过",
+        "importance": "极高",
+        "rationale": "费用开关是关键价值捕获机制，直接影响估值"
+      }
+    ],
+    "confidence_assessment": {
+      "overall_confidence": 75,
+      "confidence_level": "高 (70-85) | 中 (50-69) | 低 (<50)",
+      "data_quality": "优秀 | 良好 | 一般 | 差",
+      "analysis_completeness": "完整 | 基本完整 | 部分缺失 | 严重缺失",
+      "uncertainty_factors": [
+        "监管政策不确定性（SEC态度未明确）",
+        "V4上线时间和效果不确定",
+        "市场整体情绪难以预测"
+      ],
+      "confidence_rationale": "数据充分，协议基本面强劲，主要不确定性来自外部监管环境"
+    },
+    "investment_recommendation": {
+      "rating": "强烈看涨 | 看涨 | 中性 | 看跌 | 强烈看跌",
+      "action": "积极买入 | 逢低买入 | 持有 | 减仓 | 卖出",
+      "position_sizing": "建议仓位占比：10-15%",
+      "entry_strategy": "分批建仓，$3200-3400美元区间买入",
+      "exit_strategy": "目标价位：$4500-5000（+30-40%），止损：$2800（-15%）",
+      "risk_management": [
+        "设置止损位于$2800（跌破关键支撑）",
+        "监控SEC监管动态，如有负面消息立即减仓",
+        "费用开关投票若未通过，减仓50%"
+      ],
+      "suitable_for": "风险承受能力：中等到高 | 投资期限：1-3月 | 类型：成长型投资",
+      "not_suitable_for": "保守型投资者、短期投机者"
+    },
+    "catalyst_calendar": [
+      {
+        "date": "2025-02-15",
+        "event": "费用开关投票",
+        "impact": "极高",
+        "expected_outcome": "预计通过（社区支持度高）"
+      },
+      {
+        "date": "2025-03-01",
+        "event": "投资人代币解锁",
+        "impact": "低",
+        "expected_outcome": "解锁量小（0.55%流通量），影响有限"
+      },
+      {
+        "date": "2025-04-01",
+        "event": "Uniswap V4 主网上线",
+        "impact": "高",
+        "expected_outcome": "技术领先优势扩大"
+      }
+    ],
+    "comparative_analysis": {
+      "vs_competitors": "Uniswap在品牌、流动性、创新方面领先竞品，但估值低于赛道中位数",
+      "vs_sector": "DEX赛道整体受益于DeFi复苏，Uniswap作为龙头有望跑赢板块",
+      "vs_market": "相对BTC/ETH的Beta系数约1.2，牛市中弹性更大"
+    },
+    "final_verdict": {
+      "verdict": "看涨",
+      "conviction_level": "高",
+      "time_horizon": "1-3月",
+      "expected_return": "+30-50%",
+      "max_drawdown_risk": "-15-20%",
+      "risk_reward_ratio": 2.5,
+      "summary": "Uniswap是DEX赛道的绝对龙头，近期催化剂密集（费用开关、V4上线），基本面强劲（协议收入增长30% MoM），估值被低估（P/S低于赛道中位数）。主要风险为监管不确定性，但概率中等且有缓解措施。建议积极配置，目标仓位10-15%，1-3月持有期。"
+    }
+  }
+  ```
+
+output_format:
+  executive_summary:
+    one_sentence_thesis: "核心投资论点"
+    bull_thesis: "看涨论点列表（3-5个）"
+    bear_thesis: "看跌论点列表（3-5个）"
+    key_assumptions: "关键假设列表（2-3个）"
+    invalidation_triggers: "论点失效触发列表（2-3个）"
+
+  investment_outlook:
+    short_term: "1-2周观点"
+    medium_term: "1-2月观点"
+
+  key_metrics_to_watch:
+    - metric: "指标名称"
+      current_value: "当前值"
+      target: "目标值"
+      importance: "重要性"
+      rationale: "原因"
+
+  confidence_assessment:
+    overall_confidence: "置信度分数（0-100）"
+    confidence_level: "置信度等级"
+    data_quality: "数据质量"
+    analysis_completeness: "分析完整性"
+    uncertainty_factors: "不确定因素列表"
+    confidence_rationale: "置信度理由"
+
+  investment_recommendation:
+    rating: "投资评级"
+    action: "操作建议"
+    position_sizing: "仓位建议"
+    entry_strategy: "入场策略"
+    exit_strategy: "出场策略"
+    risk_management: "风险管理措施"
+    suitable_for: "适合人群"
+    not_suitable_for: "不适合人群"
+
+  catalyst_calendar:
+    - date: "日期"
+      event: "事件"
+      impact: "影响程度"
+      expected_outcome: "预期结果"
+
+  comparative_analysis:
+    vs_competitors: "相对竞品"
+    vs_sector: "相对板块"
+    vs_market: "相对市场"
+
+  final_verdict:
+    verdict: "最终判断"
+    conviction_level: "信念程度"
+    time_horizon: "投资期限"
+    expected_return: "预期收益"
+    max_drawdown_risk: "最大回撤风险"
+    risk_reward_ratio: "风险回报比"
+    summary: "总结"
+
+validation_rules:
+  required_fields:
+    - executive_summary
+    - investment_outlook
+    - key_metrics_to_watch
+    - confidence_assessment
+    - investment_recommendation
+    - catalyst_calendar
+    - comparative_analysis
+    - final_verdict
+
+  executive_summary_rules:
+    - bull_thesis必须包含3-5个论点
+    - bear_thesis必须包含3-5个论点
+    - key_assumptions必须包含2-3个假设
+    - invalidation_triggers必须包含2-3个触发条件
+
+  investment_outlook_rules:
+    - short_term和medium_term必须包含view、price_target、key_events、rationale
+    - view必须是"看涨/中性/看跌"之一
+
+  key_metrics_to_watch_rules:
+    - 必须包含5个关键指标
+    - 每个指标必须有metric、current_value、target、importance、rationale
+    - importance必须是"极高/高/中/低"之一
+
+  confidence_assessment_rules:
+    - overall_confidence必须在0-100之间
+    - confidence_level必须是"高/中/低"之一
+    - data_quality必须是"优秀/良好/一般/差"之一
+
+  investment_recommendation_rules:
+    - rating必须是"强烈看涨/看涨/中性/看跌/强烈看跌"之一
+    - action必须是预定义操作之一
+    - 必须包含risk_management列表
+
+  final_verdict_rules:
+    - verdict必须是"强烈看涨/看涨/中性/看跌/强烈看跌"之一
+    - conviction_level必须是"极高/高/中/低"之一
+    - risk_reward_ratio必须是正数
+
+examples:
+  - input:
+      symbol: "UNI"
+      tldr_summary: "Uniswap是以太坊最大的去中心化交易所，占据60%市场份额，V3引入集中流动性创新。"
+      timeframe_summary: "短期：费用开关投票即将进行；中期：V4上线；长期：监管明确。"
+      sentiment_summary: "社区情绪积极（58%正面），Twitter讨论度高，社区金库投票活跃。"
+      technical_summary: "价格突破$3500阻力位，RSI 65（中性），MACD金叉，目标$4200。"
+      onchain_summary: "日活15万，TVL $3.2B，月协议收入$45M，链上健康分数75（良好）。"
+      competitor_summary: "市场第1名，估值低于赛道中位数，竞争优势明显（品牌+流动性）。"
+      tokenomics_summary: "解锁压力小（6个月3.3%），费用开关未激活，代币经济学健康分数65（良好）。"
+      risk_summary: "风险回报比2.0（正向不对称），主要风险为监管，多个近期催化剂。"
+
+    output:
+      executive_summary:
+        one_sentence_thesis: "Uniswap是DEX赛道龙头，近期催化剂密集（费用开关、V4），基本面强劲，估值被低估，建议积极配置"
+        bull_thesis:
+          - "协议收入高速增长（+30% MoM），年化收入达$540M，费用开关激活后将创造强价值捕获"
+          - "技术领先优势明显（V3集中流动性，V4 Hooks机制），品牌和流动性护城河稳固"
+          - "估值被低估（P/S 8.3 vs 赛道中位数12），FDV/Revenue仅10倍（竞品平均18倍）"
+          - "短期催化剂密集（2周内费用开关投票，2月内V4上线），上涨潜力大"
+          - "以太坊生态复苏，Layer2降低成本，Uniswap作为DEX龙头直接受益"
+        bear_thesis:
+          - "监管风险未消除，SEC可能将UNI定义为证券，导致CEX下架（概率中等）"
+          - "Layer2原生DEX（dYdX、Vertex）崛起，技术性能更优，可能分流高频交易用户"
+          - "代币价值捕获薄弱（费用开关未激活），主要依赖治理权和未来预期，缺乏强制性需求"
+          - "市场整体风险（加密熊市可能性），系统性下跌时UNI Beta系数1.2，跌幅更大"
+        key_assumptions:
+          - "费用开关投票将通过（社区支持度高，预计2周内投票）"
+          - "Uniswap V4按计划在Q2上线且无重大Bug（开发进展顺利）"
+          - "无重大安全事件发生（智能合约已通过多次审计，风险低）"
+        invalidation_triggers:
+          - "SEC明确将UNI定义为证券并采取执法行动"
+          - "V4上线严重延迟（超过Q3）或出现重大安全漏洞"
+          - "TVL下降超过30%或市场份额跌破50%（核心竞争力丧失）"
+
+      investment_outlook:
+        short_term:
+          timeframe: "1-2周"
+          view: "看涨"
+          price_target: "+10-15%"
+          key_events:
+            - "费用开关投票（预计2周内，通过概率高）"
+            - "技术面突破$3500阻力位，MACD金叉"
+            - "市场情绪积极，社区热度上升"
+          rationale: "短期有明确催化剂（费用开关投票），技术面形成突破，社区情绪积极。若投票通过，将触发价值重估，目标$3800-4000"
+        medium_term:
+          timeframe: "1-2月"
+          view: "看涨"
+          price_target: "+30-50%"
+          key_events:
+            - "Uniswap V4主网上线（Q2，预计4月）"
+            - "主流CEX上线UNI永续合约（增加流动性）"
+            - "以太坊Dencun升级降低L2成本"
+          rationale: "V4上线将强化技术领先地位，Hooks机制创新吸引开发者。估值仍被低估（FDV/Revenue 10x vs 赛道18x），有30-50%修复空间"
+
+      key_metrics_to_watch:
+        - metric: "费用开关投票结果"
+          current_value: "未投票"
+          target: "通过"
+          importance: "极高"
+          rationale: "费用开关是核心价值捕获机制，若通过将使UNI持有者分享$500M+年化收入，直接影响估值基础"
+
+        - metric: "协议日交易量"
+          current_value: "$1.2B"
+          target: "维持>$1B"
+          importance: "高"
+          rationale: "交易量直接影响协议收入，是费用开关吸引力的基础。若下降超过20%，收入预期降低"
+
+        - metric: "TVL"
+          current_value: "$3.2B"
+          target: ">$3B"
+          importance: "高"
+          rationale: "TVL反映流动性深度和市场信心，是交易体验的保障。跌破$3B将影响大单交易滑点"
+
+        - metric: "市场份额（ETH DEX）"
+          current_value: "60%"
+          target: ">55%"
+          importance: "高"
+          rationale: "市场份额是网络效应的核心指标，跌破55%将削弱流动性优势和品牌护城河"
+
+        - metric: "日活跃用户"
+          current_value: "150K"
+          target: ">140K"
+          importance: "中"
+          rationale: "用户增长反映协议采用率和生态健康，下降超过7%将表明用户流失至竞品"
+
+      confidence_assessment:
+        overall_confidence: 75
+        confidence_level: "高 (70-85)"
+        data_quality: "优秀"
+        analysis_completeness: "完整"
+        uncertainty_factors:
+          - "监管政策不确定性（SEC对DeFi态度未明确，可能在6-12月内有动作）"
+          - "V4上线时间和效果（开发进度顺利但可能延迟，Hooks机制接受度未知）"
+          - "市场整体情绪（加密市场波动大，宏观环境影响不确定）"
+        confidence_rationale: "链上数据充分且实时，协议基本面强劲（收入增长30% MoM），社区活跃度高。主要不确定性来自外部监管环境（非协议本身问题）和市场系统性风险"
+
+      investment_recommendation:
+        rating: "看涨"
+        action: "逢低买入"
+        position_sizing: "建议仓位占比：10-15%（中等仓位）"
+        entry_strategy: "分批建仓，首批5%仓位于$3200-3400区间买入，若费用开关投票通过后加仓至10-15%"
+        exit_strategy: "目标价位：$4500-5000（+30-40%），分批止盈；止损：$2800（-15%，跌破关键支撑）"
+        risk_management:
+          - "严格设置止损位于$2800（200日均线支撑，跌破意味趋势反转）"
+          - "密切监控SEC监管动态，若有负面消息（如传票、调查公告）立即减仓50%"
+          - "费用开关投票若未通过，减仓至5%（价值捕获逻辑被削弱）"
+          - "V4上线若严重延迟（超过Q3）或出现重大Bug，减仓至观望"
+          - "仓位管理：最高15%，避免过度集中单一资产"
+        suitable_for: "风险承受能力：中等到高 | 投资期限：1-3月 | 投资类型：成长型价值投资 | 适合对DeFi赛道有理解的投资者"
+        not_suitable_for: "保守型投资者、短期投机者（波动大）、无法承受监管风险的投资者"
+
+      catalyst_calendar:
+        - date: "2025-02-15"
+          event: "费用开关投票"
+          impact: "极高"
+          expected_outcome: "预计通过（社区支持度高），通过后UNI持有者将分享协议收入，触发估值重估"
+
+        - date: "2025-03-01"
+          event: "投资人代币解锁（4.17M UNI）"
+          impact: "低"
+          expected_outcome: "解锁量仅0.55%流通量，分散在多个投资人，抛压有限"
+
+        - date: "2025-04-01"
+          event: "Uniswap V4主网上线"
+          impact: "高"
+          expected_outcome: "Hooks机制创新，允许自定义流动性池逻辑，技术领先优势扩大，吸引开发者和流动性"
+
+        - date: "2025-04-15"
+          event: "团队代币解锁（4.17M UNI）"
+          impact: "低"
+          expected_outcome: "解锁量小，团队长期锁定4年已显示信心，抛压可控"
+
+        - date: "2025-05-01"
+          event: "以太坊Dencun升级（L2成本降低）"
+          impact: "中"
+          expected_outcome: "L2 Gas费降低90%+，Uniswap L2版本吸引更多用户，提升交易量"
+
+      comparative_analysis:
+        vs_competitors: "Uniswap在品牌知名度（最强）、流动性深度（$3.2B TVL）、技术创新（V3集中流动性、V4 Hooks）方面全面领先PancakeSwap、SushiSwap、Curve。估值倍数（FDV/Revenue 10x）显著低于赛道中位数（18x），存在30-40%估值修复空间"
+        vs_sector: "DEX赛道整体受益于DeFi复苏（TVL增长+25% QoQ）和以太坊生态扩张。Uniswap作为龙头，市场份额60%，网络效应最强，有望跑赢板块平均+10-15%"
+        vs_market: "相对BTC/ETH的Beta系数约1.2，牛市中弹性更大（涨幅1.2倍），熊市中回撤也更深。当前处于牛市初期，Beta优势明显"
+
+      final_verdict:
+        verdict: "看涨"
+        conviction_level: "高"
+        time_horizon: "1-3月"
+        expected_return: "+30-50%"
+        max_drawdown_risk: "-15-20%"
+        risk_reward_ratio: 2.5
+        summary: "Uniswap是DEX赛道的绝对龙头，具备强大的品牌和技术护城河。近期催化剂密集（费用开关投票、V4上线），基本面强劲（协议收入增长30% MoM，TVL稳定），估值显著被低估（FDV/Revenue 10x vs 赛道18x）。主要风险为监管不确定性（SEC可能执法），但概率中等且协议去中心化程度高，可缓解风险。综合风险回报比2.5（上涨潜力+30-50% vs 下跌风险-15-20%），建议积极配置10-15%仓位，持有期1-3月，目标价$4500-5000。适合风险承受能力中等到高的成长型价值投资者。"
+
+model_config:
+  primary_model: "meta-llama/llama-3.3-70b-instruct:free"
+  fallback_model: "qwen/qwen3-30b:free"
+  temperature: 0.6
+  max_tokens: 4500
+  top_p: 0.9
