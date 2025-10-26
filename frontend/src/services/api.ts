@@ -9,6 +9,7 @@ import type {
   SharedReportResponse,
   Report,
 } from '../types'
+import type { AutocompleteResponse } from '../types/autocomplete'
 
 // Import Mock API
 import * as mockApi from './api.mock'
@@ -203,6 +204,20 @@ const disableShareLinkReal = async (reportId: number): Promise<void> => {
  * 根据环境变量自动选择Mock或真实API
  */
 export const disableShareLink = USE_MOCK ? mockApi.disableShareLink : disableShareLinkReal
+
+// ================================
+// Search API
+// ================================
+
+/**
+ * 搜索自动补全
+ */
+export const searchAutocomplete = async (query: string): Promise<AutocompleteResponse> => {
+  const response = await api.get<AutocompleteResponse>('/api/v1/search/autocomplete', {
+    params: { q: query },
+  })
+  return response.data
+}
 
 // ================================
 // Health Check

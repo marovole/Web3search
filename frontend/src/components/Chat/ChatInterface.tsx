@@ -3,12 +3,13 @@ import type { Message, ChatMode } from '../../types'
 import { quickChat, deepResearchStream } from '../../services/api'
 import ModeSwitch from './ModeSwitch'
 import MessageList from './MessageList'
-import InputBox from './InputBox'
+import AutocompleteInput from './AutocompleteInput'
 import LoadingAnimation from '../Shared/LoadingAnimation'
 
 const ChatInterface: React.FC = () => {
   // State
   const [messages, setMessages] = useState<Message[]>([])
+  const [inputValue, setInputValue] = useState('')
   const [mode, setMode] = useState<ChatMode>(() => {
     // Load from localStorage
     const saved = localStorage.getItem('chatMode')
@@ -40,6 +41,9 @@ const ChatInterface: React.FC = () => {
   // Handle send message
   const handleSendMessage = async (userInput: string) => {
     if (!userInput.trim()) return
+
+    // Clear input immediately
+    setInputValue('')
 
     // Add user message
     const userMessage: Message = {
@@ -234,7 +238,9 @@ const ChatInterface: React.FC = () => {
 
       {/* Input Box */}
       <div className="border-t border-gray-200 p-4 no-print">
-        <InputBox
+        <AutocompleteInput
+          value={inputValue}
+          onChange={setInputValue}
           onSend={handleSendMessage}
           disabled={isLoading}
           placeholder={
