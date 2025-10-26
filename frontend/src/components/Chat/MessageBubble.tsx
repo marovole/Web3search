@@ -27,9 +27,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
               remarkPlugins={[remarkGfm]}
               components={{
                 // Code block with syntax highlighting
+                // @ts-ignore - react-markdown types compatibility
                 code({ node, inline, className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || '')
                   return !inline && match ? (
+                    // @ts-ignore - SyntaxHighlighter types compatibility
                     <SyntaxHighlighter
                       {...props}
                       style={tomorrow}

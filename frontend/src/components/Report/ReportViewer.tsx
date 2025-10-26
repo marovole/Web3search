@@ -169,9 +169,11 @@ const ReportViewer: React.FC<ReportViewerProps> = ({ report }) => {
                   return <h4 id={id}>{children}</h4>
                 },
                 // Code blocks
+                // @ts-ignore - react-markdown types compatibility
                 code({ node, inline, className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || '')
                   return !inline && match ? (
+                    // @ts-ignore - SyntaxHighlighter types compatibility
                     <SyntaxHighlighter
                       {...props}
                       style={tomorrow}
