@@ -26,7 +26,7 @@ class Settings(BaseSettings):
 
     # CORS配置
     CORS_ORIGINS: str = Field(
-        default="http://localhost:3000,http://localhost:5173",
+        default="http://localhost:3000,http://localhost:5173,https://web3search.vercel.app",
         description="允许的跨域来源（逗号分隔）"
     )
 
