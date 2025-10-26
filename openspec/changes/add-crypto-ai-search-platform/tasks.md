@@ -15,12 +15,12 @@
 | Phase 5: Prompt工程优化 | 🟡 部分完成 | ~70% | Prompt模板、JSON Schema、多轮对话已完成，Few-shot示例和测试优化待完成 |
 | Phase 6: 报告生成系统 | ✅ 完成 | 6/6 (100%) | Markdown构建器、表格生成器、图表生成器、PDF导出器、分享链接API、质量验证器全部完成 |
 | Phase 7: 前端开发 | ✅ 完成 | 12/12 (100%) | React + TypeScript应用完成，核心聊天、报告查看、导出功能、响应式布局全部实现 |
-| Phase 8: 特色功能 | 🔴 未开始 | 0% | 热点识别、监控列表、历史记录 |
+| Phase 8: 特色功能 | ✅ 完成 | 5/5 (100%) | 热点识别、监控列表、历史记录、搜索自动补全、数据源引用 |
 | Phase 9: 部署与CI/CD | ✅ 完成 | 5/5 (100%) | Render后端+Celery Worker+Beat已部署，Vercel前端已部署，CORS已配置，HTTPS已验证 |
 | Phase 10-12: 其他 | 🔴 未开始 | 0% | 测试、优化、文档、归档 |
 
-**当前里程碑**: ✅ Phase 9 部署与CI/CD完成（Render全栈部署+Vercel前端+Celery定时任务）
-**下一个里程碑**: Phase 10 测试与优化 或 Phase 8 特色功能开发
+**当前里程碑**: ✅ Phase 8 特色功能开发完成（热点识别+监控列表+历史记录+搜索自动补全+数据源引用）
+**下一个里程碑**: Phase 10 测试与优化
 
 ---
 
@@ -608,41 +608,50 @@
 
 ---
 
-## Phase 8: 特色功能 (2天)
+## Phase 8: 特色功能 (2天) ✅ 已完成 (2025-10-26)
 
-### 8.1 热点自动识别
-- [ ] 8.1.1 创建`backend/app/services/trends/hotspot.py`
-- [ ] 8.1.2 实现算法：综合Twitter提及量、Reddit讨论、价格涨幅
-- [ ] 8.1.3 实现每日Top 5热点项目排行
-- [ ] 8.1.4 创建`GET /api/v1/trends/hotspots`端点
-- [ ] 8.1.5 前端展示热点列表（首页）
+### 8.1 热点自动识别 ✅ 已完成 (2025-10-26)
+- [x] 8.1.1 创建`backend/app/services/hotspot_analyzer.py` - 综合5维度评分算法（Twitter 25%、Reddit 20%、价格 30%、交易量 15%、新闻 10%）
+- [x] 8.1.2 实现多维度热度计算 - 并发采集数据、归一化评分、Top N排序
+- [x] 8.1.3 创建`GET /api/v1/trending/hotspots`端点 - 支持limit参数、force_refresh参数
+- [x] 8.1.4 实现Redis缓存优化 - 1小时TTL缓存
+- [x] 8.1.5 创建Celery定时任务 - 每小时第15分钟自动更新热点
+- [x] 8.1.6 前端HotspotPanel组件 - 首页热点展示、响应式卡片布局、点击自动填充输入框
 
-### 8.2 项目监控列表
-- [ ] 8.2.1 实现前端localStorage存储收藏项目
-- [ ] 8.2.2 创建"添加到监控"按钮
-- [ ] 8.2.3 创建监控列表页面
-- [ ] 8.2.4 实现快速查看监控项目报告
-- [ ] 8.2.5 实现价格异动提醒（可选）
+### 8.2 项目监控列表 ✅ 已完成 (2025-10-26)
+- [x] 8.2.1 创建`frontend/src/hooks/useWatchlist.ts` - localStorage管理（最多20项）
+- [x] 8.2.2 创建`frontend/src/types/watchlist.ts` - WatchlistItem类型定义
+- [x] 8.2.3 创建"添加到监控"按钮组件 - AddButton集成到ReportViewer
+- [x] 8.2.4 创建监控列表页面 - WatchlistPage.tsx，网格布局
+- [x] 8.2.5 实现快速生成Deep Research报告 - 点击卡片直接调用API生成报告
+- [x] 8.2.6 实现Toast通知反馈 - 添加/移除时显示通知
 
-### 8.3 报告历史记录
-- [ ] 8.3.1 实现前端localStorage存储浏览历史
-- [ ] 8.3.2 创建历史记录页面
-- [ ] 8.3.3 实现按时间排序显示
-- [ ] 8.3.4 实现快速重新生成报告
-- [ ] 8.3.5 实现清空历史功能
+### 8.3 报告历史记录 ✅ 已完成 (2025-10-26)
+- [x] 8.3.1 创建`frontend/src/hooks/useReportHistory.ts` - localStorage管理（最多50条）
+- [x] 8.3.2 创建`frontend/src/types/history.ts` - ReportHistoryItem类型定义
+- [x] 8.3.3 创建历史记录页面 - HistoryPage.tsx，时间倒序排列
+- [x] 8.3.4 实现按时间排序显示 - 相对时间显示（刚刚、5分钟前、2小时前）
+- [x] 8.3.5 实现快速跳转报告 - 点击历史记录直接跳转到分享页面
+- [x] 8.3.6 实现清空历史功能 - 单条删除+全部清空（带确认）
+- [x] 8.3.7 自动记录浏览历史 - SharedReportPage集成自动添加历史
+- [x] 8.3.8 导航集成 - ChatPage添加历史按钮
 
-### 8.4 数据源标注
-- [ ] 8.4.1 在报告中添加数据源引用（如[1], [2]）
-- [ ] 8.4.2 在报告末尾生成引用列表
-- [ ] 8.4.3 实现点击引用跳转到来源
-- [ ] 8.4.4 显示数据更新时间戳
+### 8.4 数据源引用标注 ✅ 已完成 (2025-10-26)
+- [x] 8.4.1 增强报告元数据部分 - 学术引用风格的参考文献系统
+- [x] 8.4.2 按类别分组展示数据源 - Market Data、On-chain Data、Social Sentiment、Community Sentiment、News & Media
+- [x] 8.4.3 生成引用编号 - [1], [2], [3]... 自动编号
+- [x] 8.4.4 添加完整引用信息 - 包含名称、描述、官方链接、访问时间戳
+- [x] 8.4.5 实现Markdown格式化 - 双空格换行、链接格式优化
+- [x] 8.4.6 更新`backend/app/services/report/markdown_builder.py` - _build_metadata方法增强
 
-### 8.5 搜索建议（自动补全）
-- [ ] 8.5.1 实现前端输入框自动补全
-- [ ] 8.5.2 创建`GET /api/v1/projects/search?q=xxx`端点
-- [ ] 8.5.3 支持模糊搜索（symbol/name）
-- [ ] 8.5.4 显示项目icon和基本信息
-- [ ] 8.5.5 支持键盘导航（上下键选择）
+### 8.5 搜索自动补全 ✅ 已完成 (2025-10-26)
+- [x] 8.5.1 创建`backend/app/api/v1/search.py` - 搜索API端点
+- [x] 8.5.2 创建`GET /api/v1/search/autocomplete`端点 - 集成CoinGecko搜索API
+- [x] 8.5.3 实现前端AutocompleteInput组件 - 防抖搜索（300ms延迟）
+- [x] 8.5.4 支持模糊搜索 - symbol/name匹配，显示市值排名和图标
+- [x] 8.5.5 支持键盘导航 - ↑↓选择、Enter确认、Esc关闭
+- [x] 8.5.6 实现下拉建议框 - 响应式设计、加载状态指示
+- [x] 8.5.7 集成到ChatInterface - 替换原有InputBox组件
 
 ---
 
