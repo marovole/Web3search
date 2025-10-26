@@ -10,6 +10,14 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.database import close_db, init_db
 from app.core.redis_client import close_redis
+from app.core.logging_config import setup_logging
+from app.core.monitoring import init_sentry
+
+# 初始化日志系统
+setup_logging(level=settings.LOG_LEVEL)
+
+# 初始化Sentry（如果配置了DSN）
+init_sentry()
 
 
 # ================================
@@ -86,25 +94,22 @@ app.add_middleware(
 # 全局异常处理器
 # ================================
 
-@app.exception_handler(Exception)
-async def global_exception_handler(request, exc: Exception):
-    """全局异常处理"""
-    import traceback
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-    # 打印详细错误信息（仅开发环境）
-    if settings.DEBUG:
-        print(f"❌ Error: {exc}")
-        traceback.print_exc()
+from app.core.exceptions import Web3SearchException
+from app.core.error_handler import (
+    web3search_exception_handler,
+    validation_exception_handler,
+    http_exception_handler,
+    generic_exception_handler,
+)
 
-    # 返回用户友好的错误信息
-    return JSONResponse(
-        status_code=500,
-        content={
-            "error": "Internal Server Error",
-            "message": "服务暂时不可用，请稍后重试",
-            "detail": str(exc) if settings.DEBUG else None,
-        },
-    )
+# 注册自定义异常处理器
+app.add_exception_handler(Web3SearchException, web3search_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(Exception, generic_exception_handler)
 
 
 # ================================

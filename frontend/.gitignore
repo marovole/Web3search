@@ -36,6 +36,9 @@ dist-ssr/
 # Testing
 coverage/
 .nyc_output/
+playwright-report/
+test-results/
+playwright/.cache/
 
 # Vite
 vite.config.js.timestamp-*
