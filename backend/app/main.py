@@ -183,8 +183,8 @@ async def init_database():
         dict: 初始化结果
     """
     try:
-        # 导入所有模型
-        from app.models import project, snapshot, report, conversation  # noqa: F401
+        # 导入所有模型（确保SQLAlchemy注册所有表）
+        from app.models import Project, ProjectSnapshot, Report, Conversation, Message  # noqa: F401
         from app.core.database import Base, engine
 
         # 创建所有表
