@@ -93,11 +93,15 @@ sentry-sdk[fastapi]==1.38.0
 # Report Generation
 # ================================
 markdown==3.5.1
+markdown2==2.4.10
+weasyprint==60.1
 
 # ================================
 # Data Visualization
 # ================================
 pillow==10.1.0
+matplotlib==3.8.2
+plotly==5.18.0
 
 # ================================
 # Text Processing
