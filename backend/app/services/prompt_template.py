@@ -1,5 +1,5 @@
 """
-Prompt模板系统（任务 11.1-11.5）
+Prompt模板系统（任务 11.1-11.6）
 
 功能：
 1. 模板变量替换（任务11.1）
@@ -8,40 +8,60 @@ Prompt模板系统（任务 11.1-11.5）
 4. 变量注入系统（任务11.4）
 5. Quick Chat模板（任务11.2）
 6. Deep Research模板（任务11.3）
+7. 输出格式控制（任务11.6）
 
-批次3将完成：任务11.6-11.8（输出验证、继承、测试）
+批次3将完成：任务11.7-11.8（继承、测试）
 """
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 import re
 from dataclasses import dataclass, field
+
+# 导入输出格式控制模块
+from app.services.output_schema import (
+    OutputFormat,
+    OutputValidator,
+    ValidationResult,
+    get_format_instruction,
+    validate_output
+)
 
 
 @dataclass
 class PromptTemplate:
     """
-    Prompt模板基础类
+    Prompt模板基础类（任务11.1-11.7）
 
     支持：
     - 变量替换：{variable_name}
     - 条件渲染：{% if condition %}...{% endif %}
     - 列表循环：{% for item in list %}...{% endfor %}
+    - 输出格式控制：JSON Schema验证（任务11.6）
+    - 模板继承：parent_template支持（任务11.7）
     """
     name: str
     template_str: str
     description: str = ""
     metadata: Dict[str, Any] = field(default_factory=dict)
+    output_format: Optional[OutputFormat] = None  # 任务11.6：输出格式
+    parent_template: Optional["PromptTemplate"] = None  # 任务11.7：父模板
 
-    def render(self, context: Dict[str, Any]) -> str:
+    def render(
+        self,
+        context: Dict[str, Any],
+        include_format_spec: bool = False
+    ) -> str:
         """
-        渲染模板
+        渲染模板（任务11.1-11.7）
 
         Args:
             context: 上下文变量字典
+            include_format_spec: 是否包含格式说明（任务11.6）
 
         Returns:
             str: 渲染后的文本
         """
-        result = self.template_str
+        # 0. 合并父模板（任务11.7）
+        result = self._merge_with_parent()
 
         # 1. 处理条件渲染
         result = self._render_conditionals(result, context)
@@ -52,7 +72,89 @@ class PromptTemplate:
         # 3. 替换变量
         result = self._substitute_variables(result, context)
 
+        # 4. 添加格式说明（如果需要）
+        if include_format_spec and self.output_format:
+            format_instruction = get_format_instruction(self.output_format)
+            result = f"{result}\n\n{format_instruction}"
+
         return result.strip()
+
+    def validate_output(self, output: Union[str, Dict[str, Any]]) -> ValidationResult:
+        """
+        验证输出格式（任务11.6）
+
+        Args:
+            output: AI生成的输出
+
+        Returns:
+            ValidationResult: 验证结果
+        """
+        if not self.output_format:
+            # 无格式要求，总是通过
+            return ValidationResult(is_valid=True)
+
+        return validate_output(output, format_type=self.output_format)
+
+    def extend(
+        self,
+        name: str,
+        template_str: str,
+        description: str = "",
+        **kwargs
+    ) -> "PromptTemplate":
+        """
+        创建子模板（任务11.7）
+
+        子模板会继承父模板的：
+        - 基础内容（会自动合并）
+        - output_format（如果子模板未指定）
+        - metadata（会合并）
+
+        Args:
+            name: 子模板名称
+            template_str: 子模板内容（会追加到父模板后）
+            description: 描述
+            **kwargs: 其他参数（output_format, metadata等）
+
+        Returns:
+            PromptTemplate: 子模板实例
+        """
+        # 继承output_format
+        output_format = kwargs.pop("output_format", None) or self.output_format
+
+        # 合并metadata
+        merged_metadata = {**self.metadata}
+        if "metadata" in kwargs:
+            merged_metadata.update(kwargs.pop("metadata"))
+
+        # 创建子模板
+        child = PromptTemplate(
+            name=name,
+            template_str=template_str,
+            description=description,
+            output_format=output_format,
+            parent_template=self,
+            metadata=merged_metadata,
+            **kwargs
+        )
+
+        return child
+
+    def _merge_with_parent(self) -> str:
+        """
+        合并父模板内容（任务11.7）
+
+        Returns:
+            str: 合并后的模板字符串
+        """
+        if self.parent_template is None:
+            return self.template_str
+
+        # 递归合并（支持多层继承）
+        parent_content = self.parent_template._merge_with_parent()
+
+        # 合并策略：父模板 + 分隔符 + 子模板
+        return f"{parent_content}\n\n---\n\n{self.template_str}"
 
     def _substitute_variables(self, text: str, context: Dict[str, Any]) -> str:
         """替换{variable}格式的变量"""
@@ -173,7 +275,8 @@ class ContextBuilder:
 
 QUICK_CHAT_TEMPLATE = PromptTemplate(
     name="quick_chat",
-    description="Quick Chat完整模板（任务11.2）",
+    description="Quick Chat完整模板（任务11.2，11.6增强）",
+    output_format=OutputFormat.QUICK_CHAT,  # 任务11.6：添加格式控制
     template_str="""你是专业的Web3加密货币投资分析助手。你的职责是为用户提供准确、及时、专业的加密货币分析。
 
 ## 角色定位
@@ -258,7 +361,8 @@ QUICK_CHAT_TEMPLATE = PromptTemplate(
 
 DEEP_RESEARCH_TEMPLATE = PromptTemplate(
     name="deep_research",
-    description="Deep Research分阶段模板（任务11.3）",
+    description="Deep Research分阶段模板（任务11.3，11.6增强）",
+    output_format=OutputFormat.DEEP_RESEARCH,  # 任务11.6：添加格式控制
     template_str="""你是加密货币深度研究专家，将进行全面系统的研究分析。
 
 ## 研究主题
@@ -412,3 +516,67 @@ class TemplateManager:
 
 # 全局实例
 template_manager = TemplateManager()
+
+
+# ================================
+# 基础模板（任务 11.7）
+# ================================
+
+BASE_CRYPTO_TEMPLATE = PromptTemplate(
+    name="base_crypto",
+    description="加密货币分析基础模板（任务11.7）",
+    template_str="""你是专业的Web3加密货币分析助手。
+
+## 核心原则
+- 数据驱动：所有观点必须有数据支撑
+- 客观中立：不做绝对预测，避免情绪化
+- 风险意识：始终强调风险，提醒不确定性
+- 专业表达：使用专业术语，保持严谨
+
+## 输出规范
+- 简洁明了：避免冗余
+- 结构清晰：使用Markdown格式
+- 来源标注：注明数据来源
+- 免责声明：不构成投资建议"""
+)
+
+
+# ================================
+# 继承示例：价格分析模板（任务 11.7）
+# ================================
+
+# 使用extend创建专用模板
+PRICE_ANALYSIS_TEMPLATE = BASE_CRYPTO_TEMPLATE.extend(
+    name="price_analysis",
+    description="价格分析专用模板（继承自BASE_CRYPTO_TEMPLATE）",
+    output_format=OutputFormat.PRICE_ANALYSIS,
+    template_str="""
+## 价格分析任务
+
+用户查询：{query}
+代币：{symbol}
+
+{% if market_data %}
+当前市场数据：
+- 价格：${price_usd}
+- 24h变化：{price_change_24h}%
+- 市值：${market_cap}
+- 交易量：${volume_24h}
+{% endif %}
+
+## 分析要求
+
+请按照以下框架进行价格分析：
+
+1. **趋势判断**：多头/空头/震荡
+2. **支撑阻力**：关键价格位
+3. **技术指标**：RSI、MACD、均线
+4. **短期展望**：1-7天预期
+5. **风险提示**：主要风险因素
+
+请开始分析。"""
+)
+
+# 注册到管理器
+template_manager.register_template(BASE_CRYPTO_TEMPLATE)
+template_manager.register_template(PRICE_ANALYSIS_TEMPLATE)
