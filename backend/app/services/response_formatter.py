@@ -5,11 +5,14 @@
 1. 用户友好的错误消息转换
 2. 数据源引用注入
 3. 答案质量评分（任务 8.6）
+4. 相关问题推荐（任务 8.7）
 """
 import re
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from enum import Enum
+
+from app.services.question_recommender import question_recommender
 
 
 # ================================
@@ -355,16 +358,20 @@ class ResponseFormatter:
         content: str,
         metadata: Dict[str, Any],
         add_sources: bool = True,
-        calculate_quality: bool = True
+        calculate_quality: bool = True,
+        add_recommendations: bool = True,
+        query: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        格式化成功响应
+        格式化成功响应（任务 8.7 添加推荐问题）
 
         Args:
             content: 响应内容
             metadata: 元数据
             add_sources: 是否添加数据源引用
             calculate_quality: 是否计算质量评分
+            add_recommendations: 是否添加相关问题推荐
+            query: 用户原始查询（用于推荐）
 
         Returns:
             Dict: 格式化后的响应
@@ -375,6 +382,25 @@ class ResponseFormatter:
         # 添加数据源引用
         if add_sources and sources:
             content = add_data_source_references(content, sources, add_footer=True)
+
+        # 添加相关问题推荐（任务 8.7）
+        recommended_questions = []
+        if add_recommendations and query:
+            symbol = metadata.get("symbol", "BTC")
+            recommended_questions = question_recommender.recommend_questions(
+                query=query,
+                symbol=symbol,
+                answer_metadata=metadata,
+                max_questions=5,
+            )
+
+            # 格式化并添加到内容末尾
+            if recommended_questions:
+                recommendations_text = question_recommender.format_recommendations(
+                    recommended_questions,
+                    format_style="numbered"
+                )
+                content += recommendations_text
 
         # 构建基础响应
         response = {
@@ -391,6 +417,10 @@ class ResponseFormatter:
         # 添加数据源信息
         if sources:
             response["data_sources"] = [s.value for s in sources]
+
+        # 添加推荐问题到响应
+        if recommended_questions:
+            response["recommended_questions"] = recommended_questions
 
         return response
 
@@ -457,19 +487,23 @@ response_formatter = ResponseFormatter()
 def format_quick_chat_response(
     content: str,
     query_type: str,
+    query: Optional[str] = None,
     symbol: Optional[str] = None,
     response_time: float = 0.0,
-    model: str = "unknown"
+    model: str = "unknown",
+    add_recommendations: bool = True,
 ) -> Dict[str, Any]:
     """
-    便捷函数：格式化 Quick Chat 响应
+    便捷函数：格式化 Quick Chat 响应（任务 8.7 添加推荐）
 
     Args:
         content: 响应内容
         query_type: 查询类型
+        query: 用户原始查询
         symbol: 代币符号
         response_time: 响应时间
         model: 使用的模型
+        add_recommendations: 是否添加问题推荐
 
     Returns:
         Dict: 格式化后的响应
@@ -486,7 +520,9 @@ def format_quick_chat_response(
         content=content,
         metadata=metadata,
         add_sources=True,
-        calculate_quality=True
+        calculate_quality=True,
+        add_recommendations=add_recommendations,
+        query=query,
     )
 
 
