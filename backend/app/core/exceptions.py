@@ -164,3 +164,32 @@ class DatabaseError(Web3SearchException):
             status_code=500,
             details={"operation": operation},
         )
+
+
+# ================================
+# 重试和断路器相关异常（任务5.6）
+# ================================
+
+
+class CircuitBreakerOpenError(Web3SearchException):
+    """断路器熔断错误"""
+
+    def __init__(self, message: str, service_name: str, retry_after: Optional[int] = None):
+        super().__init__(
+            message=f"服务断路器已熔断 ({service_name}): {message}",
+            code="CIRCUIT_BREAKER_OPEN",
+            status_code=503,
+            details={"service_name": service_name, "retry_after": retry_after},
+        )
+
+
+class RetryExhaustedError(Web3SearchException):
+    """重试次数耗尽"""
+
+    def __init__(self, message: str, attempts: int, last_error: Optional[str] = None):
+        super().__init__(
+            message=f"重试次数已耗尽 ({attempts}次): {message}",
+            code="RETRY_EXHAUSTED",
+            status_code=503,
+            details={"attempts": attempts, "last_error": last_error},
+        )

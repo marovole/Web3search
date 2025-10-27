@@ -5,6 +5,7 @@ Web3 Search - 加密货币AI搜索引擎
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
@@ -77,9 +78,18 @@ app = FastAPI(
 
 
 # ================================
-# CORS中间件配置
+# 中间件配置
 # ================================
 
+# GZip压缩中间件（任务 9.4）
+# 自动压缩响应大小 > 1KB 的响应
+app.add_middleware(
+    GZipMiddleware,
+    minimum_size=1024,  # 1KB = 1024 bytes
+    compresslevel=6,     # 压缩级别 (1-9)，6 是平衡速度和压缩率的推荐值
+)
+
+# CORS中间件配置
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
