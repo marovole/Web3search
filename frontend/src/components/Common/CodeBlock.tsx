@@ -3,21 +3,13 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 /**
- * Props for CodeBlock component
+ * Props for CodeBlock component compatible with react-markdown
  */
 interface CodeBlockProps {
-  /**
-   * Whether this is inline code or block code
-   */
   inline?: boolean
-  /**
-   * CSS className - typically contains language info like "language-javascript"
-   */
   className?: string
-  /**
-   * The code content to render
-   */
   children?: React.ReactNode
+  [key: string]: any
 }
 
 /**
@@ -26,7 +18,7 @@ interface CodeBlockProps {
  * Handles both inline code (`code`) and block code (```code```)
  * with syntax highlighting via react-syntax-highlighter
  */
-const CodeBlock: React.FC<CodeBlockProps> = ({ inline, className, children }) => {
+const CodeBlock: React.FC<CodeBlockProps> = ({ inline, className, children, ...props }) => {
   // Extract language from className (e.g., "language-javascript" -> "javascript")
   const match = /language-(\w+)/.exec(className || '')
   const language = match ? match[1] : undefined
@@ -37,7 +29,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ inline, className, children }) =>
   // Render inline code
   if (inline) {
     return (
-      <code className="bg-gray-100 text-red-600 px-1.5 py-0.5 rounded text-sm font-mono">
+      <code className="bg-gray-100 text-red-600 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
         {code}
       </code>
     )
@@ -50,6 +42,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ inline, className, children }) =>
       language={language || 'text'}
       PreTag="div"
       className="rounded-lg my-2"
+      {...(props as any)}
     >
       {code}
     </SyntaxHighlighter>
