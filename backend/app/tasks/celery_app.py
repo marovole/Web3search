@@ -18,6 +18,7 @@ celery_app = Celery(
     backend=settings.CELERY_RESULT_BACKEND,
     include=[
         "app.tasks.data_collection",
+        "app.tasks.quality_check",
     ],
 )
 
@@ -114,6 +115,15 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(minute=15),  # 每小时的第15分钟
         "options": {"queue": "default"},
     },
+
+    # ================================
+    # 数据质量报告生成（每小时）- 任务6.7
+    # ================================
+    "generate-data-quality-report": {
+        "task": "app.tasks.quality_check.generate_data_quality_report",
+        "schedule": crontab(minute=30),  # 每小时的第30分钟
+        "options": {"queue": "default"},
+    },
 }
 
 # ================================
@@ -128,4 +138,5 @@ celery_app.conf.task_routes = {
     "app.tasks.data_collection.collect_crypto_news": {"queue": "default"},
     "app.tasks.data_collection.cleanup_expired_cache": {"queue": "low_priority"},
     "app.tasks.data_collection.update_hotspots": {"queue": "default"},
+    "app.tasks.quality_check.generate_data_quality_report": {"queue": "default"},
 }
