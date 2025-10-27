@@ -3,7 +3,7 @@ Deep Research 引擎
 生成15-30秒的深度研究报告
 """
 import asyncio
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Callable, Awaitable
 from datetime import datetime
 
 from app.services.llm import llm_client, ModelConfig
@@ -27,13 +27,15 @@ class DeepResearchEngine:
         self,
         query: str,
         symbol: Optional[str] = None,
+        progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None,
     ) -> Dict[str, Any]:
         """
-        执行深度研究
+        执行深度研究（任务 8.2 - 添加进度提示）
 
         Args:
             query: 用户查询
             symbol: 币种符号（可选，会从query中提取）
+            progress_callback: 进度回调函数，接收(message: str, progress: int)
 
         Returns:
             Dict: 研究报告数据
@@ -46,8 +48,15 @@ class DeepResearchEngine:
 
         print(f"🔍 开始深度研究: {symbol}")
 
+        # 发送进度：开始
+        if progress_callback:
+            await progress_callback("🔍 开始深度研究分析...", 0)
+
         # 步骤1: 聚合数据（并行获取）
         print("  📊 采集数据...")
+        if progress_callback:
+            await progress_callback("📊 正在收集市场数据、链上数据和社交媒体数据...", 25)
+
         aggregated_data = await self.data_aggregator.aggregate_project_data(symbol)
 
         if "error" in aggregated_data:
@@ -61,12 +70,18 @@ class DeepResearchEngine:
 
         # 步骤3: 三阶段分析
         print("  🤖 生成分析...")
+        if progress_callback:
+            await progress_callback("🤖 正在进行深度分析（生成摘要、技术分析、市场分析等）...", 50)
 
         # 阶段1: 生成TL;DR（快速模型）
         tldr = await self._generate_tldr(query, formatted_data)
 
         # 阶段2: 六维度分析（并行生成）
         sections = await self._generate_sections(query, formatted_data, aggregated_data)
+
+        # 发送进度：分析完成，生成报告
+        if progress_callback:
+            await progress_callback("📝 正在生成研究报告和投资建议...", 75)
 
         # 阶段3: 生成结论和建议
         conclusion = await self._generate_conclusion(
@@ -103,6 +118,10 @@ class DeepResearchEngine:
         }
 
         print(f"✅ 研究完成，耗时 {generation_time:.2f} 秒")
+
+        # 发送进度：完成
+        if progress_callback:
+            await progress_callback(f"✅ 研究报告生成完成！（耗时 {generation_time:.1f} 秒）", 100)
 
         return report
 

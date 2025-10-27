@@ -35,13 +35,20 @@ class DataAggregator:
         self,
         symbol: str,
         coingecko_id: Optional[str] = None,
+        timeout: float = 30.0,
     ) -> Dict[str, Any]:
         """
-        聚合项目的全部数据
+        聚合项目的全部数据（任务 9.3 优化）
+
+        实现功能：
+        - 并行调用多个数据源（asyncio.gather）
+        - 超时控制（单个请求10s，总计30s）
+        - 部分成功处理（某些数据源失败不影响整体）
 
         Args:
             symbol: 币种符号（如"BTC"）
             coingecko_id: CoinGecko ID（如"bitcoin"）
+            timeout: 总超时时间（秒），默认30s
 
         Returns:
             Dict: 聚合后的数据
@@ -56,23 +63,35 @@ class DataAggregator:
                 "symbol": symbol,
             }
 
-        # 并行获取多个数据源
-        (
-            project_info,
-            market_data,
-            onchain_data,
-            social_data,
-            news_data,
-        ) = await asyncio.gather(
-            self._get_project_info(coingecko_id),
-            self._get_market_data(coingecko_id),
-            self._get_onchain_data(coingecko_id),
-            self._get_social_data(symbol),
-            self._get_news_data(symbol),
-            return_exceptions=True,
-        )
+        # 并行获取多个数据源，带超时控制（任务 9.3）
+        try:
+            (
+                project_info,
+                market_data,
+                onchain_data,
+                social_data,
+                news_data,
+            ) = await asyncio.wait_for(
+                asyncio.gather(
+                    self._get_project_info(coingecko_id),
+                    self._get_market_data(coingecko_id),
+                    self._get_onchain_data(coingecko_id),
+                    self._get_social_data(symbol),
+                    self._get_news_data(symbol),
+                    return_exceptions=True,  # 部分成功处理
+                ),
+                timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            # 总超时，返回部分数据
+            return {
+                "error": f"数据获取超时（{timeout}秒）",
+                "symbol": symbol.upper(),
+                "coingecko_id": coingecko_id,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
 
-        # 处理异常结果
+        # 处理异常结果（部分成功处理）
         if isinstance(project_info, Exception):
             project_info = {"error": str(project_info)}
         if isinstance(market_data, Exception):

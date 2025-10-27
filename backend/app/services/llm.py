@@ -129,12 +129,47 @@ class LLMClient:
                         raise Exception(f"LLM API调用失败: {str(e)}")
 
     async def _stream_response(self, response) -> AsyncGenerator[str, None]:
-        """处理流式响应"""
+        """
+        处理流式响应（任务 8.1 优化）
+
+        实现功能：
+        - 50ms chunk间隔控制，提供更平滑的打字机效果
+        - Chunk缓冲机制，避免过快输出
+        - 自动合并小chunk，减少网络开销
+        """
+        buffer = ""
+        last_yield_time = asyncio.get_event_loop().time()
+        chunk_interval = 0.05  # 50ms间隔
+        min_chunk_size = 5  # 最小chunk大小（字符数）
+
         async for chunk in response:
             if chunk.choices and len(chunk.choices) > 0:
                 delta = chunk.choices[0].delta
                 if delta.content:
-                    yield delta.content
+                    buffer += delta.content
+
+                    # 检查是否应该yield
+                    current_time = asyncio.get_event_loop().time()
+                    time_since_last_yield = current_time - last_yield_time
+
+                    # 条件：达到时间间隔 或 缓冲区足够大
+                    should_yield = (
+                        time_since_last_yield >= chunk_interval or
+                        len(buffer) >= min_chunk_size * 2
+                    )
+
+                    if should_yield and buffer:
+                        yield buffer
+                        buffer = ""
+                        last_yield_time = current_time
+
+                        # 添加延迟，确保50ms间隔
+                        if time_since_last_yield < chunk_interval:
+                            await asyncio.sleep(chunk_interval - time_since_last_yield)
+
+        # 确保缓冲区中的最后内容被发送
+        if buffer:
+            yield buffer
 
     def _parse_response(self, response) -> Dict[str, Any]:
         """解析完整响应"""
