@@ -5,9 +5,11 @@
 import asyncio
 import logging
 import time
+from enum import Enum
 from functools import wraps
-from typing import Callable, Tuple, Type, List, Optional
+from typing import Callable, Tuple, Type, List, Optional, Dict
 from sqlalchemy.exc import OperationalError, DBAPIError
+from threading import Lock
 
 logger = logging.getLogger(__name__)
 
@@ -297,7 +299,7 @@ def retry_with_backoff(
                         timeout=single_timeout
                     )
 
-                    # 成功，记录日志
+                    # 成功，记录日志和metrics（任务5.5）
                     if attempt > 0:
                         logger.info(
                             f"API call succeeded after {attempt + 1} attempts: {func.__name__}",
@@ -306,6 +308,12 @@ def retry_with_backoff(
                                 "attempt": attempt + 1,
                                 "total_time": time.time() - start_time,
                             }
+                        )
+                        # 记录Sentry metrics
+                        record_retry_metrics(
+                            operation=func.__name__,
+                            attempt=attempt + 1,
+                            success=True
                         )
 
                     return result
@@ -346,6 +354,14 @@ def retry_with_backoff(
                                 "is_retriable": is_retriable,
                                 "total_time": elapsed_time,
                             }
+                        )
+                        # 记录Sentry metrics（任务5.5）
+                        record_retry_metrics(
+                            operation=func.__name__,
+                            attempt=attempt + 1,
+                            success=False,
+                            error_type=type(e).__name__,
+                            is_retriable=is_retriable
                         )
                         raise
 
@@ -432,14 +448,18 @@ def retry_with_backoff(
                         raise
 
                     delay = delays[min(attempt, len(delays) - 1)]
+                    next_retry_time = time.time() + delay
 
                     logger.warning(
                         f"API call failed (attempt {attempt + 1}/{max_attempts}), retrying in {delay}s: {func.__name__}",
                         extra={
                             "function": func.__name__,
                             "attempt": attempt + 1,
+                            "max_attempts": max_attempts,
                             "delay": delay,
+                            "next_retry_time": next_retry_time,
                             "error": str(e),
+                            "error_type": type(e).__name__,
                             "is_retriable": is_retriable,
                         }
                     )
@@ -456,3 +476,291 @@ def retry_with_backoff(
             return sync_wrapper
 
     return decorator
+
+
+# ================================
+# Sentry Metrics记录（任务5.5）
+# ================================
+
+
+def record_retry_metrics(
+    operation: str,
+    attempt: int,
+    success: bool,
+    error_type: Optional[str] = None,
+    is_retriable: Optional[bool] = None,
+):
+    """
+    记录重试指标到Sentry（任务5.5）
+
+    Args:
+        operation: 操作名称
+        attempt: 重试次数
+        success: 是否成功
+        error_type: 错误类型
+        is_retriable: 是否可重试
+    """
+    try:
+        import sentry_sdk
+
+        # 记录重试次数
+        sentry_sdk.set_measurement("retry.attempt.count", attempt)
+
+        # 记录成功/失败状态
+        tags = {
+            "operation": operation,
+            "success": "true" if success else "false",
+        }
+
+        if error_type:
+            tags["error_type"] = error_type
+
+        if is_retriable is not None:
+            tags["is_retriable"] = "true" if is_retriable else "false"
+
+        # 记录事件
+        if success and attempt > 1:
+            # 重试后成功
+            sentry_sdk.capture_message(
+                f"Retry succeeded after {attempt} attempts: {operation}",
+                level="info",
+                tags=tags
+            )
+        elif not success and attempt > 1:
+            # 达到最大重试次数
+            sentry_sdk.capture_message(
+                f"Max retries exceeded ({attempt} attempts): {operation}",
+                level="warning",
+                tags=tags
+            )
+        elif not success and is_retriable is False:
+            # 永久错误不重试
+            sentry_sdk.capture_message(
+                f"Permanent error, no retry: {operation}",
+                level="warning",
+                tags=tags
+            )
+
+    except ImportError:
+        # Sentry未安装，跳过
+        pass
+    except Exception as e:
+        logger.debug(f"Failed to record retry metrics: {e}")
+
+
+# ================================
+# 断路器模式（任务5.6）
+# ================================
+
+
+class CircuitBreakerState(Enum):
+    """断路器状态"""
+    CLOSED = "closed"      # 正常状态
+    OPEN = "open"          # 熔断状态
+    HALF_OPEN = "half_open"  # 半开状态
+
+
+class CircuitBreaker:
+    """
+    断路器实现（任务5.6）
+
+    防止级联故障，当服务连续失败达到阈值时自动熔断
+
+    状态转换：
+    - CLOSED → OPEN: 连续失败达到阈值
+    - OPEN → HALF_OPEN: 熔断时间结束后
+    - HALF_OPEN → CLOSED: 测试请求成功
+    - HALF_OPEN → OPEN: 测试请求失败
+
+    Example:
+        cb = CircuitBreaker("coingecko_api", failure_threshold=5, timeout=600)
+
+        @cb.protect
+        async def fetch_data():
+            return await api_call()
+    """
+
+    # 全局断路器实例字典
+    _instances: Dict[str, "CircuitBreaker"] = {}
+    _lock = Lock()
+
+    def __init__(
+        self,
+        name: str,
+        failure_threshold: int = 5,
+        timeout: float = 600.0,  # 10分钟
+        half_open_max_calls: int = 1,
+    ):
+        """
+        初始化断路器
+
+        Args:
+            name: 服务名称（唯一标识）
+            failure_threshold: 失败阈值（连续失败次数）
+            timeout: 熔断时间（秒）
+            half_open_max_calls: 半开状态允许的测试请求数
+        """
+        self.name = name
+        self.failure_threshold = failure_threshold
+        self.timeout = timeout
+        self.half_open_max_calls = half_open_max_calls
+
+        # 状态
+        self._state = CircuitBreakerState.CLOSED
+        self._failure_count = 0
+        self._last_failure_time: Optional[float] = None
+        self._half_open_calls = 0
+
+    @classmethod
+    def get_instance(cls, name: str, **kwargs) -> "CircuitBreaker":
+        """获取或创建断路器实例"""
+        with cls._lock:
+            if name not in cls._instances:
+                cls._instances[name] = cls(name, **kwargs)
+            return cls._instances[name]
+
+    @property
+    def state(self) -> CircuitBreakerState:
+        """获取当前状态"""
+        # 检查是否需要从OPEN转换到HALF_OPEN
+        if self._state == CircuitBreakerState.OPEN:
+            if self._last_failure_time and (time.time() - self._last_failure_time) >= self.timeout:
+                self._transition_to_half_open()
+        return self._state
+
+    def _transition_to_half_open(self):
+        """转换到半开状态"""
+        logger.info(
+            f"Circuit breaker transitioning to HALF_OPEN: {self.name}",
+            extra={"circuit_breaker": self.name, "previous_state": self._state.value}
+        )
+        self._state = CircuitBreakerState.HALF_OPEN
+        self._half_open_calls = 0
+
+    def _transition_to_open(self):
+        """转换到熔断状态"""
+        logger.error(
+            f"Circuit breaker OPENED: {self.name}",
+            extra={
+                "circuit_breaker": self.name,
+                "failure_count": self._failure_count,
+                "threshold": self.failure_threshold,
+            }
+        )
+        self._state = CircuitBreakerState.OPEN
+        self._last_failure_time = time.time()
+
+        # 发送Sentry告警
+        try:
+            import sentry_sdk
+            sentry_sdk.capture_message(
+                f"Circuit breaker opened: {self.name}",
+                level="error",
+                tags={"circuit_breaker": self.name, "failure_count": self._failure_count}
+            )
+        except ImportError:
+            pass
+
+    def _transition_to_closed(self):
+        """转换到正常状态"""
+        logger.info(
+            f"Circuit breaker CLOSED: {self.name}",
+            extra={"circuit_breaker": self.name, "previous_state": self._state.value}
+        )
+        self._state = CircuitBreakerState.CLOSED
+        self._failure_count = 0
+        self._half_open_calls = 0
+
+    def record_success(self):
+        """记录成功"""
+        if self._state == CircuitBreakerState.HALF_OPEN:
+            # 半开状态成功，恢复正常
+            self._transition_to_closed()
+        elif self._state == CircuitBreakerState.CLOSED:
+            # 正常状态，重置失败计数
+            self._failure_count = 0
+
+    def record_failure(self):
+        """记录失败"""
+        self._failure_count += 1
+
+        if self._state == CircuitBreakerState.HALF_OPEN:
+            # 半开状态失败，重新熔断
+            self._transition_to_open()
+        elif self._state == CircuitBreakerState.CLOSED:
+            # 正常状态，检查是否达到阈值
+            if self._failure_count >= self.failure_threshold:
+                self._transition_to_open()
+
+    def is_available(self) -> bool:
+        """检查服务是否可用"""
+        current_state = self.state  # 触发状态检查
+
+        if current_state == CircuitBreakerState.CLOSED:
+            return True
+        elif current_state == CircuitBreakerState.HALF_OPEN:
+            # 半开状态限制请求数
+            if self._half_open_calls < self.half_open_max_calls:
+                self._half_open_calls += 1
+                return True
+            return False
+        else:  # OPEN
+            return False
+
+    def protect(self, func: Callable):
+        """
+        断路器装饰器
+
+        Example:
+            cb = CircuitBreaker("my_service")
+
+            @cb.protect
+            async def my_api_call():
+                return await http_client.get("...")
+        """
+        @wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            from app.core.exceptions import CircuitBreakerOpenError
+
+            # 检查断路器状态
+            if not self.is_available():
+                retry_after = int(self.timeout - (time.time() - (self._last_failure_time or 0)))
+                raise CircuitBreakerOpenError(
+                    f"Service {self.name} is currently unavailable",
+                    service_name=self.name,
+                    retry_after=max(0, retry_after)
+                )
+
+            # 执行请求
+            try:
+                result = await func(*args, **kwargs)
+                self.record_success()
+                return result
+            except Exception as e:
+                self.record_failure()
+                raise
+
+        @wraps(func)
+        def sync_wrapper(*args, **kwargs):
+            from app.core.exceptions import CircuitBreakerOpenError
+
+            if not self.is_available():
+                retry_after = int(self.timeout - (time.time() - (self._last_failure_time or 0)))
+                raise CircuitBreakerOpenError(
+                    f"Service {self.name} is currently unavailable",
+                    service_name=self.name,
+                    retry_after=max(0, retry_after)
+                )
+
+            try:
+                result = func(*args, **kwargs)
+                self.record_success()
+                return result
+            except Exception as e:
+                self.record_failure()
+                raise
+
+        if asyncio.iscoroutinefunction(func):
+            return async_wrapper
+        else:
+            return sync_wrapper
