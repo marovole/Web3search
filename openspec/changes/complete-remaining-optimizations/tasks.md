@@ -35,14 +35,14 @@
 ## Stage 2: 数据采集增强（Day 2）
 
 ### 4. Fallback数据源
-- [ ] 4.1 CoinMarketCap API集成（价格、市值、交易量）
-- [ ] 4.2 实现CoinGecko→CoinMarketCap fallback逻辑
-- [ ] 4.3 Blockchair API集成（链上数据）
-- [ ] 4.4 实现Etherscan→Blockchair fallback逻辑
-- [ ] 4.5 Twitter备用抓取方案（nitter.net镜像）
-- [ ] 4.6 Reddit备用抓取方案（Pushshift API）
-- [ ] 4.7 实现数据源优先级配置
-- [ ] 4.8 添加数据源切换日志记录
+- [x] 4.1 CoinMarketCap API集成（价格、市值、交易量）
+- [x] 4.2 实现CoinGecko→CoinMarketCap fallback逻辑
+- [x] 4.3 Blockchair API集成（链上数据）
+- [x] 4.4 实现Etherscan→Blockchair fallback逻辑
+- [x] 4.5 Twitter备用抓取方案（nitter.net镜像）
+- [x] 4.6 Reddit备用抓取方案（Pushshift API）
+- [x] 4.7 实现数据源优先级配置
+- [x] 4.8 添加数据源切换日志记录
 
 ### 5. 智能重试机制
 - [ ] 5.1 实现指数退避重试装饰器（@retry_with_backoff）

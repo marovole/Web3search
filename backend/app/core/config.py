@@ -240,11 +240,47 @@ class Settings(BaseSettings):
         description="CryptoPanic API基础URL"
     )
 
+    # CoinMarketCap（CoinGecko的fallback）
+    COINMARKETCAP_API_KEY: str = Field(
+        default="",
+        description="CoinMarketCap API密钥（Pro API）"
+    )
+    COINMARKETCAP_BASE_URL: str = Field(
+        default="https://pro-api.coinmarketcap.com/v2",
+        description="CoinMarketCap API基础URL"
+    )
+
+    # Blockchair（Etherscan的fallback）
+    BLOCKCHAIR_API_KEY: str = Field(
+        default="",
+        description="Blockchair API密钥（可选）"
+    )
+    BLOCKCHAIR_BASE_URL: str = Field(
+        default="https://api.blockchair.com",
+        description="Blockchair API基础URL"
+    )
+
+    # Nitter（Twitter的fallback）
+    NITTER_INSTANCE_URL: str = Field(
+        default="https://nitter.net",
+        description="Nitter实例URL"
+    )
+
+    # Pushshift（Reddit的fallback）
+    PUSHSHIFT_BASE_URL: str = Field(
+        default="https://api.pushshift.io",
+        description="Pushshift API基础URL"
+    )
+
     @field_validator(
         "COINGECKO_BASE_URL",
         "ETHERSCAN_BASE_URL",
         "BSCSCAN_BASE_URL",
-        "CRYPTOPANIC_BASE_URL"
+        "CRYPTOPANIC_BASE_URL",
+        "COINMARKETCAP_BASE_URL",
+        "BLOCKCHAIR_BASE_URL",
+        "NITTER_INSTANCE_URL",
+        "PUSHSHIFT_BASE_URL"
     )
     @classmethod
     def validate_base_urls(cls, v: str) -> str:
