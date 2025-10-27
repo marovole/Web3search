@@ -5,10 +5,13 @@
 🚀 **专注于加密货币领域的AI驱动研究平台**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Phase 14 Complete](https://img.shields.io/badge/Phase%2014-Complete%20✓-success.svg)](openspec/changes/archive/)
 [![Backend](https://img.shields.io/badge/backend-FastAPI-009688.svg)](https://fastapi.tiangolo.com/)
 [![Frontend](https://img.shields.io/badge/frontend-React-61DAFB.svg)](https://reactjs.org/)
 [![Deployed on Render](https://img.shields.io/badge/deployed-Render-46e3b7.svg)](https://web3search-api.onrender.com)
 [![Deployed on Vercel](https://img.shields.io/badge/deployed-Vercel-000000.svg)](https://frontend-fnkjroe8s-marovole-gmailcoms-projects.vercel.app)
+[![Test Coverage](https://img.shields.io/badge/coverage-80%25+-brightgreen.svg)](backend/app/docs/TEST_VALIDATION_REPORT.md)
+[![Documentation](https://img.shields.io/badge/docs-14%20files-blue.svg)](backend/app/docs/)
 
 [功能特性](#-功能特性) •
 [快速开始](#-快速开始) •
@@ -96,12 +99,17 @@ Web3 AI Search Engine 是一个专为加密货币领域打造的智能研究平�
 - ✅ 数据源自动降级（主源 → 备用源 → 缓存）
 - ✅ LLM模型自动降级（3个免费模型梯度）
 - ✅ 自动重试机制（指数退避）
+- ✅ 断路器模式（连续失败5次后熔断10分钟）
 
-#### 监控和日志
-- ✅ Sentry错误追踪
-- ✅ 彩色日志输出
-- ✅ 性能追踪（API/DB/LLM）
-- ✅ 指标收集（响应时间/错误率/RPS）
+#### 监控和告警 🆕
+- ✅ **Sentry集成** - 错误追踪、性能监控、自定义事件
+- ✅ **实时Dashboard** - 响应时间、错误率、数据源成功率
+- ✅ **智能告警** - 错误率>5%、P95延迟>3s自动触发
+- ✅ **Slack通知** - 关键错误发送到#alerts频道
+- ✅ **性能追踪** - trace_operation()装饰器自动记录
+- ✅ **指标监控** - 16个关键指标（性能、错误、业务、基础设施）
+- ✅ **结构化日志** - JSON格式、request_id追踪、敏感数据脱敏
+- ✅ **日志轮转** - 按大小100MB或每天自动轮转
 
 #### 速率限制
 - ✅ IP级限流
@@ -109,10 +117,14 @@ Web3 AI Search Engine 是一个专为加密货币领域打造的智能研究平�
 - ✅ Deep Research: 3次/小时
 - ✅ 429状态码和Retry-After头
 
-#### 测试覆盖
-- ✅ E2E测试（Playwright，8个测试用例）
-- ✅ 负载测试（Locust，100并发用户）
-- ✅ 单元测试（Pytest，60+测试用例）
+#### 测试覆盖 🆕
+- ✅ **单元测试** - 205+测试用例，覆盖率>80%
+- ✅ **E2E测试** - 4个完整用户流程（Quick Chat、Deep Research、Search、Reports）
+- ✅ **负载测试** - 5个端点性能基准，支持100并发用户
+- ✅ **数据源验证** - 4个Fallback机制测试
+- ✅ **缓存验证** - 命中率>70%，响应时间提升88-94%
+- ✅ **日志质量** - JSON格式、request_id传播、敏感数据脱敏
+- ✅ **告警测试** - Sentry集成验证、Slack通知验证
 
 ---
 
@@ -401,7 +413,30 @@ GET /api/v1/trending/hotspots?limit=10&force_refresh=false
 4. **配置环境变量**（在Vercel Dashboard）
    - `VITE_API_BASE_URL`: https://your-api.onrender.com
 
-详细部署指南：[docs/deployment.md](docs/deployment.md)
+详细部署指南：[backend/app/docs/DEPLOYMENT.md](backend/app/docs/DEPLOYMENT.md)
+
+---
+
+## 📖 完整文档 🆕
+
+### API文档
+- **[API错误码](backend/app/docs/API_ERRORS.md)** - 40x/50x错误码完整说明
+- **[API认证](backend/app/docs/API_AUTH.md)** - 认证和授权机制
+- **[API教程](backend/app/docs/API_TUTORIAL.md)** - 常见场景使用示例
+- **[API变更日志](backend/app/docs/API_CHANGELOG.md)** - 版本历史和迁移指南
+
+### 运维文档
+- **[监控指南](backend/app/docs/MONITORING_GUIDE.md)** - Sentry监控配置和使用
+- **[指标说明](backend/app/docs/METRICS.md)** - 16个关键指标定义
+- **[故障排查](backend/app/docs/TROUBLESHOOTING.md)** - 20+常见问题解决方案
+- **[扩容指南](backend/app/docs/SCALING.md)** - 何时扩容、如何扩容
+- **[数据库维护](backend/app/docs/DATABASE_MAINTENANCE.md)** - 备份、恢复、优化
+
+### 开发文档
+- **[开发环境设置](backend/app/docs/DEV_SETUP.md)** - 本地开发环境完整配置
+- **[代码审查清单](backend/app/docs/CODE_REVIEW.md)** - 代码质量标准
+- **[安全最佳实践](backend/app/docs/SECURITY.md)** - API、数据库、依赖安全
+- **[测试验证报告](backend/app/docs/TEST_VALIDATION_REPORT.md)** - 完整测试策略
 
 ---
 
@@ -435,24 +470,33 @@ pytest tests/ -v --cov=app --cov-report=html
 
 ---
 
-## 📊 项目统计
+## 📊 项目统计 🆕
 
 ### 代码量
-- **后端**: ~15,000行Python代码
+- **后端**: ~18,000行Python代码（含监控、日志、测试）
 - **前端**: ~8,000行TypeScript/React代码
-- **测试**: ~3,000行测试代码
-- **总计**: ~26,000行代码
+- **测试**: ~4,500行测试代码
+- **文档**: ~8,000行Markdown文档（14个文档文件）
+- **总计**: ~38,500行代码
 
 ### 测试覆盖
-- **E2E测试**: 8个测试用例
-- **单元测试**: 60+个测试用例
-- **负载测试**: 100并发用户支持
+- **单元测试**: 205+个测试用例，覆盖率>80%
+- **E2E测试**: 4个完整用户流程测试
+- **负载测试**: 5个端点性能基准，支持100并发用户
+- **集成测试**: 数据源fallback、缓存验证、告警测试
 
 ### 性能指标
 - **Quick Chat响应**: < 3秒（P95）
-- **Deep Research响应**: < 60秒
+- **Deep Research响应**: < 30秒（优化后）
 - **Hotspots响应**: < 1秒（P95）
 - **Autocomplete响应**: < 500ms（P95）
+- **缓存命中提升**: 88-94%响应时间改善
+
+### 质量指标
+- **监控覆盖**: 16个关键指标实时追踪
+- **告警响应**: 错误率>5%或P95延迟>3s自动触发
+- **日志质量**: JSON结构化、request_id追踪、敏感数据脱敏
+- **文档完整度**: 14个专业文档（API、运维、开发、测试）
 
 ---
 
