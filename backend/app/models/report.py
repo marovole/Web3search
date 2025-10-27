@@ -121,8 +121,16 @@ class Report(Base):
 
     # 索引
     __table_args__ = (
+        # 复合索引：按项目和创建时间查询
         Index("ix_reports_project_created", "project_id", "created_at"),
+        # 复合索引：按类型和状态筛选
         Index("ix_reports_type_status", "report_type", "status"),
+        # 复合索引：按符号和创建时间查询（常用于获取特定加密货币的最新报告）
+        Index("ix_reports_symbol_created", "symbol", "created_at"),
+        # 复合索引：按状态和创建时间（用于管理界面显示待处理报告）
+        Index("ix_reports_status_created", "status", "created_at"),
+        # 复合索引：按符号、类型和状态（用于精确筛选）
+        Index("ix_reports_symbol_type_status", "symbol", "report_type", "status"),
         # 注意：created_at已经通过 index=True 创建了索引，无需重复定义
     )
 
