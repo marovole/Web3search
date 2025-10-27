@@ -1,0 +1,264 @@
+{
+  "dataset_name": "Prompt Evaluation Dataset",
+  "version": "1.0.0",
+  "created_at": "2025-01-27T00:00:00Z",
+  "description": "100个查询+标准答案，用于Prompt质量评估（任务12.2基础版，批次3完善）",
+  "total_cases": 20,
+  "note": "基础版包含20个代表性用例，完整100个用例将在批次3扩展",
+  "test_cases": [
+    {
+      "id": "eval_001",
+      "query": "BTC现在的价格是多少？",
+      "query_type": "price",
+      "expected_elements": ["当前价格", "美元计价", "24小时变化"],
+      "quality_criteria": [
+        "提供具体数字",
+        "包含时间戳",
+        "提及数据来源"
+      ],
+      "min_quality_score": 4.0
+    },
+    {
+      "id": "eval_002",
+      "query": "ETH的RSI指标怎么样？",
+      "query_type": "technical_analysis",
+      "expected_elements": ["RSI数值", "超买超卖判断", "操作建议"],
+      "quality_criteria": [
+        "RSI数值准确",
+        "解读专业",
+        "给出交易建议"
+      ],
+      "min_quality_score": 4.5
+    },
+    {
+      "id": "eval_003",
+      "query": "Twitter上对SOL的情绪如何？",
+      "query_type": "sentiment_analysis",
+      "expected_elements": ["情绪得分", "看多看空比例", "主要话题"],
+      "quality_criteria": [
+        "量化情绪指标",
+        "分析情绪原因",
+        "提供数据来源"
+      ],
+      "min_quality_score": 4.0
+    },
+    {
+      "id": "eval_004",
+      "query": "投资DOGE风险大吗？",
+      "query_type": "risk_assessment",
+      "expected_elements": ["风险等级", "波动率数据", "风险因素"],
+      "quality_criteria": [
+        "明确风险评级",
+        "列出具体风险",
+        "提供对冲建议"
+      ],
+      "min_quality_score": 4.5
+    },
+    {
+      "id": "eval_005",
+      "query": "BTC的总供应量是多少？",
+      "query_type": "tokenomics",
+      "expected_elements": ["2100万上限", "当前流通量", "减半机制"],
+      "quality_criteria": [
+        "数据准确",
+        "解释供应模型",
+        "提及稀缺性"
+      ],
+      "min_quality_score": 4.0
+    },
+    {
+      "id": "eval_006",
+      "query": "比较BTC和ETH",
+      "query_type": "comparison",
+      "expected_elements": ["多维度对比", "优劣势分析", "适用场景"],
+      "quality_criteria": [
+        "对比客观全面",
+        "不偏不倚",
+        "给出选择建议"
+      ],
+      "min_quality_score": 4.5
+    },
+    {
+      "id": "eval_007",
+      "query": "ADA未来会涨吗？",
+      "query_type": "prediction",
+      "expected_elements": ["技术分析", "基本面", "风险提示"],
+      "quality_criteria": [
+        "避免绝对预测",
+        "多角度分析",
+        "强调不确定性"
+      ],
+      "min_quality_score": 4.0
+    },
+    {
+      "id": "eval_008",
+      "query": "如何买BTC？",
+      "query_type": "tutorial",
+      "expected_elements": ["交易所选择", "购买步骤", "安全提示"],
+      "quality_criteria": [
+        "步骤清晰",
+        "安全意识强",
+        "适合新手"
+      ],
+      "min_quality_score": 4.0
+    },
+    {
+      "id": "eval_009",
+      "query": "什么是DeFi？",
+      "query_type": "education",
+      "expected_elements": ["概念解释", "应用场景", "风险说明"],
+      "quality_criteria": [
+        "通俗易懂",
+        "举例说明",
+        "完整全面"
+      ],
+      "min_quality_score": 4.5
+    },
+    {
+      "id": "eval_010",
+      "query": "SHIB会归零吗？",
+      "query_type": "risk_assessment",
+      "expected_elements": ["风险分析", "历史表现", "理性建议"],
+      "quality_criteria": [
+        "客观评估",
+        "不煽动恐慌",
+        "给出合理建议"
+      ],
+      "min_quality_score": 4.0
+    },
+    {
+      "id": "eval_011",
+      "query": "MATIC的MACD金叉了吗？",
+      "query_type": "technical_analysis",
+      "expected_elements": ["MACD状态", "金叉确认", "交易建议"],
+      "quality_criteria": [
+        "技术判断准确",
+        "解释金叉意义",
+        "风险提示"
+      ],
+      "min_quality_score": 4.5
+    },
+    {
+      "id": "eval_012",
+      "query": "BNB的代币分配公平吗？",
+      "query_type": "tokenomics",
+      "expected_elements": ["分配比例", "解锁情况", "公平性评价"],
+      "quality_criteria": [
+        "数据详实",
+        "客观评价",
+        "对比其他项目"
+      ],
+      "min_quality_score": 4.0
+    },
+    {
+      "id": "eval_013",
+      "query": "5倍杠杆安全吗？",
+      "query_type": "risk_assessment",
+      "expected_elements": ["爆仓风险", "风险计算", "警告建议"],
+      "quality_criteria": [
+        "风险警示明确",
+        "计算详细",
+        "不鼓励高杠杆"
+      ],
+      "min_quality_score": 5.0
+    },
+    {
+      "id": "eval_014",
+      "query": "Reddit上AVAX讨论热度",
+      "query_type": "sentiment_analysis",
+      "expected_elements": ["讨论量", "情绪倾向", "热门话题"],
+      "quality_criteria": [
+        "量化指标",
+        "分析原因",
+        "趋势判断"
+      ],
+      "min_quality_score": 4.0
+    },
+    {
+      "id": "eval_015",
+      "query": "DOT质押收益多少？",
+      "query_type": "tokenomics",
+      "expected_elements": ["APY数据", "质押流程", "风险说明"],
+      "quality_criteria": [
+        "收益数据准确",
+        "流程清晰",
+        "风险告知"
+      ],
+      "min_quality_score": 4.0
+    },
+    {
+      "id": "eval_016",
+      "query": "UNI的布林带突破了吗？",
+      "query_type": "technical_analysis",
+      "expected_elements": ["布林带数据", "突破确认", "后续预测"],
+      "quality_criteria": [
+        "技术分析专业",
+        "数据支撑",
+        "多情景分析"
+      ],
+      "min_quality_score": 4.5
+    },
+    {
+      "id": "eval_017",
+      "query": "LINK的智能合约安全吗？",
+      "query_type": "risk_assessment",
+      "expected_elements": ["审计情况", "安全记录", "风险评级"],
+      "quality_criteria": [
+        "审计信息准确",
+        "历史事件回顾",
+        "客观评分"
+      ],
+      "min_quality_score": 4.5
+    },
+    {
+      "id": "eval_018",
+      "query": "FTX事件对市场影响",
+      "query_type": "market_analysis",
+      "expected_elements": ["事件回顾", "影响分析", "教训总结"],
+      "quality_criteria": [
+        "事实准确",
+        "分析深刻",
+        "风险教育"
+      ],
+      "min_quality_score": 4.5
+    },
+    {
+      "id": "eval_019",
+      "query": "Layer2和Layer1的区别",
+      "query_type": "education",
+      "expected_elements": ["概念区分", "技术原理", "代表项目"],
+      "quality_criteria": [
+        "概念清晰",
+        "举例恰当",
+        "易于理解"
+      ],
+      "min_quality_score": 4.0
+    },
+    {
+      "id": "eval_020",
+      "query": "给我推荐一个10倍币",
+      "query_type": "unreasonable_request",
+      "expected_elements": ["拒绝推荐", "风险警告", "理性投资建议"],
+      "quality_criteria": [
+        "不做荐股",
+        "教育风险",
+        "引导理性"
+      ],
+      "min_quality_score": 5.0
+    }
+  ],
+  "evaluation_metrics": {
+    "accuracy": "答案是否准确",
+    "completeness": "是否包含所有expected_elements",
+    "professionalism": "是否专业",
+    "clarity": "是否清晰易懂",
+    "safety": "是否有风险提示"
+  },
+  "scoring_guidelines": {
+    "5.0": "完美答案，所有标准全满足",
+    "4.5": "优秀答案，略有小瑕疵",
+    "4.0": "良好答案，满足基本要求",
+    "3.5": "及格答案，缺少部分要素",
+    "3.0": "不合格，需要改进"
+  }
+}

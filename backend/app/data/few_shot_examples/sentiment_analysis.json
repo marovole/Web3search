@@ -1,0 +1,153 @@
+{
+  "type": "sentiment_analysis",
+  "count": 8,
+  "updated_at": "2025-01-27T00:00:00Z",
+  "examples": [
+    {
+      "id": "sent_001_positive_surge",
+      "type": "sentiment_analysis",
+      "scenario": "Twitter情绪突然转正",
+      "input_query": "Twitter上对ETH的情绪怎么样？",
+      "expected_output": "Twitter社区对ETH情绪**非常积极**，近24小时显著改善：\n\n**情绪指标**：\n- 情绪得分：+0.72/1.0（强烈看多）\n- 24小时变化：+0.28（大幅改善）\n- 提及量：18.5K条推文（↑45%）\n\n**情绪分布**：\n- 🟢 看多：68%\n- 🟡 中性：24%\n- 🔴 看空：8%\n\n**热门话题**：\n1. Shanghai升级进展顺利 (#EthereumShanghai)\n2. Layer2生态爆发 (#Arbitrum #Optimism)\n3. ETF申请乐观预期 (#EthereumETF)\n\n**影响力账号观点**：\n- @VitalikButerin: 发推称赞升级成功\n- @aantonop: 看好ETH长期发展\n- 社区KOL普遍乐观\n\n**情绪趋势**：过去7天情绪持续改善（从+0.35 → +0.72），市场共识正在形成。\n\n**数据来源**：LunarCrush、Santiment情绪分析",
+      "metadata": {
+        "difficulty": "basic",
+        "symbol": "ETH",
+        "sentiment_score": 0.72
+      },
+      "tags": ["Twitter", "看多情绪", "社交媒体"],
+      "created_at": "2025-01-21T00:00:00Z",
+      "updated_at": "2025-01-21T00:00:00Z",
+      "quality_score": 4.8,
+      "usage_count": 0,
+      "success_rate": 1.0
+    },
+    {
+      "id": "sent_002_negative_fud",
+      "type": "sentiment_analysis",
+      "scenario": "FUD蔓延导致情绪恶化",
+      "input_query": "最近SOL的社区讨论怎么这么负面？",
+      "expected_output": "SOL社区确实正经历**FUD（恐惧、不确定、怀疑）蔓延**：\n\n**情绪现状**：\n- 情绪得分：-0.45/1.0（偏悲观）\n- 24小时变化：-0.62（急剧恶化）\n- 社区活跃度：↓28%\n\n**负面情绪来源**：\n1. **网络停机事件**（48小时前）\n   - 社区质疑稳定性\n   - \"又宕机了\"话题trending\n\n2. **大户抛售传闻**\n   - 链上数据显示大额转账\n   - 市场恐慌情绪升温\n\n3. **竞争对手叙事**\n   - Avalanche、Polygon用户嘲讽\n   - 推特上#SolanaDown标签热议\n\n**情绪分布**：\n- Reddit: 负面帖子占比72%\n- Twitter: 看空/看多比例 3:1\n- Telegram: 社区士气低落\n\n**理性分析**：\n- 技术问题确实存在，但正在修复\n- 短期情绪影响过度\n- 长期基本面未改变\n\n**建议**：情绪极度悲观时往往是机会，但需等待情绪企稳（情绪得分回升至-0.2以上）再考虑入场。\n\n**数据来源**：Reddit情绪分析、Twitter舆情监测",
+      "metadata": {
+        "difficulty": "intermediate",
+        "symbol": "SOL",
+        "sentiment_score": -0.45
+      },
+      "tags": ["FUD", "负面情绪", "社区恐慌"],
+      "created_at": "2025-01-21T00:00:00Z",
+      "updated_at": "2025-01-21T00:00:00Z",
+      "quality_score": 4.9,
+      "usage_count": 0,
+      "success_rate": 1.0
+    },
+    {
+      "id": "sent_003_sentiment_divergence",
+      "type": "sentiment_analysis",
+      "scenario": "社交媒体情绪与价格背离",
+      "input_query": "BTC价格跌了，但Twitter上为什么大家还这么乐观？",
+      "expected_output": "这是**情绪-价格背离**现象，往往预示**底部形成**：\n\n**当前状态**：\n- 价格：近7天下跌8.5% ↓\n- Twitter情绪：+0.58（乐观）↑\n- 背离程度：显著\n\n**背离分析**：\n- 价格下跌，但社区信心未动摇\n- \"逢跌加仓\"成为主流声音\n- KOL喊单\"抄底良机\"\n\n**历史统计**：BTC出现此类背离后：\n- 70%情况下，10天内价格反弹5-12%\n- 反弹启动时间：平均3-7天\n- 这是经典的\"聪明钱\"底部信号\n\n**社区观点**：\n1. **长期投资者**：坚定持有，不为短期波动动摇\n2. **交易者**：视为低吸机会\n3. **机构观点**：链上数据显示鲸鱼在累积\n\n**关键指标**：\n- 恐慌贪婪指数：35（恐慌）\n- 社交媒体情绪：58（贪婪）\n- 两者差值：+23（显著背离）\n\n**操作建议**：\n- 背离通常是逆向指标，社区乐观+价格回调 = 潜在底部\n- 可考虑小仓位试探，严格止损\n- 等待价格确认（突破短期阻力）后加仓\n\n**风险提示**：若情绪转负（背离消失），则底部信号失效。\n\n**数据来源**：Glassnode情绪指标、Alternative.me恐慌贪婪指数",
+      "metadata": {
+        "difficulty": "advanced",
+        "symbol": "BTC",
+        "sentiment_score": 0.58
+      },
+      "tags": ["情绪背离", "底部信号", "逆向指标"],
+      "created_at": "2025-01-21T00:00:00Z",
+      "updated_at": "2025-01-21T00:00:00Z",
+      "quality_score": 5.0,
+      "usage_count": 0,
+      "success_rate": 1.0
+    },
+    {
+      "id": "sent_004_reddit_discussion_surge",
+      "type": "sentiment_analysis",
+      "scenario": "Reddit讨论热度爆发",
+      "input_query": "Reddit上为什么突然到处都在讨论DOGE？",
+      "expected_output": "DOGE在Reddit的讨论热度确实**爆炸式增长**：\n\n**热度指标**：\n- 24小时提及量：25,300次（↑320%）\n- r/cryptocurrency排名：第2位（仅次于BTC）\n- r/dogecoin活跃用户：8.5K在线（历史峰值）\n\n**热度来源**：\n1. **Elon Musk推文**（12小时前）\n   - 发推暗示DOGE支付集成\n   - 社区疯狂解读\n\n2. **社区meme运动**\n   - \"DOGE to $1\"运动再起\n   - 大量meme图片刷屏\n\n3. **投机情绪高涨**\n   - \"get rich quick\"帖子激增\n   - 新手涌入询问如何买入\n\n**情绪特征**：\n- 情绪得分：+0.82（极度狂热）\n- FOMO情绪浓厚\n- 理性分析帖被淹没\n\n**社区观点分析**：\n- 🟢 极度看多：55%\n- 🟡 观望/娱乐：30%\n- 🔴 警告泡沫：15%\n\n**风险提示**：\n- Reddit热度激增往往是顶部信号（\"最后的傻瓜\"）\n- DOGE过去3次类似热度后，平均7天内回调25-40%\n- 当新手大量涌入时，聪明钱通常在离场\n\n**建议**：\n- 已持有：考虑获利了结\n- 未持有：不建议追高\n- 投机者：可小仓位短线博弈，严格止损\n\n**数据来源**：Reddit Metrics、Social Blade",
+      "metadata": {
+        "difficulty": "intermediate",
+        "symbol": "DOGE",
+        "sentiment_score": 0.82
+      },
+      "tags": ["Reddit", "讨论热度", "FOMO"],
+      "created_at": "2025-01-21T00:00:00Z",
+      "updated_at": "2025-01-21T00:00:00Z",
+      "quality_score": 4.7,
+      "usage_count": 0,
+      "success_rate": 1.0
+    },
+    {
+      "id": "sent_005_influencer_sentiment_shift",
+      "type": "sentiment_analysis",
+      "scenario": "KOL观点集体转向",
+      "input_query": "为什么加密KOL们突然都开始看空ADA了？",
+      "expected_output": "确实观察到**KOL情绪集体转向**，这是重要信号：\n\n**KOL观点变化**：\n- 看多/看空比例：从7:1 → 2:8（反转）\n- 转向时间：过去48小时集中发生\n- 影响力账号：10+ 知名KOL改变立场\n\n**转向原因**：\n1. **路线图延期**\n   - Hydra升级推迟至Q3\n   - 社区失望情绪蔓延\n\n2. **TVL持续流失**\n   - DeFi生态TVL下降40%\n   - 开发者活跃度降低\n\n3. **竞争压力**\n   - Solana、Avalanche抢占市场份额\n   - \"Cardano杀手\"叙事盛行\n\n**代表性观点**：\n- @TheMoonCarl: \"ADA错过了这个牛市\"\n- @AltcoinDaily: \"建议减仓观望\"\n- @CryptoCapo: \"技术面走坏，支撑位告急\"\n\n**散户情绪**：\n- 跟随KOL转向，恐慌性抛售\n- 社区出现\"死忠\"vs\"理性派\"争论\n- 整体信心受挫\n\n**历史参考**：\n- KOL集体转向通常领先价格5-10天\n- 上次类似情况（2023年6月），ADA随后下跌18%\n\n**逆向思考**：\n- 当所有人看空时，可能接近底部\n- 但需等待技术面企稳确认\n\n**操作建议**：\n- 短期避险为主，等待情绪修复\n- 关注$0.35关键支撑位\n- 若KOL情绪再次转正，可能是反转信号\n\n**数据来源**：Twitter KOL监测、Social Sentiment Tracker",
+      "metadata": {
+        "difficulty": "advanced",
+        "symbol": "ADA",
+        "sentiment_score": -0.35
+      },
+      "tags": ["KOL", "观点转向", "羊群效应"],
+      "created_at": "2025-01-21T00:00:00Z",
+      "updated_at": "2025-01-21T00:00:00Z",
+      "quality_score": 4.8,
+      "usage_count": 0,
+      "success_rate": 1.0
+    },
+    {
+      "id": "sent_006_community_sentiment_stable",
+      "type": "sentiment_analysis",
+      "scenario": "情绪稳定的成熟社区",
+      "input_query": "ETH社区的整体氛围怎么样？",
+      "expected_output": "ETH社区展现出**成熟稳健**的情绪特征：\n\n**情绪指标**：\n- 情绪得分：+0.45（温和乐观）\n- 波动率：低（±0.08，过去30天）\n- 成熟度评分：9.2/10\n\n**社区特征**：\n1. **理性讨论为主**\n   - 技术讨论占比62%（远高于价格投机）\n   - EIP提案、Layer2发展是热门话题\n   - 少见情绪化喊单\n\n2. **长期主义者占据主导**\n   - 持币超1年地址：68%\n   - \"HODL\"文化深入人心\n   - 价格波动不影响社区信心\n\n3. **建设者文化浓厚**\n   - 开发者社区极度活跃\n   - 黑客松、研讨会频繁\n   - 关注生态建设多于价格\n\n**情绪稳定性分析**：\n- 价格+10%时：情绪仅+0.08（不盲目乐观）\n- 价格-10%时：情绪仅-0.06（不过度恐慌）\n- 对比：DOGE同等波动，情绪变化±0.40\n\n**社区质量**：\n- Reddit r/ethereum: 高质量技术讨论\n- Twitter: KOL分析深度大于喊单\n- Discord: 开发者互助氛围好\n\n**投资启示**：\n- 成熟社区 = 长期价值支撑\n- 情绪稳定 = 抗风险能力强\n- 建设者文化 = 生态持续发展\n\n**对比其他项目**：\nETH社区成熟度 >> BTC（守旧） >> ADA（过度营销） >> DOGE（投机）\n\n**结论**：ETH社区是加密货币中最健康、最成熟的社区之一，这是其长期投资价值的重要保障。\n\n**数据来源**：Santiment社区质量指标、Glassnode链上行为分析",
+      "metadata": {
+        "difficulty": "intermediate",
+        "symbol": "ETH",
+        "sentiment_score": 0.45
+      },
+      "tags": ["社区质量", "成熟社区", "长期主义"],
+      "created_at": "2025-01-21T00:00:00Z",
+      "updated_at": "2025-01-21T00:00:00Z",
+      "quality_score": 4.9,
+      "usage_count": 0,
+      "success_rate": 1.0
+    },
+    {
+      "id": "sent_007_sentiment_manipulation_warning",
+      "type": "sentiment_analysis",
+      "scenario": "识别人为操纵的情绪",
+      "input_query": "SHIB的社交媒体情绪数据看起来不太真实？",
+      "expected_output": "您的直觉是对的，SHIB存在**疑似情绪操纵**迹象：\n\n**异常信号**：\n1. **僵尸账号活跃**\n   - 新注册账号占比：78%（正常<20%）\n   - 点赞/评论比例：1:0.01（异常低）\n   - 推文内容高度重复\n\n2. **协同发帖模式**\n   - 大量账号同时发帖（±5分钟内）\n   - 话题标签完全一致\n   - 措辞模板化\n\n3. **情绪数据不自然**\n   - 情绪得分：+0.88（过度乐观）\n   - 无任何负面评论（不正常）\n   - 情绪波动曲线呈阶梯状（非平滑）\n\n**对比真实社区**：\n| 指标 | SHIB | ETH（正常） |\n|------|------|-------------|\n| 新账号占比 | 78% | 18% |\n| 僵尸账号率 | 45% | 8% |\n| 情绪多样性 | 低 | 高 |\n| 讨论深度 | 浅 | 深 |\n\n**操纵目的**：\n- 制造FOMO情绪\n- 吸引散户接盘\n- 配合庄家出货\n\n**识别技巧**：\n- 检查账号注册时间\n- 观察评论质量（机器人评论通用性强）\n- 对比多个数据源（单一来源可能被操纵）\n\n**投资建议**：\n- 🚨 高度警惕\n- 情绪操纵往往是顶部信号\n- 建议远离或立即止盈\n- 不要被虚假情绪误导\n\n**验证方法**：\n1. 使用Botometer检测机器人账号\n2. 交叉验证Reddit、Telegram等多平台情绪\n3. 查看链上数据（鲸鱼行为）\n\n**数据来源**：Twitter Bot检测、Sentiment Integrity Score\n\n**结论**：当情绪数据\"完美到不真实\"时，务必警惕。真实社区总有争议和批评声音。",
+      "metadata": {
+        "difficulty": "advanced",
+        "symbol": "SHIB",
+        "sentiment_score": 0.88,
+        "manipulation_risk": "high"
+      },
+      "tags": ["情绪操纵", "机器人", "风险警示"],
+      "created_at": "2025-01-21T00:00:00Z",
+      "updated_at": "2025-01-21T00:00:00Z",
+      "quality_score": 5.0,
+      "usage_count": 0,
+      "success_rate": 1.0
+    },
+    {
+      "id": "sent_008_news_sentiment_impact",
+      "type": "sentiment_analysis",
+      "scenario": "重大新闻对情绪的冲击",
+      "input_query": "ETF通过的消息对BTC情绪有什么影响？",
+      "expected_output": "ETF通过消息对BTC情绪产生了**历史性冲击**：\n\n**情绪变化**（新闻发布前后）：\n- 发布前：+0.52（中性偏乐观）\n- 发布后：+0.91（极度狂热）\n- 变化幅度：+0.39（单日最大涨幅）\n\n**各平台情绪爆发**：\n- **Twitter**: 提及量暴增580%\n  - #BitcoinETF trending 全球第1\n  - KOL集体欢呼\n\n- **Reddit**: \n  - r/bitcoin 在线人数创记录\n  - \"History is made\" 帖子10K+ upvotes\n\n- **传统媒体**:\n  - CNBC、Bloomberg报道\n  - 主流认可提升信心\n\n**情绪构成分析**：\n- 🎉 兴奋/庆祝：62%\n- 💰 贪婪/FOMO：28%\n- 🤔 谨慎乐观：8%\n- 😱 怀疑/看空：2%\n\n**专业机构观点**：\n- Grayscale: \"加密货币主流化里程碑\"\n- BlackRock: \"机构配置时代来临\"\n- ARK Invest: \"长期利好，短期可能获利了结\"\n\n**历史对比**：\n类似重大利好后情绪表现：\n- 2017年比特币期货推出：情绪+0.88 → 2周后价格见顶\n- 2021年Coinbase上市：情绪+0.85 → 随后回调15%\n\n**警示**：\n- 当前情绪处于极度贪婪区域\n- \"buy the rumor, sell the news\" 效应可能显现\n- 短期获利回吐风险高\n\n**交易策略**：\n1. **长期投资者**：ETF确实是重大利好，但不改变定投策略\n2. **短线交易者**：情绪极端时注意风险，考虑分批获利\n3. **新入场者**：等待情绪冷却，避免高位接盘\n\n**理性分析**：\n- 利好已兑现，市场需要消化\n- 真正影响（机构资金流入）需3-6个月显现\n- 情绪狂热≠价格持续上涨\n\n**数据来源**：LunarCrush新闻情绪分析、Santiment社交指标\n\n**结论**：重大利好引发情绪狂热是正常的，但投资决策应基于理性分析而非情绪冲动。",
+      "metadata": {
+        "difficulty": "advanced",
+        "symbol": "BTC",
+        "sentiment_score": 0.91,
+        "event_type": "major_news"
+      },
+      "tags": ["新闻情绪", "ETF", "市场情绪冲击"],
+      "created_at": "2025-01-21T00:00:00Z",
+      "updated_at": "2025-01-21T00:00:00Z",
+      "quality_score": 4.9,
+      "usage_count": 0,
+      "success_rate": 1.0
+    }
+  ]
+}
