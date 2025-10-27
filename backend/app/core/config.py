@@ -296,6 +296,68 @@ class Settings(BaseSettings):
     RATE_LIMIT_DEEP_RESEARCH: str = Field(default="3/hour", description="Deep Research速率限制")
 
     # ================================
+    # 重试策略配置（任务5.2）
+    # ================================
+    API_RETRY_MAX_ATTEMPTS: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        description="API调用最大重试次数（范围: 1-10）"
+    )
+    API_RETRY_DELAYS: str = Field(
+        default="1.0,2.0,4.0",
+        description="重试延迟序列，逗号分隔（秒），如: 1.0,2.0,4.0"
+    )
+    API_RETRY_SINGLE_TIMEOUT: float = Field(
+        default=10.0,
+        ge=1.0,
+        le=60.0,
+        description="单次API请求超时时间（秒，范围: 1-60）"
+    )
+    API_RETRY_TOTAL_TIMEOUT: float = Field(
+        default=30.0,
+        ge=5.0,
+        le=120.0,
+        description="API调用总计超时时间（秒，范围: 5-120）"
+    )
+
+    @property
+    def api_retry_delays_list(self) -> List[float]:
+        """将API_RETRY_DELAYS字符串转换为浮点数列表"""
+        try:
+            return [float(x.strip()) for x in self.API_RETRY_DELAYS.split(",")]
+        except ValueError as e:
+            logger.warning(f"Invalid API_RETRY_DELAYS format: {self.API_RETRY_DELAYS}, using default [1.0, 2.0, 4.0]")
+            return [1.0, 2.0, 4.0]
+
+    @model_validator(mode='after')
+    def validate_retry_config(self) -> 'Settings':
+        """验证重试配置的合理性（任务5.2）"""
+        # 验证单次超时不能大于总超时
+        if self.API_RETRY_SINGLE_TIMEOUT > self.API_RETRY_TOTAL_TIMEOUT:
+            raise ValueError(
+                f"API_RETRY_SINGLE_TIMEOUT ({self.API_RETRY_SINGLE_TIMEOUT}s) "
+                f"不能大于 API_RETRY_TOTAL_TIMEOUT ({self.API_RETRY_TOTAL_TIMEOUT}s)"
+            )
+
+        # 验证延迟序列长度与重试次数匹配
+        delays = self.api_retry_delays_list
+        if len(delays) < self.API_RETRY_MAX_ATTEMPTS:
+            logger.warning(
+                f"API_RETRY_DELAYS 长度 ({len(delays)}) 少于 API_RETRY_MAX_ATTEMPTS ({self.API_RETRY_MAX_ATTEMPTS}), "
+                f"将重复使用最后一个延迟值"
+            )
+
+        # 验证延迟值合理性（不超过30秒）
+        for i, delay in enumerate(delays):
+            if delay < 0:
+                raise ValueError(f"重试延迟不能为负数: delays[{i}] = {delay}")
+            if delay > 30.0:
+                logger.warning(f"重试延迟过长: delays[{i}] = {delay}s, 建议不超过30秒")
+
+        return self
+
+    # ================================
     # Celery配置
     # ================================
     CELERY_BROKER_URL: str = Field(
