@@ -69,11 +69,91 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.API_TITLE,
     version=settings.API_VERSION,
-    description="专注于加密货币领域的AI驱动研究平台",
+    description="""
+# Web3 Search API
+
+专注于加密货币领域的AI驱动研究平台，提供快速对话和深度研究功能。
+
+## 核心功能
+
+- **Quick Chat**: 3秒内快速回答加密货币相关问题
+- **Deep Research**: 15-30秒生成全面的深度研究报告
+- **Market Search**: 实时搜索和自动补全功能
+- **Trending Analysis**: 多维度市场热点识别
+
+## 数据源
+
+- 🪙 CoinGecko - 价格和市场数据
+- ⛓️ Etherscan - 链上数据分析
+- 🐦 Twitter - 社交媒体情绪
+- 💬 Reddit - 社区讨论
+- 📰 CryptoPanic - 新闻聚合
+
+## AI模型
+
+- Claude 3.5 Sonnet (OpenRouter)
+- Llama 3.1 70B (OpenRouter)
+- 零AI成本（使用免费配额）
+
+## 速率限制
+
+- Quick Chat: 10次/分钟
+- Deep Research: 3次/小时
+- 其他端点: 30次/分钟
+
+## 文档资源
+
+- [API使用教程](https://github.com/your-repo/docs/API_TUTORIAL.md)
+- [错误码参考](https://github.com/your-repo/docs/API_ERRORS.md)
+- [认证说明](https://github.com/your-repo/docs/API_AUTH.md)
+""",
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
     lifespan=lifespan,
+    contact={
+        "name": "Web3 Search Team",
+        "email": "support@web3search.com",
+        "url": "https://web3search.com",
+    },
+    license_info={
+        "name": "MIT License",
+        "url": "https://opensource.org/licenses/MIT",
+    },
+    openapi_tags=[
+        {
+            "name": "Chat",
+            "description": "快速对话接口 - 3秒内响应的AI问答",
+        },
+        {
+            "name": "Research",
+            "description": "深度研究接口 - 全面的多维度分析报告",
+        },
+        {
+            "name": "Reports",
+            "description": "报告管理 - 查询、检索和分享研究报告",
+        },
+        {
+            "name": "Search",
+            "description": "搜索功能 - 加密货币搜索和自动补全",
+        },
+        {
+            "name": "Trending",
+            "description": "趋势分析 - 市场热点识别和追踪",
+        },
+        {
+            "name": "Health",
+            "description": "健康检查 - 服务状态和依赖监控",
+        },
+        {
+            "name": "Admin",
+            "description": "管理接口 - 仅用于开发和维护",
+        },
+        {
+            "name": "Root",
+            "description": "根路径 - API基本信息",
+        },
+    ],
 )
 
 
