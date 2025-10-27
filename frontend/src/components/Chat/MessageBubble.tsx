@@ -3,13 +3,32 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { Message } from '../../types'
 import CodeBlock from '../Common/CodeBlock'
+import { useTypewriter } from '../../hooks/useTypewriter'
 
 interface MessageBubbleProps {
   message: Message
+  /** 是否启用打字机效果（默认启用） */
+  enableTypewriter?: boolean
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({
+  message,
+  enableTypewriter = true
+}) => {
   const isUser = message.role === 'user'
+
+  // 为助手消息启用打字机效果
+  const { displayedText, isTyping, skipAnimation } = useTypewriter(
+    message.content,
+    {
+      enabled: enableTypewriter && !isUser,
+      speed: 40, // 40ms/字符
+      isStreaming: message.isStreaming,
+    }
+  )
+
+  // 使用打字机文本（如果启用），否则使用原始内容
+  const contentToDisplay = (enableTypewriter && !isUser) ? displayedText : message.content
 
   return (
     <div
@@ -20,8 +39,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           // User message - plain text
           <p className="whitespace-pre-wrap">{message.content}</p>
         ) : (
-          // Assistant message - Markdown rendering
-          <div className="prose prose-sm max-w-none">
+          // Assistant message - Markdown rendering with typewriter effect
+          <div
+            className="prose prose-sm max-w-none cursor-pointer"
+            onClick={isTyping ? skipAnimation : undefined}
+            title={isTyping ? '点击跳过动画' : undefined}
+          >
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -80,11 +103,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                 },
               }}
             >
-              {message.content}
+              {contentToDisplay}
             </ReactMarkdown>
 
-            {/* Streaming indicator */}
-            {message.isStreaming && (
+            {/* Typing indicator or Streaming indicator */}
+            {(isTyping || message.isStreaming) && (
               <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1"></span>
             )}
           </div>
