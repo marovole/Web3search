@@ -331,6 +331,103 @@ class MetricsCollector:
 
         self.logger.info("Data collection metric", extra=metric)
 
+    def record_user_action(
+        self,
+        action_type: str,
+        user_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ):
+        """
+        记录用户行为（任务13.7）
+
+        Args:
+            action_type: 行为类型（search, report_generated, export等）
+            user_id: 用户ID
+            metadata: 额外元数据
+        """
+        metric = {
+            "metric": "user_action",
+            "action_type": action_type,
+            "user_id": user_id,
+            "metadata": metadata or {},
+        }
+
+        self.logger.info("User action metric", extra=metric)
+
+        # 发送自定义事件到Sentry
+        try:
+            import sentry_sdk
+            sentry_sdk.capture_message(
+                f"User action: {action_type}",
+                level="info",
+                extras=metric
+            )
+        except ImportError:
+            pass
+
+    def record_report_generation(
+        self,
+        symbol: str,
+        report_type: str,
+        success: bool,
+        duration: float,
+        sections_count: int = 0,
+    ):
+        """
+        记录报告生成（任务13.7）
+
+        Args:
+            symbol: 加密货币符号
+            report_type: 报告类型（quick/deep）
+            success: 是否成功
+            duration: 生成时间（秒）
+            sections_count: 章节数
+        """
+        metric = {
+            "metric": "report_generation",
+            "symbol": symbol,
+            "report_type": report_type,
+            "success": success,
+            "duration_ms": round(duration * 1000, 2),
+            "sections_count": sections_count,
+        }
+
+        self.logger.info("Report generation metric", extra=metric)
+
+        # 发送到Sentry
+        try:
+            import sentry_sdk
+            sentry_sdk.set_measurement(f"report.{report_type}.duration", duration * 1000, "millisecond")
+            sentry_sdk.set_measurement(f"report.{report_type}.sections", sections_count, "none")
+        except ImportError:
+            pass
+
+    def record_cache_operation(
+        self,
+        operation: str,
+        hit: bool,
+        key: str,
+        duration_ms: float = 0.0,
+    ):
+        """
+        记录缓存操作（任务13.7）
+
+        Args:
+            operation: 操作类型（get, set, delete）
+            hit: 是否命中（对于get操作）
+            key: 缓存键
+            duration_ms: 操作耗时
+        """
+        metric = {
+            "metric": "cache_operation",
+            "operation": operation,
+            "hit": hit,
+            "key": key,
+            "duration_ms": duration_ms,
+        }
+
+        self.logger.debug("Cache operation metric", extra=metric)
+
 
 # ================================
 # 全局实例

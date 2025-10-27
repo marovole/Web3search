@@ -395,6 +395,8 @@ class Settings(BaseSettings):
     # 外部服务（可选）
     # ================================
     SENTRY_DSN: str = Field(default="", description="Sentry DSN")
+    SLACK_WEBHOOK_URL: str = Field(default="", description="Slack Webhook URL (用于告警通知)")
+    SLACK_ALERTS_CHANNEL: str = Field(default="#alerts", description="Slack告警频道")
     RAILWAY_ENVIRONMENT: str = Field(default="", description="Railway环境")
     VERCEL_ENV: str = Field(default="", description="Vercel环境")
 

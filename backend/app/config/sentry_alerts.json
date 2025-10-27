@@ -1,0 +1,260 @@
+{
+  "alerts": [
+    {
+      "name": "高错误率告警",
+      "description": "当错误率超过5%时触发告警",
+      "environment": "production",
+      "conditions": [
+        {
+          "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
+          "value": 5.0,
+          "comparisonType": "count",
+          "interval": "5m"
+        }
+      ],
+      "filters": [],
+      "actions": [
+        {
+          "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+          "workspace": "<SLACK_WORKSPACE_ID>",
+          "channel": "#alerts",
+          "tags": "level,environment"
+        },
+        {
+          "id": "sentry.mail.actions.NotifyEmailAction",
+          "targetType": "IssueOwners",
+          "targetIdentifier": ""
+        }
+      ],
+      "actionMatch": "all",
+      "frequency": 30
+    },
+    {
+      "name": "P95延迟过高",
+      "description": "当P95响应时间超过3秒时触发告警",
+      "environment": "production",
+      "conditions": [
+        {
+          "id": "sentry.rules.conditions.event_attribute.EventAttributeCondition",
+          "attribute": "p95(transaction.duration)",
+          "match": "gt",
+          "value": "3000"
+        }
+      ],
+      "filters": [
+        {
+          "id": "sentry.rules.filters.event_attribute.EventAttributeFilter",
+          "attribute": "event.type",
+          "match": "eq",
+          "value": "transaction"
+        }
+      ],
+      "actions": [
+        {
+          "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+          "workspace": "<SLACK_WORKSPACE_ID>",
+          "channel": "#alerts",
+          "tags": "transaction,environment"
+        }
+      ],
+      "actionMatch": "all",
+      "frequency": 30
+    },
+    {
+      "name": "数据源失败",
+      "description": "当数据源采集失败时立即告警",
+      "environment": "production",
+      "conditions": [
+        {
+          "id": "sentry.rules.conditions.tagged_event.TaggedEventCondition",
+          "key": "source",
+          "match": "ne",
+          "value": ""
+        },
+        {
+          "id": "sentry.rules.conditions.event_attribute.EventAttributeCondition",
+          "attribute": "message",
+          "match": "contains",
+          "value": "failed"
+        }
+      ],
+      "filters": [],
+      "actions": [
+        {
+          "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+          "workspace": "<SLACK_WORKSPACE_ID>",
+          "channel": "#data-alerts",
+          "tags": "source,level"
+        }
+      ],
+      "actionMatch": "all",
+      "frequency": 5
+    },
+    {
+      "name": "LLM调用失败",
+      "description": "LLM调用失败时告警",
+      "environment": "production",
+      "conditions": [
+        {
+          "id": "sentry.rules.conditions.tagged_event.TaggedEventCondition",
+          "key": "operation",
+          "match": "eq",
+          "value": "llm_call"
+        },
+        {
+          "id": "sentry.rules.conditions.event_attribute.EventAttributeCondition",
+          "attribute": "level",
+          "match": "eq",
+          "value": "error"
+        }
+      ],
+      "filters": [],
+      "actions": [
+        {
+          "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+          "workspace": "<SLACK_WORKSPACE_ID>",
+          "channel": "#ai-alerts",
+          "tags": "model,level"
+        }
+      ],
+      "actionMatch": "all",
+      "frequency": 15
+    },
+    {
+      "name": "数据库连接失败",
+      "description": "数据库连接池耗尽或连接失败",
+      "environment": "production",
+      "conditions": [
+        {
+          "id": "sentry.rules.conditions.event_attribute.EventAttributeCondition",
+          "attribute": "message",
+          "match": "contains",
+          "value": "database"
+        },
+        {
+          "id": "sentry.rules.conditions.event_attribute.EventAttributeCondition",
+          "attribute": "level",
+          "match": "eq",
+          "value": "error"
+        }
+      ],
+      "filters": [],
+      "actions": [
+        {
+          "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+          "workspace": "<SLACK_WORKSPACE_ID>",
+          "channel": "#alerts",
+          "tags": "level,environment"
+        },
+        {
+          "id": "sentry.mail.actions.NotifyEmailAction",
+          "targetType": "Team",
+          "targetIdentifier": "<TEAM_ID>"
+        }
+      ],
+      "actionMatch": "all",
+      "frequency": 5
+    },
+    {
+      "name": "Redis连接失败",
+      "description": "Redis缓存服务不可用",
+      "environment": "production",
+      "conditions": [
+        {
+          "id": "sentry.rules.conditions.event_attribute.EventAttributeCondition",
+          "attribute": "message",
+          "match": "contains",
+          "value": "redis"
+        },
+        {
+          "id": "sentry.rules.conditions.event_attribute.EventAttributeCondition",
+          "attribute": "level",
+          "match": "eq",
+          "value": "error"
+        }
+      ],
+      "filters": [],
+      "actions": [
+        {
+          "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+          "workspace": "<SLACK_WORKSPACE_ID>",
+          "channel": "#alerts",
+          "tags": "level,environment"
+        }
+      ],
+      "actionMatch": "all",
+      "frequency": 10
+    },
+    {
+      "name": "新错误类型",
+      "description": "首次出现的错误类型立即告警",
+      "environment": "production",
+      "conditions": [
+        {
+          "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"
+        }
+      ],
+      "filters": [
+        {
+          "id": "sentry.rules.filters.level.LevelFilter",
+          "match": "gte",
+          "level": "40"
+        }
+      ],
+      "actions": [
+        {
+          "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+          "workspace": "<SLACK_WORKSPACE_ID>",
+          "channel": "#alerts",
+          "tags": "error.type,environment"
+        }
+      ],
+      "actionMatch": "all",
+      "frequency": 5
+    },
+    {
+      "name": "频繁重复错误",
+      "description": "同一错误1小时内发生超过50次",
+      "environment": "production",
+      "conditions": [
+        {
+          "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+          "value": 50,
+          "comparisonType": "count",
+          "interval": "1h"
+        }
+      ],
+      "filters": [],
+      "actions": [
+        {
+          "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+          "workspace": "<SLACK_WORKSPACE_ID>",
+          "channel": "#alerts",
+          "tags": "error.type,environment"
+        },
+        {
+          "id": "sentry.mail.actions.NotifyEmailAction",
+          "targetType": "IssueOwners",
+          "targetIdentifier": ""
+        }
+      ],
+      "actionMatch": "all",
+      "frequency": 60
+    }
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "created_at": "2025-01-27",
+    "description": "Web3 Search API Sentry告警规则配置",
+    "notes": [
+      "使用前需要替换占位符：",
+      "  - <SLACK_WORKSPACE_ID>: Slack工作区ID",
+      "  - <TEAM_ID>: Sentry团队ID",
+      "告警频率说明：",
+      "  - 5分钟：紧急问题（数据库/Redis故障）",
+      "  - 15分钟：重要问题（LLM失败）",
+      "  - 30分钟：一般问题（错误率、延迟）",
+      "  - 60分钟：非紧急问题（频繁重复错误）"
+    ]
+  }
+}

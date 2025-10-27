@@ -10,6 +10,7 @@ import uuid
 import json
 
 from app.core.database import get_db
+from app.core.monitoring import trace_operation, metrics
 from app.schemas.chat import (
     QuickChatRequest,
     QuickChatResponse,
@@ -21,6 +22,7 @@ from app.services.research_engine import quick_chat_engine, deep_research_engine
 from app.services.report import report_generator
 from app.models.report import Report, ReportType, ReportStatus
 from app.models.conversation import Conversation, Message, MessageRole
+import time
 
 
 router = APIRouter()
@@ -110,15 +112,18 @@ async def quick_chat(
     }
     ```
     """
+    start_time = time.time()
+
     try:
         # 生成或使用现有session_id
         session_id = request.session_id or str(uuid.uuid4())
 
-        # 调用Quick Chat引擎（非流式）
-        result = await quick_chat_engine.chat(
-            query=request.query,
-            stream=False,
-        )
+        # 调用Quick Chat引擎（非流式）- 添加性能追踪
+        with trace_operation("quick_chat", {"query": request.query[:50], "session_id": session_id}):
+            result = await quick_chat_engine.chat(
+                query=request.query,
+                stream=False,
+            )
 
         # 构建响应
         response = QuickChatResponse(
@@ -130,12 +135,27 @@ async def quick_chat(
             session_id=session_id,
         )
 
+        # 记录API调用指标
+        metrics.record_api_call(
+            endpoint="/api/v1/chat/quick-chat",
+            method="POST",
+            status_code=200,
+            duration=time.time() - start_time
+        )
+
         # TODO: 保存到数据库（对话历史）
         # 这里可以保存Conversation和Message记录
 
         return response
 
     except Exception as e:
+        # 记录错误指标
+        metrics.record_error(
+            error_type=type(e).__name__,
+            error_message=str(e),
+            context={"endpoint": "/api/v1/chat/quick-chat", "query": request.query[:50]}
+        )
+
         print(f"❌ Quick Chat错误: {e}")
         raise HTTPException(
             status_code=500,
