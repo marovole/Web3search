@@ -1,10 +1,11 @@
 """
-查询缓存服务（任务 9.1-9.2）
+查询缓存服务（任务 9.1-9.2, 9.7）
 
 提供智能查询缓存功能：
 1. 查询标准化和哈希
 2. 基于数据类型的 TTL 策略
 3. 缓存统计和监控
+4. 性能指标追踪集成（任务 9.7）
 """
 import hashlib
 import json
@@ -21,6 +22,7 @@ from app.core.redis_client import (
     cache_delete,
     cache_increment,
 )
+from app.core.metrics import metrics_collector
 
 logger = logging.getLogger(__name__)
 
@@ -360,24 +362,30 @@ class QueryCache:
     # ================================
 
     async def _record_hit(self, data_type: DataType) -> None:
-        """记录缓存命中"""
+        """记录缓存命中（任务 9.7 集成指标追踪）"""
         try:
-            # 全局命中计数
+            # 全局命中计数（Redis）
             await cache_increment(f"{self.stats_key_prefix}hits")
 
-            # 按数据类型的命中计数
+            # 按数据类型的命中计数（Redis）
             await cache_increment(f"{self.stats_key_prefix}hits:{data_type.value}")
+
+            # 记录到性能指标系统（任务 9.7）
+            metrics_collector.record_cache_hit(cache_key=data_type.value)
         except Exception as e:
             logger.error(f"记录缓存命中失败: {e}")
 
     async def _record_miss(self, data_type: DataType) -> None:
-        """记录缓存未命中"""
+        """记录缓存未命中（任务 9.7 集成指标追踪）"""
         try:
-            # 全局未命中计数
+            # 全局未命中计数（Redis）
             await cache_increment(f"{self.stats_key_prefix}misses")
 
-            # 按数据类型的未命中计数
+            # 按数据类型的未命中计数（Redis）
             await cache_increment(f"{self.stats_key_prefix}misses:{data_type.value}")
+
+            # 记录到性能指标系统（任务 9.7）
+            metrics_collector.record_cache_miss(cache_key=data_type.value)
         except Exception as e:
             logger.error(f"记录缓存未命中失败: {e}")
 
