@@ -121,8 +121,8 @@ async def dependencies_health(response: Response):
     if "unhealthy" in critical_statuses:
         overall_status = "unhealthy"
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    # 如果有degraded或Redis不可用，整体为degraded
-    elif "degraded" in critical_statuses or redis_health["status"] in ["degraded", "unavailable"]:
+    # 如果有degraded或Redis不可用/禁用，整体为degraded
+    elif "degraded" in critical_statuses or redis_health["status"] in ["degraded", "unavailable", "disabled"]:
         overall_status = "degraded"
     else:
         overall_status = "healthy"

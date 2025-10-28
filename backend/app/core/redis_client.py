@@ -38,16 +38,29 @@ async def get_async_redis() -> AsyncRedis:
     """
     获取异步Redis客户端（单例模式）
 
+    返回 None 如果 Redis 被禁用或 URL 无效
+
     Returns:
-        AsyncRedis: 异步Redis客户端实例
+        AsyncRedis: 异步Redis客户端实例，或 None 如果 Redis 不可用
     """
     global async_redis_client
+
+    # 如果 Redis 被禁用（disabled:// 或为空），返回 None
+    if not settings.REDIS_URL or settings.REDIS_URL.startswith("disabled://"):
+        return None
+
     if async_redis_client is None:
-        async_redis_client = await AsyncRedis.from_url(
-            settings.REDIS_URL,
-            decode_responses=True,
-            encoding="utf-8",
-        )
+        try:
+            async_redis_client = await AsyncRedis.from_url(
+                settings.REDIS_URL,
+                decode_responses=True,
+                encoding="utf-8",
+            )
+        except Exception as e:
+            # Redis URL 无效或连接失败，记录错误但不抛出异常
+            import logging
+            logging.error(f"Failed to initialize Redis: {e}")
+            return None
     return async_redis_client
 
 
@@ -76,9 +89,11 @@ async def cache_get(key: str) -> Optional[str]:
         key: 缓存键
 
     Returns:
-        Optional[str]: 缓存值，不存在返回None
+        Optional[str]: 缓存值，不存在返回None（如果Redis不可用也返回None）
     """
     redis = await get_async_redis()
+    if redis is None:
+        return None
     return await redis.get(key)
 
 
@@ -92,9 +107,11 @@ async def cache_set(key: str, value: Any, ttl: Optional[int] = None) -> bool:
         ttl: 过期时间（秒），None表示永不过期
 
     Returns:
-        bool: 是否设置成功
+        bool: 是否设置成功（如果Redis不可用返回False）
     """
     redis = await get_async_redis()
+    if redis is None:
+        return False
 
     # 如果value是字典或列表，序列化为JSON
     if isinstance(value, (dict, list)):
@@ -114,9 +131,11 @@ async def cache_delete(key: str) -> int:
         key: 缓存键
 
     Returns:
-        int: 删除的键数量
+        int: 删除的键数量（如果Redis不可用返回0）
     """
     redis = await get_async_redis()
+    if redis is None:
+        return 0
     return await redis.delete(key)
 
 
@@ -128,9 +147,11 @@ async def cache_exists(key: str) -> bool:
         key: 缓存键
 
     Returns:
-        bool: 是否存在
+        bool: 是否存在（如果Redis不可用返回False）
     """
     redis = await get_async_redis()
+    if redis is None:
+        return False
     return await redis.exists(key) > 0
 
 
@@ -236,8 +257,13 @@ async def rate_limit_check(
 
     Returns:
         tuple[bool, int]: (是否允许, 剩余次数)
+                         如果Redis不可用，允许请求但无法追踪计数
     """
     redis = await get_async_redis()
+    if redis is None:
+        # Redis不可用时，允许请求（假设未超限）
+        return True, limit - 1
+
     key = f"rate_limit:{identifier}"
 
     # 获取当前计数
@@ -320,7 +346,7 @@ async def check_redis_health() -> dict:
 
     Returns:
         dict: 健康检查结果
-            - status: "healthy" | "degraded" | "unavailable" | "unhealthy"
+            - status: "healthy" | "degraded" | "disabled" | "unavailable" | "unhealthy"
             - latency_ms: 响应延迟（毫秒）
             - connected: 是否连接成功
             - error: 错误信息（如果有）
@@ -329,6 +355,15 @@ async def check_redis_health() -> dict:
 
     try:
         redis = await get_async_redis()
+
+        # 如果 Redis 被禁用，返回 disabled 状态
+        if redis is None:
+            return {
+                "status": "disabled",
+                "connected": False,
+                "latency_ms": 0,
+                "error": "Redis is disabled (expected in staging)"
+            }
 
         # 测试PING命令并计算延迟
         start = time.time()

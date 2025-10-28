@@ -258,8 +258,11 @@ async def health_check():
     # 注意：Redis在Render免费计划中不可用是预期行为，不影响API健康状态
     try:
         redis = await get_async_redis()
-        await redis.ping()
-        health_status["redis"] = "connected"
+        if redis is None:
+            health_status["redis"] = "disabled"
+        else:
+            await redis.ping()
+            health_status["redis"] = "connected"
     except Exception as e:
         health_status["redis"] = f"unavailable: {str(e)}"
         # Redis不可用不影响整体健康状态
@@ -272,8 +275,11 @@ async def health_check():
         # 检查broker连接（通过ping Redis）
         try:
             redis = await get_async_redis()
-            await redis.ping()
-            broker_status = "connected"
+            if redis is None:
+                broker_status = "disabled"
+            else:
+                await redis.ping()
+                broker_status = "connected"
         except Exception:
             # Redis不可用，Broker离线（预期）
             broker_status = "unavailable"
