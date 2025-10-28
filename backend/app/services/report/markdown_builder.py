@@ -1,6 +1,16 @@
 """
-Markdown 报告构建器
+Markdown 报告构建器 [已弃用]
 基于 10 个分析器输出生成完整的 Markdown 格式报告
+
+⚠️ 弃用说明：
+本模块已被 ReportGenerator（报告/report_generator.py）替代。
+ReportGenerator 提供了更简洁和强大的报告生成功能，包括：
+- 表格和图表的自动集成（table_generator, chart_generator）
+- 质量验证集成（quality_validator）
+- 完整的错误处理和日志记录
+
+本文件仅作为参考实现保留。不建议在新代码中使用此模块。
+请使用 ReportGenerator.generate_markdown() 方法替代。
 """
 from typing import Dict, Any, Optional
 from datetime import datetime
