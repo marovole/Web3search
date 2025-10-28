@@ -153,7 +153,7 @@ export const quickChat = async (
 
   return {
     ...mockQuickChatResponse,
-    conversation_id: request.conversation_id || `mock-conv-${Date.now()}`,
+    session_id: request.conversation_id || `mock-conv-${Date.now()}`,
   }
 }
 

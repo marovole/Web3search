@@ -11,7 +11,7 @@ import type {
 // ================================
 
 export const mockQuickChatResponse: QuickChatResponse = {
-  answer: `**BTC (Bitcoin) 当前分析：**
+  content: `**BTC (Bitcoin) 当前分析：**
 
 **价格概况**：
 - 当前价格：$67,234 USD
@@ -29,13 +29,11 @@ export const mockQuickChatResponse: QuickChatResponse = {
 - 建议：适合中长期持有，短期可能在65k-70k区间震荡
 
 💡 提示：如需深度分析报告（包含图表、竞品对比、风险评估），请切换到 **Deep Research** 模式。`,
-  conversation_id: 'mock-conv-001',
-  model_used: 'openrouter/anthropic/claude-3.5-sonnet',
-  token_usage: {
-    prompt_tokens: 234,
-    completion_tokens: 456,
-    total_tokens: 690,
-  },
+  symbol: 'BTC',
+  query_type: 'price',
+  response_time: 1.8,
+  model: 'anthropic/claude-3.5-sonnet',
+  session_id: 'mock-conv-001',
 }
 
 // ================================
