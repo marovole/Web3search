@@ -37,21 +37,51 @@ TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose 
 - **AND** 在管理后台展示Token使用趋势图
 
 ### Requirement: 六维深度分析
-系统**SHALL**对加密货币项目进行六个维度的深度分析：TL;DR、时间窗分析、情绪分析、技术面分析、基本面分析、竞品对比。
+系统**SHALL**对加密货币项目进行六个维度的深度分析，完整集成9个专用analyzers（TldrGenerator、TimeframeAnalyzer、SentimentAnalyzer、TechnicalAnalyzer、OnchainAnalyzer、CompetitorAnalyzer、TokenomicsAnalyzer、RiskAssessor、ConclusionSynthesizer）的结构化输出。
 
 #### Scenario: 生成完整研究报告
 - **WHEN** 用户请求项目X（如Hyperliquid）的深度研究
-- **THEN** 系统并行执行以下6个分析维度：
-  1. TL;DR生成（核心判断+置信度）
-  2. 时间窗分析（24h/7d/30d）
-  3. 社媒情绪分析
-  4. 技术面分析
-  5. 基本面分析
-  6. 竞品对比分析
-- **AND** 每个维度调用对应的LLM模型
-- **AND** 返回结构化的JSON结果（符合预定义Schema）
-- **AND** 每个维度包含置信度评分（0-100）
+- **THEN** 系统并行执行以下9个专用analyzers：
+  1. TldrGenerator（核心判断+置信度）
+  2. TimeframeAnalyzer（24h/7d/30d）
+  3. SentimentAnalyzer（社媒情绪）
+  4. TechnicalAnalyzer（技术面）
+  5. OnchainAnalyzer（链上数据）
+  6. CompetitorAnalyzer（竞品对比）
+  7. TokenomicsAnalyzer（代币经济学）
+  8. RiskAssessor（风险评估）
+  9. ConclusionSynthesizer（结论）
+- **AND** 每个analyzer返回结构化的Dict输出（包含data、metadata、visualization_hints字段）
+- **AND** 每个analyzer的输出通过Pydantic验证（符合预定义Schema）
 - **AND** 总处理时间< 30秒（通过并行化）
+
+#### Scenario: Analyzer输出完整集成
+- **WHEN** Deep Research引擎调用analyzers
+- **THEN** 收集所有9个analyzers的结构化输出
+- **AND** 验证每个analyzer输出包含必需字段：
+  - data: 分析结果数据（Dict类型）
+  - metadata: 元数据（模型名称、生成时间、置信度等）
+  - visualization_hints: 可视化建议（表格结构、图表类型等）
+- **AND** 输出数据传递给报告生成器用于生成Markdown和图表
+- **AND** 在报告metadata中记录每个analyzer的执行状态
+
+#### Scenario: Analyzer失败降级策略
+- **WHEN** 某个analyzer执行失败（如LLM超时、输出验证失败）
+- **THEN** 记录错误日志（包含analyzer名称、错误原因、输入参数）
+- **AND** 继续执行其他analyzers（不中断整体流程）
+- **AND** 在报告中标注该部分缺失："[该章节生成失败，请稍后重试]"
+- **AND** 在响应metadata中添加警告标识：`"partial_failure": ["TechnicalAnalyzer"]`
+- **AND** 如超过3个analyzers失败，返回整体错误并建议用户稍后重试
+
+#### Scenario: Analyzer输出包含可视化数据
+- **WHEN** analyzer返回可表格化或可图表化的数据
+- **THEN** 在visualization_hints字段中包含以下信息：
+  - type: "table" 或 "chart"
+  - table_columns: 表格列定义（如["协议", "日交易量", "TVL"]）
+  - chart_type: 图表类型（如"line", "bar", "pie"）
+  - chart_data: 图表数据（x轴、y轴值）
+- **AND** 报告生成器根据visualization_hints自动调用table_generator或chart_generator
+- **AND** 生成的表格和图表嵌入到对应章节
 
 #### Scenario: TL;DR生成符合标准格式
 - **WHEN** 生成TL;DR部分

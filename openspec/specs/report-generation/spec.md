@@ -4,7 +4,7 @@
 TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose after archive.
 ## Requirements
 ### Requirement: 机构级Markdown报告生成
-系统**SHALL**生成符合机构研报标准的Markdown格式报告，包含完整的结构化内容和数据可视化。
+系统**SHALL**生成符合机构研报标准的Markdown格式报告，集成table_generator和chart_generator自动生成表格和图表，包含完整的结构化内容和数据可视化。
 
 #### Scenario: 生成完整研究报告结构
 - **WHEN** Deep Research完成所有分析维度
@@ -21,8 +21,17 @@ TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose 
      - 催化与风险评估
   4. **结论**：一句话判断+短中期观点+关键跟踪指标
 - **AND** 总字数3000-5000字
-- **AND** 包含至少3个表格（竞品对比/估值倍数/支撑阻力）
-- **AND** 包含至少2个图表（价格走势/情绪分布）
+- **AND** 包含至少3个表格（通过table_generator生成）
+- **AND** 包含至少2个图表（通过chart_generator生成）
+- **AND** 从analyzers的visualization_hints字段自动提取数据用于生成表格和图表
+
+#### Scenario: 从Analyzer输出生成表格和图表
+- **WHEN** 报告生成器接收到analyzer输出
+- **THEN** 解析analyzer的visualization_hints字段
+- **AND** 当type为"table"时，调用table_generator生成Markdown表格
+- **AND** 当type为"chart"时，调用chart_generator生成图表并Base64编码
+- **AND** 将生成的表格和图表嵌入到对应章节
+- **AND** 表格和图表生成失败时记录警告但不中断报告生成
 
 #### Scenario: Markdown格式规范
 - **WHEN** 生成Markdown内容
@@ -39,13 +48,21 @@ TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose 
 
 #### Scenario: 报告结构验证
 - **WHEN** 报告生成完成
-- **THEN** 验证所有必需章节存在
+- **THEN** 调用quality_validator验证所有必需章节存在
 - **AND** 验证每个章节内容长度符合要求（如TL;DR < 200字）
-- **AND** 验证Markdown语法正确性（使用markdown-lint）
+- **AND** 验证Markdown语法正确性
 - **AND** 验证失败时记录错误并标记报告为"质量不合格"
 
 ### Requirement: 动态表格生成
-系统**SHALL**根据数据动态生成Markdown表格，支持复杂的多列对比。
+系统**SHALL**使用table_generator模块根据analyzer输出动态生成Markdown表格，支持复杂的多列对比。
+
+#### Scenario: 集成table_generator生成表格
+- **WHEN** analyzer的visualization_hints.type为"table"
+- **THEN** 提取table_columns和table_data
+- **AND** 调用`utils/table_generator.py`的`generate_table()`方法
+- **AND** 传入列定义和数据行
+- **AND** 接收生成的Markdown表格字符串
+- **AND** 将表格嵌入到报告对应章节
 
 #### Scenario: 生成竞品对比表格
 - **WHEN** 生成竞品对比章节
@@ -86,12 +103,26 @@ TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose 
 - **AND** 价格格式化为美元符号+小数
 - **AND** 强度标注为"强/中等/弱"
 
+#### Scenario: 表格生成错误处理
+- **WHEN** table_generator调用失败（如数据格式不正确）
+- **THEN** 捕获异常并记录错误日志
+- **AND** 在报告中显示占位符："[表格生成失败]"
+- **AND** 继续生成报告其他部分（不中断整体流程）
+
 ### Requirement: 图表嵌入与生成
-系统**SHALL**生成数据可视化图表并嵌入到报告中。
+系统**SHALL**使用chart_generator模块生成数据可视化图表并嵌入到报告中。
+
+#### Scenario: 集成chart_generator生成图表
+- **WHEN** analyzer的visualization_hints.type为"chart"
+- **THEN** 提取chart_type和chart_data
+- **AND** 调用`utils/chart_generator.py`的`generate_chart()`方法
+- **AND** 传入图表类型（line/bar/pie）和数据
+- **AND** 接收生成的图表（PNG格式）
+- **AND** 将图表Base64编码并嵌入Markdown：`![chart](data:image/png;base64,...)`
 
 #### Scenario: 生成价格走势图
 - **WHEN** 生成时间窗分析章节
-- **THEN** 使用matplotlib生成价格K线图（30天数据）
+- **THEN** 使用chart_generator生成价格K线图（30天数据）
 - **AND** X轴为日期，Y轴为价格
 - **AND** 包含成交量柱状图（副图）
 - **AND** 转换为PNG格式并Base64编码
@@ -100,20 +131,26 @@ TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose 
 
 #### Scenario: 生成情绪分布饼图
 - **WHEN** 生成社媒情绪章节
-- **THEN** 使用matplotlib生成饼图（正面/中性/负面占比）
+- **THEN** 使用chart_generator生成饼图（正面/中性/负面占比）
 - **AND** 使用颜色：绿色（正面）、灰色（中性）、红色（负面）
 - **AND** 显示百分比标签
 - **AND** 转换为Base64编码嵌入
 
 #### Scenario: 生成TVL趋势图
 - **WHEN** 生成基本面分析章节
-- **THEN** 使用matplotlib生成折线图（30天TVL趋势）
+- **THEN** 使用chart_generator生成折线图（30天TVL趋势）
 - **AND** X轴为日期，Y轴为TVL（单位：亿美元）
 - **AND** 标注关键事件点（如TVL峰值）
 - **AND** 转换为Base64编码嵌入
 
+#### Scenario: 图表生成错误处理
+- **WHEN** chart_generator调用失败（如数据缺失、matplotlib错误）
+- **THEN** 捕获异常并记录错误日志
+- **AND** 跳过该图表（不在报告中显示）
+- **AND** 继续生成报告其他部分（不中断整体流程）
+
 ### Requirement: PDF导出功能
-系统**SHALL**支持将Markdown报告导出为专业PDF文档。
+系统**SHALL**支持将Markdown报告导出为专业PDF文档，包含中文字体支持和图表嵌入。
 
 #### Scenario: PDF导出成功
 - **WHEN** 用户点击"导出PDF"按钮
@@ -129,15 +166,39 @@ TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose 
 #### Scenario: PDF样式优化
 - **WHEN** 生成PDF
 - **THEN** 应用以下样式：
-  - 字体：中文使用思源黑体，英文使用Roboto
+  - 字体：中文使用思源黑体或Noto Sans CJK，英文使用Roboto
   - 页边距：上下2cm，左右2.5cm
   - 标题1：24pt加粗，颜色#1a1a1a
   - 标题2：18pt加粗，颜色#333333
   - 正文：12pt，行高1.6，颜色#333333
-  - 表格：边框1px solid #ddd，斑马条纹背景
+  - 表格：边框1px solid #ddd，斑马纹背景
   - 图表：居中显示，最大宽度100%
 - **AND** 长表格自动分页（不截断）
 - **AND** 代码块保留等宽字体
+
+#### Scenario: PDF包含中文字体
+- **WHEN** 导出包含中文的报告
+- **THEN** 在CSS中配置中文字体回退链：
+  ```css
+  font-family: "Noto Sans CJK SC", "Source Han Sans CN", "Microsoft YaHei", sans-serif;
+  ```
+- **AND** 确认生产环境（Render.com）已安装中文字体
+- **AND** PDF正确渲染所有中文字符（无方框或乱码）
+- **AND** 字体回退顺序优先使用高质量开源字体
+
+#### Scenario: PDF包含图表
+- **WHEN** 导出包含图表的报告
+- **THEN** 图表作为Base64编码的PNG图像嵌入PDF
+- **AND** 图表保持原始尺寸和清晰度
+- **AND** 图表居中显示并保持纵横比
+- **AND** 图表不被页面边界截断（必要时自动缩放）
+
+#### Scenario: PDF导出超时控制
+- **WHEN** PDF生成过程耗时较长（如包含大量图表）
+- **THEN** 设置最大生成时间为30秒
+- **AND** 超时后中断生成并返回错误
+- **AND** 错误消息："PDF生成超时，请稍后重试"
+- **AND** 释放WeasyPrint占用的资源
 
 #### Scenario: PDF导出失败处理
 - **WHEN** PDF生成过程中出现错误（如内存不足、字体缺失）
