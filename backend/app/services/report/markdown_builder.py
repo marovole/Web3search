@@ -1,16 +1,14 @@
 """
-Markdown 报告构建器 [已弃用]
-基于 10 个分析器输出生成完整的 Markdown 格式报告
+Markdown 报告构建器 [增强版]
+基于分析器输出生成完整的 Markdown 格式报告
 
-⚠️ 弃用说明：
-本模块已被 ReportGenerator（报告/report_generator.py）替代。
-ReportGenerator 提供了更简洁和强大的报告生成功能，包括：
-- 表格和图表的自动集成（table_generator, chart_generator）
-- 质量验证集成（quality_validator）
-- 完整的错误处理和日志记录
+✨ 新增功能：
+- 自动目录生成（Table of Contents）
+- 锚点链接支持（章节跳转）
+- 报告格式优化
+- 完整的章节结构管理
 
-本文件仅作为参考实现保留。不建议在新代码中使用此模块。
-请使用 ReportGenerator.generate_markdown() 方法替代。
+本模块提供高级Markdown构建功能，可与ReportGenerator配合使用。
 """
 from typing import Dict, Any, Optional
 from datetime import datetime
@@ -29,91 +27,649 @@ from app.schemas.research import (
 )
 
 
+import re
+from typing import Dict, Any, Optional, List, Tuple
+from datetime import datetime
+
+from app.schemas.research import (
+    FullReportSchema,
+    TLDRSchema,
+    TimeframeSchema,
+    SentimentSchema,
+    TechnicalSchema,
+    OnchainSchema,
+    CompetitorSchema,
+    TokenomicsSchema,
+    RiskSchema,
+    ConclusionSchema,
+)
+
+
 class MarkdownBuilder:
     """
-    Markdown 报告构建器
-    将 10 个分析器的输出格式化为专业的 Markdown 报告
+    Markdown 报告构建器 [增强版]
+    将分析器的输出格式化为专业的 Markdown 报告
+
+    新增功能：
+    - 自动目录生成
+    - 锚点链接支持
+    - 章节结构管理
+    - 格式优化
     """
 
     def __init__(self):
         """初始化 Markdown 构建器"""
-        pass
+        self.sections = []  # 存储章节信息
+        self.toc_enabled = True  # 是否启用目录生成
+        self.anchors_enabled = True  # 是否启用锚点链接
+        self.formatting_enabled = True  # 是否启用格式优化
+        self.compact_mode = False  # 是否启用紧凑模式
 
-    def build_report(self, analyses: Dict[str, Any]) -> str:
+    def generate_anchor_id(self, title: str) -> str:
         """
-        构建完整的 Markdown 报告
+        生成锚点ID
+
+        Args:
+            title: 章节标题
+
+        Returns:
+            str: 锚点ID
+        """
+        # 移除特殊字符，保留中英文、数字和连字符
+        anchor = re.sub(r'[^\w\u4e00-\u9fff\s-]', '', title)
+        # 替换空格为连字符
+        anchor = re.sub(r'\s+', '-', anchor.strip())
+        # 转换为小写
+        return anchor.lower()
+
+    def add_section(self, level: int, title: str, content: str = "", anchor_id: str = None) -> str:
+        """
+        添加章节并返回格式化的Markdown
+
+        Args:
+            level: 章节级别（1-6）
+            title: 章节标题
+            content: 章节内容
+            anchor_id: 自定义锚点ID（可选）
+
+        Returns:
+            str: 格式化的Markdown章节
+        """
+        if not anchor_id:
+            anchor_id = self.generate_anchor_id(title)
+
+        # 记录章节信息
+        section_info = {
+            'level': level,
+            'title': title,
+            'anchor_id': anchor_id,
+            'content_length': len(content)
+        }
+        self.sections.append(section_info)
+
+        # 生成章节标题
+        prefix = '#' * level
+        if self.anchors_enabled and level <= 3:  # 只为1-3级标题添加锚点
+            header = f"{prefix} {title} <a id=\"{anchor_id}\"></a>\n\n"
+        else:
+            header = f"{prefix} {title}\n\n"
+
+        return header + content
+
+    def generate_table_of_contents(self, max_level: int = 3) -> str:
+        """
+        生成目录
+
+        Args:
+            max_level: 目录的最大层级
+
+        Returns:
+            str: Markdown格式的目录
+        """
+        if not self.toc_enabled or not self.sections:
+            return ""
+
+        toc_parts = ["## 📋 目录\n\n"]
+
+        for section in self.sections:
+            if section['level'] <= max_level:
+                # 计算缩进
+                indent = "  " * (section['level'] - 1)
+                # 生成目录项
+                if self.anchors_enabled:
+                    toc_item = f"{indent}- [{section['title']}](#{section['anchor_id']})\n"
+                else:
+                    toc_item = f"{indent}- {section['title']}\n"
+                toc_parts.append(toc_item)
+
+        # 添加快速导航链接
+        if self.anchors_enabled:
+            toc_parts.append("\n### 🔗 快速导航\n\n")
+            toc_parts.append("- [返回顶部 ⬆️](#report-header)\n")
+            toc_parts.append("- [查看报告概览 📊](#报告概览)\n")
+
+        toc_parts.append("\n---\n\n")
+        return "".join(toc_parts)
+
+    def add_back_to_top_link(self, section_title: str = None) -> str:
+        """
+        添加返回顶部链接
+
+        Args:
+            section_title: 章节标题（可选）
+
+        Returns:
+            str: 返回顶部的Markdown链接
+        """
+        if not self.anchors_enabled:
+            return ""
+
+        if section_title:
+            return f"\n\n---\n\n*返回顶部: [⬆️ 回到目录](#目录) | [🏠 回到报告标题](#report-header)*\n\n"
+        else:
+            return f"\n\n---\n\n*返回顶部: [⬆️ 回到目录](#目录) | [🏠 回到报告标题](#report-header)*\n\n"
+
+    def generate_navigation_footer(self) -> str:
+        """
+        生成导航页脚
+
+        Returns:
+            str: 导航页脚的Markdown
+        """
+        if not self.anchors_enabled or not self.sections:
+            return ""
+
+        footer_parts = ["\n\n---\n\n## 🔗 报告导航\n\n"]
+
+        # 主要章节快速导航
+        main_sections = [s for s in self.sections if s['level'] <= 2]
+        if main_sections:
+            footer_parts.append("### 主要章节\n\n")
+            for section in main_sections[:10]:  # 限制显示数量
+                footer_parts.append(f"- [{section['title']}](#{section['anchor_id']})\n")
+
+        # 实用链接
+        footer_parts.append("\n### 实用链接\n\n")
+        footer_parts.append("- [📋 返回目录](#目录)\n")
+        footer_parts.append("- [🏠 回到顶部](#report-header)\n")
+
+        footer_parts.append("\n---\n")
+        return "".join(footer_parts)
+
+    def format_section_separator(self, level: int = 1) -> str:
+        """
+        生成章节分隔符
+
+        Args:
+            level: 分隔符级别
+
+        Returns:
+            str: 格式化的分隔符
+        """
+        if not self.formatting_enabled:
+            return "\n---\n\n"
+
+        if level == 1:
+            return "\n---\n\n"
+        elif level == 2:
+            return "\n---\n\n"
+        else:
+            return "\n---\n\n"
+
+    def format_emphasis_text(self, text: str, style: str = "bold") -> str:
+        """
+        格式化强调文本
+
+        Args:
+            text: 文本内容
+            style: 样式类型 (bold, italic, highlight, code)
+
+        Returns:
+            str: 格式化的文本
+        """
+        if not self.formatting_enabled:
+            return text
+
+        if style == "bold":
+            return f"**{text}**"
+        elif style == "italic":
+            return f"*{text}*"
+        elif style == "highlight":
+            return f"**_{text}_**"
+        elif style == "code":
+            return f"`{text}`"
+        else:
+            return text
+
+    def format_list_item(self, item: str, level: int = 0, emoji: str = None) -> str:
+        """
+        格式化列表项
+
+        Args:
+            item: 列表项内容
+            level: 缩进级别
+            emoji: 表情符号（可选）
+
+        Returns:
+            str: 格式化的列表项
+        """
+        if not self.formatting_enabled:
+            return f"{'  ' * level}- {item}\n"
+
+        indent = "  " * level
+        if emoji:
+            return f"{indent}- {emoji} {item}\n"
+        else:
+            return f"{indent}- {item}\n"
+
+    def format_callout(self, content: str, type: str = "info") -> str:
+        """
+        格式化提示框
+
+        Args:
+            content: 提示内容
+            type: 提示类型 (info, warning, success, error)
+
+        Returns:
+            str: 格式化的提示框
+        """
+        if not self.formatting_enabled:
+            return f"{content}\n\n"
+
+        emojis = {
+            "info": "ℹ️",
+            "warning": "⚠️",
+            "success": "✅",
+            "error": "❌",
+            "tip": "💡",
+            "note": "📝"
+        }
+
+        emoji = emojis.get(type, "ℹ️")
+        return f"> {emoji} **{type.title()}**: {content}\n\n"
+
+    def format_key_metrics(self, metrics: Dict[str, Any], title: str = "关键指标") -> str:
+        """
+        格式化关键指标卡片
+
+        Args:
+            metrics: 指标字典
+            title: 卡片标题
+
+        Returns:
+            str: 格式化的指标卡片
+        """
+        if not self.formatting_enabled or not metrics:
+            return ""
+
+        parts = [f"### {title}\n\n"]
+        parts.append("| 指标 | 数值 | 说明 |\n")
+        parts.append("|------|------|------|\n")
+
+        for key, value in metrics.items():
+            if isinstance(value, (int, float)):
+                formatted_value = f"{value:,}" if isinstance(value, int) else f"{value:.2f}"
+            else:
+                formatted_value = str(value)
+
+            parts.append(f"| **{key}** | {formatted_value} | - |\n")
+
+        parts.append("\n")
+        return "".join(parts)
+
+    def create_cross_reference(self, target_section: str, link_text: str = None) -> str:
+        """
+        创建交叉引用链接
+
+        Args:
+            target_section: 目标章节标题
+            link_text: 链接文本（可选）
+
+        Returns:
+            str: 交叉引用链接
+        """
+        if not self.anchors_enabled:
+            return target_section
+
+        # 查找目标章节的锚点ID
+        anchor_id = None
+        for section in self.sections:
+            if section['title'] == target_section:
+                anchor_id = section['anchor_id']
+                break
+
+        if not anchor_id:
+            return target_section
+
+        # 生成锚点ID
+        generated_anchor = self.generate_anchor_id(target_section)
+        link_text = link_text or target_section
+        return f"[{link_text}](#{generated_anchor})"
+
+    def add_related_sections_links(self, current_section: str, related_sections: List[str]) -> str:
+        """
+        添加相关章节链接
+
+        Args:
+            current_section: 当前章节标题
+            related_sections: 相关章节标题列表
+
+        Returns:
+            str: 相关章节链接的Markdown
+        """
+        if not self.anchors_enabled or not related_sections:
+            return ""
+
+        links = []
+        for section_title in related_sections:
+            link = self.create_cross_reference(section_title)
+            links.append(link)
+
+        if links:
+            return f"\n\n### 🔗 相关章节\n\n{', '.join(links)}\n\n"
+        return ""
+
+    def build_report_enhanced(self, analyses: Dict[str, Any], include_toc: bool = True) -> str:
+        """
+        构建增强版 Markdown 报告（支持目录和锚点）
 
         Args:
             analyses: 包含所有分析器输出的字典
-                - symbol: 代币符号
-                - query: 用户查询
-                - timestamp: 生成时间
-                - tldr: TL;DR 分析结果
-                - timeframe: 时间窗分析结果
-                - sentiment: 情绪分析结果
-                - technical: 技术面分析结果
-                - onchain: 链上分析结果
-                - competitor: 竞品分析结果
-                - tokenomics: 代币经济学分析结果
-                - risk: 风险评估结果
-                - conclusion: 结论综合结果
-                - data_sources: 数据来源列表
-                - models_used: 使用的模型字典
-                - generation_time: 生成耗时（秒）
+            include_toc: 是否包含目录
+
+        Returns:
+            str: 完整的增强版 Markdown 报告
+        """
+        # 重置章节列表
+        self.sections = []
+
+        parts = []
+
+        # 1. 报告标题和元信息
+        header_content = self._build_header_enhanced(analyses)
+        parts.append(header_content)
+        parts.append("\n---\n\n")
+
+        # 2. TL;DR
+        tldr_content = self._build_tldr_section_enhanced(analyses.get("tldr"))
+        parts.append(tldr_content)
+        parts.append("\n---\n\n")
+
+        # 3. 时间窗分析
+        timeframe_content = self._build_timeframe_section_enhanced(analyses.get("timeframe"))
+        parts.append(timeframe_content)
+        parts.append("\n---\n\n")
+
+        # 4. 社区情绪分析
+        sentiment_content = self._build_sentiment_section_enhanced(analyses.get("sentiment"))
+        parts.append(sentiment_content)
+        parts.append("\n---\n\n")
+
+        # 5. 技术面分析
+        technical_content = self._build_technical_section_enhanced(analyses.get("technical"))
+        parts.append(technical_content)
+        parts.append("\n---\n\n")
+
+        # 6. 链上数据分析
+        onchain_content = self._build_onchain_section_enhanced(analyses.get("onchain"))
+        parts.append(onchain_content)
+        parts.append("\n---\n\n")
+
+        # 7. 竞品对比分析
+        competitor_content = self._build_competitor_section_enhanced(analyses.get("competitor"))
+        parts.append(competitor_content)
+        parts.append("\n---\n\n")
+
+        # 8. 代币经济学分析
+        tokenomics_content = self._build_tokenomics_section_enhanced(analyses.get("tokenomics"))
+        parts.append(tokenomics_content)
+        parts.append("\n---\n\n")
+
+        # 9. 风险评估
+        risk_content = self._build_risk_section_enhanced(analyses.get("risk"))
+        parts.append(risk_content)
+        parts.append("\n---\n\n")
+
+        # 10. 投资结论
+        conclusion_content = self._build_conclusion_section_enhanced(analyses.get("conclusion"))
+        parts.append(conclusion_content)
+        parts.append("\n---\n\n")
+
+        # 11. 免责声明
+        disclaimer_content = self._build_disclaimer_enhanced()
+        parts.append(disclaimer_content)
+        parts.append("\n---\n\n")
+
+        # 12. 报告元数据
+        metadata_content = self._build_metadata_enhanced(analyses)
+        parts.append(metadata_content)
+
+        # 13. 添加导航页脚
+        if self.anchors_enabled:
+            nav_footer = self.generate_navigation_footer()
+            parts.append(nav_footer)
+
+        # 14. 生成目录（插入在标题之后）
+        if include_toc and self.toc_enabled:
+            toc = self.generate_table_of_contents(max_level=3)
+            # 将目录插入到标题后面
+            header_end_index = parts[0].find("\n---\n\n")
+            if header_end_index != -1:
+                header_with_toc = (
+                    parts[0][:header_end_index] +
+                    "\n" + toc +
+                    parts[0][header_end_index:]
+                )
+                parts[0] = header_with_toc
+
+        return "".join(parts)
+
+    def build_report(self, analyses: Dict[str, Any]) -> str:
+        """
+        构建完整的 Markdown 报告（保持向后兼容）
+
+        Args:
+            analyses: 包含所有分析器输出的字典
 
         Returns:
             str: 完整的 Markdown 报告
         """
+        # 默认使用增强版方法，但不包含目录以保持向后兼容
+        return self.build_report_enhanced(analyses, include_toc=False)
+
+    def _build_header_enhanced(self, analyses: Dict[str, Any]) -> str:
+        """构建报告标题和元信息（增强版，支持锚点和格式优化）"""
+        symbol = analyses.get("symbol", "Unknown")
+        query = analyses.get("query", "")
+        timestamp = analyses.get("timestamp", datetime.utcnow().isoformat())
+
+        # 格式化时间
+        try:
+            dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+            date_str = dt.strftime("%Y年%m月%d日 %H:%M UTC")
+        except:
+            date_str = timestamp
+
+        parts = [f"# {symbol} 深度研究报告\n\n"]
+
+        # 使用格式化方法
+        parts.append(f"**生成时间**: {self.format_emphasis_text(date_str, 'code')}\n")
+        parts.append(f"**用户查询**: {self.format_emphasis_text(query, 'italic')}\n")
+        parts.append(f"**研究机构**: {self.format_emphasis_text('Web3 AI Search Engine', 'bold')}\n")
+        parts.append(f"**报告类型**: {self.format_emphasis_text('多维度深度研究报告', 'highlight')}\n")
+
+        parts.append(self.format_section_separator())
+
+        # 报告概览
+        parts.append("## 📊 报告概览\n\n")
+
+        if self.formatting_enabled:
+            parts.append(self.format_callout(
+                f"本报告通过AI驱动的多维度分析引擎，为 {self.format_emphasis_text(symbol, 'bold')} 提供全面的投资研究分析。",
+                "info"
+            ))
+
+        parts.append("### 🎯 核心分析维度\n\n")
+
+        # 使用格式化列表项
+        dimensions = [
+            ("TL;DR", "核心投资论点摘要", "📌"),
+            ("时间窗分析", "短期、中期、长期趋势分析", "⏰"),
+            ("社区情绪", "社交媒体情绪和讨论热度", "💭"),
+            ("技术面分析", "价格指标、技术指标、关键价位", "📈"),
+            ("链上数据", "持币分布、链上活动、巨鲸动向", "🔗"),
+            ("竞品对比", "市场地位、竞争优势、估值分析", "🏆"),
+            ("代币经济学", "供应结构、解锁时间表、价值捕获", "💰"),
+            ("风险评估", "风险因素、催化剂、情景分析", "⚠️"),
+            ("投资结论", "综合评估、投资建议、关键指标", "🎯")
+        ]
+
+        for name, desc, emoji in dimensions:
+            parts.append(self.format_list_item(f"**{name}**: {desc}", 0, emoji))
+
+        parts.append("\n")
+
+        # 添加阅读提示
+        if self.formatting_enabled:
+            parts.append(self.format_callout(
+                "💡 **阅读提示**: 点击目录中的章节可以快速跳转到对应内容，使用文末的导航链接可以方便地返回顶部。",
+                "tip"
+            ))
+
+        header_content = "".join(parts)
+        return self.add_section(1, f"{symbol} 深度研究报告", header_content, "report-header")
+
+    def _build_tldr_section_enhanced(self, tldr: Optional[Dict]) -> str:
+        """构建 TL;DR 章节（增强版，支持锚点）"""
+        if not tldr or tldr.get("error"):
+            content = "⚠️ TL;DR 分析暂时不可用"
+            return self.add_section(2, "📌 TL;DR", content, "tldr-section")
+
         parts = []
 
-        # 1. 报告标题和元信息
-        parts.append(self._build_header(analyses))
-        parts.append("\n---\n\n")
+        # 一句话总结
+        if "one_sentence" in tldr:
+            parts.append(f"### 核心论点\n\n**{tldr['one_sentence']}**\n\n")
 
-        # 2. TL;DR
-        parts.append(self._build_tldr_section(analyses.get("tldr")))
-        parts.append("\n---\n\n")
+        # 看涨理由
+        if "bull_case" in tldr and tldr["bull_case"]:
+            parts.append("### 🐂 看涨理由\n\n")
+            for i, reason in enumerate(tldr["bull_case"], 1):
+                parts.append(f"{i}. {reason}\n")
+            parts.append("\n")
 
-        # 3. 时间窗分析
-        parts.append(self._build_timeframe_section(analyses.get("timeframe")))
-        parts.append("\n---\n\n")
+        # 看跌理由
+        if "bear_case" in tldr and tldr["bear_case"]:
+            parts.append("### 🐻 看跌理由\n\n")
+            for i, reason in enumerate(tldr["bear_case"], 1):
+                parts.append(f"{i}. {reason}\n")
+            parts.append("\n")
 
-        # 4. 社区情绪分析
-        parts.append(self._build_sentiment_section(analyses.get("sentiment")))
-        parts.append("\n---\n\n")
+        # 关键催化剂
+        if "key_catalysts" in tldr and tldr["key_catalysts"]:
+            parts.append("### ⚡ 关键催化剂\n\n")
+            for catalyst in tldr["key_catalysts"]:
+                parts.append(f"- {catalyst}\n")
+            parts.append("\n")
 
-        # 5. 技术面分析
-        parts.append(self._build_technical_section(analyses.get("technical")))
-        parts.append("\n---\n\n")
+        # 风险等级和投资期限
+        if "risk_level" in tldr or "investment_horizon" in tldr:
+            parts.append("### 📊 投资参数\n\n")
+            if "risk_level" in tldr:
+                parts.append(f"- **风险等级**: {tldr['risk_level']}\n")
+            if "investment_horizon" in tldr:
+                parts.append(f"- **建议投资期限**: {tldr['investment_horizon']}\n")
+            parts.append("\n")
 
-        # 6. 链上数据分析
-        parts.append(self._build_onchain_section(analyses.get("onchain")))
-        parts.append("\n---\n\n")
+        # 综合摘要
+        if "summary" in tldr:
+            parts.append(f"### 综合评估\n\n{tldr['summary']}\n\n")
 
-        # 7. 竞品对比分析
-        parts.append(self._build_competitor_section(analyses.get("competitor")))
-        parts.append("\n---\n\n")
+        content = "".join(parts)
+        return self.add_section(2, "📌 TL;DR", content, "tldr-section")
 
-        # 8. 代币经济学分析
-        parts.append(self._build_tokenomics_section(analyses.get("tokenomics")))
-        parts.append("\n---\n\n")
+    def _build_timeframe_section_enhanced(self, timeframe: Optional[Dict]) -> str:
+        """构建时间窗分析章节（增强版）"""
+        if not timeframe or timeframe.get("error"):
+            content = "⚠️ 时间窗分析暂时不可用"
+            return self.add_section(2, "⏰ 时间窗分析", content, "timeframe-section")
 
-        # 9. 风险评估
-        parts.append(self._build_risk_section(analyses.get("risk")))
-        parts.append("\n---\n\n")
+        # 使用原有的逻辑构建内容
+        content = self._build_timeframe_section(timeframe).replace("## ⏰ 时间窗分析\n\n", "")
+        return self.add_section(2, "⏰ 时间窗分析", content, "timeframe-section")
 
-        # 10. 投资结论
-        parts.append(self._build_conclusion_section(analyses.get("conclusion")))
-        parts.append("\n---\n\n")
+    def _build_sentiment_section_enhanced(self, sentiment: Optional[Dict]) -> str:
+        """构建情绪分析章节（增强版）"""
+        if not sentiment or sentiment.get("error"):
+            content = "⚠️ 情绪分析暂时不可用"
+            return self.add_section(2, "💭 社区情绪分析", content, "sentiment-section")
 
-        # 11. 免责声明
-        parts.append(self._build_disclaimer())
-        parts.append("\n---\n\n")
+        content = self._build_sentiment_section(sentiment).replace("## 💭 社区情绪分析\n\n", "")
+        return self.add_section(2, "💭 社区情绪分析", content, "sentiment-section")
 
-        # 12. 报告元数据
-        parts.append(self._build_metadata(analyses))
+    def _build_technical_section_enhanced(self, technical: Optional[Dict]) -> str:
+        """构建技术面分析章节（增强版）"""
+        if not technical or technical.get("error"):
+            content = "⚠️ 技术面分析暂时不可用"
+            return self.add_section(2, "📈 技术面分析", content, "technical-section")
 
-        return "".join(parts)
+        content = self._build_technical_section(technical).replace("## 📈 技术面分析\n\n", "")
+        return self.add_section(2, "📈 技术面分析", content, "technical-section")
+
+    def _build_onchain_section_enhanced(self, onchain: Optional[Dict]) -> str:
+        """构建链上分析章节（增强版）"""
+        if not onchain or onchain.get("error"):
+            content = "⚠️ 链上分析暂时不可用"
+            return self.add_section(2, "🔗 链上数据分析", content, "onchain-section")
+
+        content = self._build_onchain_section(onchain).replace("## 🔗 链上数据分析\n\n", "")
+        return self.add_section(2, "🔗 链上数据分析", content, "onchain-section")
+
+    def _build_competitor_section_enhanced(self, competitor: Optional[Dict]) -> str:
+        """构建竞品分析章节（增强版）"""
+        if not competitor or competitor.get("error"):
+            content = "⚠️ 竞品分析暂时不可用"
+            return self.add_section(2, "🏆 竞品对比分析", content, "competitor-section")
+
+        content = self._build_competitor_section(competitor).replace("## 🏆 竞品对比分析\n\n", "")
+        return self.add_section(2, "🏆 竞品对比分析", content, "competitor-section")
+
+    def _build_tokenomics_section_enhanced(self, tokenomics: Optional[Dict]) -> str:
+        """构建代币经济学章节（增强版）"""
+        if not tokenomics or tokenomics.get("error"):
+            content = "⚠️ 代币经济学分析暂时不可用"
+            return self.add_section(2, "💰 代币经济学分析", content, "tokenomics-section")
+
+        content = self._build_tokenomics_section(tokenomics).replace("## 💰 代币经济学分析\n\n", "")
+        return self.add_section(2, "💰 代币经济学分析", content, "tokenomics-section")
+
+    def _build_risk_section_enhanced(self, risk: Optional[Dict]) -> str:
+        """构建风险评估章节（增强版）"""
+        if not risk or risk.get("error"):
+            content = "⚠️ 风险评估暂时不可用"
+            return self.add_section(2, "⚠️ 风险评估", content, "risk-section")
+
+        content = self._build_risk_section(risk).replace("## ⚠️ 风险评估\n\n", "")
+        return self.add_section(2, "⚠️ 风险评估", content, "risk-section")
+
+    def _build_conclusion_section_enhanced(self, conclusion: Optional[Dict]) -> str:
+        """构建投资结论章节（增强版）"""
+        if not conclusion or conclusion.get("error"):
+            content = "⚠️ 投资结论暂时不可用"
+            return self.add_section(2, "🎯 投资结论", content, "conclusion-section")
+
+        content = self._build_conclusion_section(conclusion).replace("## 🎯 投资结论\n\n", "")
+        return self.add_section(2, "🎯 投资结论", content, "conclusion-section")
+
+    def _build_disclaimer_enhanced(self) -> str:
+        """构建免责声明（增强版）"""
+        content = self._build_disclaimer().replace("## ⚠️ 免责声明\n\n", "")
+        return self.add_section(2, "⚠️ 免责声明", content, "disclaimer-section")
+
+    def _build_metadata_enhanced(self, analyses: Dict[str, Any]) -> str:
+        """构建报告元数据（增强版）"""
+        content = self._build_metadata(analyses).replace("## 📊 报告元数据\n\n", "")
+        return self.add_section(2, "📊 报告元数据", content, "metadata-section")
 
     def _build_header(self, analyses: Dict[str, Any]) -> str:
         """构建报告标题和元信息"""

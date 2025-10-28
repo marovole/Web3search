@@ -4,7 +4,7 @@
 """
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Text, Integer, DateTime, JSON, Index, Enum as SQLEnum
+from sqlalchemy import String, Text, Integer, DateTime, JSON, Index, Enum as SQLEnum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 
@@ -36,8 +36,16 @@ class Report(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
     # 外键
-    project_id: Mapped[Optional[int]] = mapped_column(Integer, index=True)
-    conversation_id: Mapped[Optional[int]] = mapped_column(Integer, index=True)
+    project_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        index=True,
+        nullable=True
+    )
+    conversation_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        index=True,
+        nullable=True
+    )
 
     # 报告元数据
     report_type: Mapped[ReportType] = mapped_column(
@@ -180,3 +188,33 @@ class Report(Base):
     def disable_sharing(self):
         """禁用分享"""
         self.share_enabled = False
+
+    @classmethod
+    def find_by_symbol(cls, symbol: str, db_session):
+        """根据代币符号查找最新报告"""
+        from sqlalchemy import select, desc
+        stmt = select(cls).where(
+            cls.symbol == symbol.upper(),
+            cls.status == ReportStatus.COMPLETED
+        ).order_by(desc(cls.created_at)).limit(1)
+        return db_session.execute(stmt).scalar_one_or_none()
+
+    @classmethod
+    def find_by_share_token(cls, token: str, db_session):
+        """根据分享令牌查找报告"""
+        from sqlalchemy import select
+        stmt = select(cls).where(cls.share_token == token)
+        return db_session.execute(stmt).scalar_one_or_none()
+
+    def get_related_reports(self, db_session, limit: int = 5):
+        """获取相关报告（同币种的其他报告）"""
+        if not self.symbol:
+            return []
+
+        from sqlalchemy import select, desc
+        stmt = select(cls).where(
+            cls.symbol == self.symbol,
+            cls.id != self.id,
+            cls.status == ReportStatus.COMPLETED
+        ).order_by(desc(cls.created_at)).limit(limit)
+        return db_session.execute(stmt).scalars().all()

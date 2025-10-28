@@ -4,7 +4,7 @@
 """
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Text, Integer, DateTime, Boolean, Index, Enum as SQLEnum
+from sqlalchemy import String, Text, Integer, DateTime, Boolean, Index, Enum as SQLEnum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 
@@ -106,7 +106,11 @@ class Message(Base):
     generation_time: Mapped[Optional[float]] = mapped_column(Text)  # 生成时间（秒）
 
     # 相关报告
-    report_id: Mapped[Optional[int]] = mapped_column(Integer, index=True)
+    report_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("reports.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True
+    )
 
     # 消息状态
     is_streaming: Mapped[bool] = mapped_column(Boolean, default=False)  # 是否流式生成
@@ -117,6 +121,7 @@ class Message(Base):
 
     # 关系
     conversation: Mapped["Conversation"] = relationship("Conversation", back_populates="messages")
+    report: Mapped[Optional["Report"]] = relationship("Report", backref="messages")
 
     # 索引
     __table_args__ = (

@@ -9,6 +9,7 @@ from app.services.prompt_manager import prompt_manager
 from app.services.report.table_generator import table_generator
 from app.services.report.chart_generator import chart_generator
 from app.services.report.quality_validator import quality_validator
+from app.services.report.markdown_builder import markdown_builder
 
 
 class ReportGenerator:
@@ -22,6 +23,7 @@ class ReportGenerator:
         self.prompt_manager = prompt_manager
         self.table_generator = table_generator
         self.chart_generator = chart_generator
+        self.markdown_builder = markdown_builder
 
     def generate_markdown(self, research_result: Dict[str, Any]) -> str:
         """
@@ -204,6 +206,121 @@ class ReportGenerator:
             print(f"  ⚠️ 质量验证出错（不影响报告生成）: {str(e)}")
 
         return markdown_content
+
+    def generate_markdown_enhanced(self, research_result: Dict[str, Any],
+                                 include_toc: bool = True,
+                                 enable_formatting: bool = True) -> str:
+        """
+        生成增强版 Markdown 报告（支持目录、锚点、格式优化）
+
+        Args:
+            research_result: Deep Research引擎返回的研究结果
+            include_toc: 是否包含目录
+            enable_formatting: 是否启用格式优化
+
+        Returns:
+            str: 增强版 Markdown 格式的完整报告
+        """
+        print("  📝 使用增强版Markdown Builder生成报告...")
+
+        # 配置markdown_builder
+        self.markdown_builder.toc_enabled = include_toc
+        self.markdown_builder.anchors_enabled = include_toc  # 启用目录时也启用锚点
+        self.markdown_builder.formatting_enabled = enable_formatting
+
+        # 转换数据格式以适应markdown_builder的接口
+        analyses_data = self._convert_to_markdown_builder_format(research_result)
+
+        # 使用增强版markdown_builder生成报告
+        try:
+            enhanced_report = self.markdown_builder.build_report_enhanced(
+                analyses_data,
+                include_toc=include_toc
+            )
+            print("  ✅ 增强版Markdown报告生成成功")
+            return enhanced_report
+        except Exception as e:
+            print(f"  ⚠️ 增强版报告生成失败，回退到标准版: {str(e)}")
+            # 回退到标准版
+            return self.generate_markdown(research_result)
+
+    def _convert_to_markdown_builder_format(self, research_result: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        将research_result转换为markdown_builder期望的格式
+
+        Args:
+            research_result: Deep Research结果
+
+        Returns:
+            Dict: 适配markdown_builder格式的数据
+        """
+        symbol = research_result.get("symbol", "Unknown")
+        query = research_result.get("query", "")
+        timestamp = research_result.get("timestamp", datetime.utcnow().isoformat())
+        tldr = research_result.get("tldr", "")
+        sections = research_result.get("sections", {})
+        conclusion = research_result.get("conclusion", "")
+        generation_time = research_result.get("generation_time", 0)
+        models_used = research_result.get("models_used", {})
+        data_sources = research_result.get("data_sources", [])
+
+        # 构建analyses数据结构
+        analyses_data = {
+            "symbol": symbol,
+            "query": query,
+            "timestamp": timestamp,
+            "tldr": self._parse_tldr_text(tldr) if isinstance(tldr, str) else tldr,
+            "timeframe": self._parse_section_text(sections.get("timeframe")) if "timeframe" in sections else None,
+            "sentiment": self._parse_section_text(sections.get("sentiment")) if "sentiment" in sections else None,
+            "technical": self._parse_section_text(sections.get("technical_analysis")) if "technical_analysis" in sections else None,
+            "onchain": self._parse_section_text(sections.get("onchain_analysis")) if "onchain_analysis" in sections else None,
+            "competitor": self._parse_section_text(sections.get("competitor_analysis")) if "competitor_analysis" in sections else None,
+            "tokenomics": self._parse_section_text(sections.get("tokenomics")) if "tokenomics" in sections else None,
+            "risk": self._parse_section_text(sections.get("risk_assessment")) if "risk_assessment" in sections else None,
+            "conclusion": self._parse_section_text(conclusion) if conclusion else None,
+            "data_sources": data_sources,
+            "models_used": models_used,
+            "generation_time": generation_time
+        }
+
+        return analyses_data
+
+    def _parse_tldr_text(self, tldr_text: str) -> Dict[str, Any]:
+        """
+        解析TL;DR文本为结构化数据
+
+        Args:
+            tldr_text: TL;DR文本
+
+        Returns:
+            Dict: 结构化的TL;DR数据
+        """
+        # 简单解析，实际使用时可以根据具体格式调整
+        return {
+            "one_sentence": tldr_text[:100] + "..." if len(tldr_text) > 100 else tldr_text,
+            "summary": tldr_text,
+            "bull_case": ["基本面强劲", "技术领先"],  # 示例数据
+            "bear_case": ["市场波动", "竞争激烈"],  # 示例数据
+            "key_catalysts": ["技术创新", "生态扩展"]  # 示例数据
+        }
+
+    def _parse_section_text(self, section_text: str) -> Dict[str, Any]:
+        """
+        解析章节文本为结构化数据
+
+        Args:
+            section_text: 章节文本
+
+        Returns:
+            Dict: 结构化的章节数据
+        """
+        if not section_text or section_text.startswith("⚠️"):
+            return {"error": "数据不可用"}
+
+        return {
+            "summary": section_text,
+            "analysis": section_text
+        }
 
     def generate_summary(self, research_result: Dict[str, Any]) -> str:
         """

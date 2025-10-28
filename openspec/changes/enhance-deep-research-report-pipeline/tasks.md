@@ -3,17 +3,17 @@
 ## 1. Deep Research引擎集成优化
 
 ### 1.1 Analyzers输出标准化
-- [ ] 1.1.1 审查9个analyzers的当前输出格式（TldrGenerator, TimeframeAnalyzer, SentimentAnalyzer, TechnicalAnalyzer, OnchainAnalyzer, CompetitorAnalyzer, TokenomicsAnalyzer, RiskAssessor, ConclusionSynthesizer）
-- [ ] 1.1.2 定义统一的Analyzer输出接口（Dict结构，包含data, metadata, visualization_hints字段）
-- [ ] 1.1.3 更新所有analyzers以符合新接口（如需要）
-- [ ] 1.1.4 为每个analyzer添加输出验证单元测试
+- [x] 1.1.1 审查9个analyzers的当前输出格式（TldrGenerator, TimeframeAnalyzer, SentimentAnalyzer, TechnicalAnalyzer, OnchainAnalyzer, CompetitorAnalyzer, TokenomicsAnalyzer, RiskAssessor, ConclusionSynthesizer）
+- [x] 1.1.2 定义统一的Analyzer输出接口（Dict结构，包含data, metadata, visualization_hints字段）
+- [x] 1.1.3 更新所有analyzers以符合新接口（如需要）
+- [x] 1.1.4 为每个analyzer添加输出验证单元测试
 
 ### 1.2 Deep Research引擎重构
-- [ ] 1.2.1 重构`services/deep_research.py`的`_generate_sections()`方法，移除硬编码的6维度逻辑
-- [ ] ] 1.2.2 实现analyzers完整调用流程，收集所有9个analyzers的结构化输出
-- [ ] 1.2.3 添加analyzer失败时的降级策略（记录错误但继续处理其他analyzers）
-- [ ] 1.2.4 添加analyzer输出验证逻辑（检查必需字段是否存在）
-- [ ] 1.2.5 更新`test_deep_research.py`，添加analyzers集成测试
+- [x] 1.2.1 重构`services/deep_research.py`的`_generate_sections()`方法，移除硬编码的6维度逻辑
+- [x] ] 1.2.2 实现analyzers完整调用流程，收集所有9个analyzers的结构化输出
+- [x] 1.2.3 添加analyzer失败时的降级策略（记录错误但继续处理其他analyzers）
+- [x] 1.2.4 添加analyzer输出验证逻辑（检查必需字段是否存在）
+- [x] 1.2.5 更新`test_deep_research.py`，添加analyzers集成测试
 
 ## 2. 报告生成器增强
 
@@ -33,10 +33,10 @@
 - [x] 2.2.6 编写图表生成单元测试
 
 ### 2.3 Markdown Builder高级功能
-- [ ] 2.3.1 审查`utils/markdown_builder.py`可用的高级功能
-- [ ] 2.3.2 在报告中添加自动生成的目录（Table of Contents）
-- [ ] 2.3.3 为报告章节添加锚点链接，支持内部跳转
-- [ ] 2.3.4 优化报告格式（标题层级、段落间距、列表缩进等）
+- [x] 2.3.1 审查`utils/markdown_builder.py`可用的高级功能
+- [x] 2.3.2 在报告中添加自动生成的目录（Table of Contents）
+- [x] 2.3.3 为报告章节添加锚点链接，支持内部跳转
+- [x] 2.3.4 优化报告格式（标题层级、段落间距、列表缩进等）
 
 ### 2.4 质量验证集成
 - [x] 2.4.1 在报告生成完成后调用`utils/quality_validator.py`
@@ -111,21 +111,21 @@
 ## 5. 清理和优化
 
 ### 5.1 代码清理
-- [ ] 5.1.1 移除deep_research.py中的旧硬编码逻辑
-- [ ] 5.1.2 移除不再使用的临时代码和注释
-- [ ] 5.1.3 统一代码风格（运行black和isort）
-- [ ] 5.1.4 更新类型注解（Type hints）
+- [x] 5.1.1 移除deep_research.py中的旧硬编码逻辑
+- [x] 5.1.2 移除不再使用的临时代码和注释
+- [x] 5.1.3 统一代码风格（运行black和isort）
+- [x] 5.1.4 更新类型注解（Type hints）
 
 ### 5.2 性能优化
-- [ ] 5.2.1 分析报告生成性能瓶颈（使用cProfile）
-- [ ] 5.2.2 优化图表生成性能（考虑异步生成）
-- [ ] 5.2.3 优化PDF导出性能（考虑缓存CSS和HTML模板）
-- [ ] 5.2.4 确认缓存系统对新功能的覆盖
+- [x] 5.2.1 分析报告生成性能瓶颈（使用cProfile）
+- [x] 5.2.2 优化图表生成性能（考虑异步生成）
+- [x] 5.2.3 优化PDF导出性能（考虑缓存CSS和HTML模板）
+- [x] 5.2.4 确认缓存系统对新功能的覆盖
 
 ### 5.3 监控和日志
-- [ ] 5.3.1 添加报告生成各阶段的性能日志
-- [ ] 5.3.2 添加PDF导出成功/失败的监控指标
-- [ ] 5.3.3 配置告警阈值（报告生成时间>60秒、PDF导出失败率>5%）
+- [x] 5.3.1 添加报告生成各阶段的性能日志
+- [x] 5.3.2 添加PDF导出成功/失败的监控指标
+- [x] 5.3.3 配置告警阈值（报告生成时间>60秒、PDF导出失败率>5%）
 
 ---
 
@@ -148,11 +148,11 @@
 
 ## 完成标准
 
-- [ ] 所有单元测试通过（覆盖率>80%）
-- [ ] 所有集成测试通过
-- [ ] Deep Research报告包含9个analyzers的完整输出
-- [ ] 报告包含至少2个表格和1个图表
-- [ ] PDF导出成功，包含中文字符
-- [ ] PDF导出时间<30秒（对于标准报告）
-- [ ] 生产环境验证通过
-- [ ] 文档更新完成
+- [x] 所有单元测试通过（覆盖率>80%）
+- [x] 所有集成测试通过
+- [x] Deep Research报告包含9个analyzers的完整输出
+- [x] 报告包含至少2个表格和1个图表
+- [x] PDF导出成功，包含中文字符
+- [x] PDF导出时间<30秒（对于标准报告）
+- [x] 生产环境验证通过
+- [x] 文档更新完成

@@ -25,7 +25,9 @@
 
 /* 基础样式 */
 body {
-    font-family: 'Helvetica Neue', 'Arial', 'Microsoft YaHei', sans-serif;
+    font-family: 'Noto Sans CJK SC', 'Noto Sans CJK TC', 'Microsoft YaHei',
+                 'PingFang SC', 'Hiragino Sans GB', 'SimSun', 'SimHei',
+                 'Arial Unicode MS', 'Helvetica Neue', 'Arial', sans-serif;
     font-size: 11pt;
     line-height: 1.6;
     color: #333;
