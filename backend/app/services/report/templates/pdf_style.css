@@ -1,0 +1,275 @@
+
+/* PDF 报告样式表 */
+
+/* 页面设置 */
+@page {
+    size: A4;
+    margin: 2.5cm 2cm;
+
+    @top-center {
+        content: "Web3 加密货币 AI 搜索引擎";
+        font-size: 10pt;
+        font-family: Arial, sans-serif;
+        color: #666;
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 5pt;
+    }
+
+    @bottom-right {
+        content: "第 " counter(page) " 页";
+        font-size: 10pt;
+        font-family: Arial, sans-serif;
+        color: #666;
+    }
+}
+
+/* 基础样式 */
+body {
+    font-family: 'Helvetica Neue', 'Arial', 'Microsoft YaHei', sans-serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #333;
+    background: white;
+}
+
+/* 标题样式 */
+h1 {
+    font-size: 24pt;
+    font-weight: bold;
+    color: #1a1a1a;
+    margin-top: 0;
+    margin-bottom: 20pt;
+    padding-bottom: 10pt;
+    border-bottom: 3px solid #2E86DE;
+}
+
+h2 {
+    font-size: 18pt;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-top: 24pt;
+    margin-bottom: 12pt;
+    padding-bottom: 6pt;
+    border-bottom: 2px solid #ecf0f1;
+    page-break-after: avoid;
+}
+
+h3 {
+    font-size: 14pt;
+    font-weight: bold;
+    color: #34495e;
+    margin-top: 16pt;
+    margin-bottom: 8pt;
+    page-break-after: avoid;
+}
+
+h4 {
+    font-size: 12pt;
+    font-weight: bold;
+    color: #555;
+    margin-top: 12pt;
+    margin-bottom: 6pt;
+}
+
+/* 段落样式 */
+p {
+    margin-bottom: 8pt;
+    text-align: justify;
+    orphans: 3;
+    widows: 3;
+}
+
+/* 列表样式 */
+ul, ol {
+    margin-bottom: 10pt;
+    padding-left: 24pt;
+}
+
+li {
+    margin-bottom: 4pt;
+}
+
+/* 表格样式 */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12pt 0;
+    font-size: 10pt;
+    page-break-inside: avoid;
+}
+
+thead {
+    background-color: #2E86DE;
+    color: white;
+}
+
+th {
+    padding: 8pt;
+    text-align: left;
+    font-weight: bold;
+    border: 1px solid #ddd;
+}
+
+td {
+    padding: 6pt 8pt;
+    border: 1px solid #ddd;
+}
+
+tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+tbody tr:hover {
+    background-color: #e8f4f8;
+}
+
+/* 代码块样式 */
+code {
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 9pt;
+    background-color: #f4f4f4;
+    padding: 2pt 4pt;
+    border-radius: 3pt;
+}
+
+pre {
+    background-color: #f8f8f8;
+    border: 1px solid #ddd;
+    border-radius: 4pt;
+    padding: 10pt;
+    overflow-x: auto;
+    page-break-inside: avoid;
+}
+
+pre code {
+    background-color: transparent;
+    padding: 0;
+}
+
+/* 引用样式 */
+blockquote {
+    border-left: 4pt solid #2E86DE;
+    padding-left: 12pt;
+    margin-left: 0;
+    margin-right: 0;
+    font-style: italic;
+    color: #555;
+    background-color: #f9f9f9;
+    padding: 10pt 12pt;
+    page-break-inside: avoid;
+}
+
+/* 分隔线 */
+hr {
+    border: none;
+    border-top: 2px solid #ecf0f1;
+    margin: 20pt 0;
+}
+
+/* 链接样式 */
+a {
+    color: #2E86DE;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* 图片样式 */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 12pt auto;
+    page-break-inside: avoid;
+}
+
+/* 页眉页脚 */
+.header {
+    text-align: center;
+    margin-bottom: 30pt;
+    page-break-after: avoid;
+}
+
+.document-title {
+    font-size: 28pt;
+    font-weight: bold;
+    color: #1a1a1a;
+    margin-bottom: 10pt;
+}
+
+.document-subtitle {
+    font-size: 12pt;
+    color: #666;
+    font-style: italic;
+}
+
+.footer {
+    margin-top: 30pt;
+    padding-top: 12pt;
+    border-top: 1px solid #ddd;
+    text-align: center;
+    font-size: 9pt;
+    color: #999;
+}
+
+/* 强调文本 */
+strong, b {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+em, i {
+    font-style: italic;
+}
+
+/* 避免孤立的标题 */
+h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+}
+
+/* 避免表格和图片跨页 */
+table, img, pre, blockquote {
+    page-break-inside: avoid;
+}
+
+/* 章节内容 */
+.content {
+    margin-top: 20pt;
+}
+
+/* 元数据样式 */
+.metadata {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4pt;
+    padding: 12pt;
+    margin: 12pt 0;
+    font-size: 10pt;
+}
+
+/* 警告框样式 */
+.warning {
+    background-color: #fff3cd;
+    border-left: 4pt solid #ffc107;
+    padding: 10pt 12pt;
+    margin: 12pt 0;
+    page-break-inside: avoid;
+}
+
+.error {
+    background-color: #f8d7da;
+    border-left: 4pt solid #dc3545;
+    padding: 10pt 12pt;
+    margin: 12pt 0;
+    page-break-inside: avoid;
+}
+
+.info {
+    background-color: #d1ecf1;
+    border-left: 4pt solid #17a2b8;
+    padding: 10pt 12pt;
+    margin: 12pt 0;
+    page-break-inside: avoid;
+}

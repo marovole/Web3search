@@ -256,20 +256,82 @@ async def get_l1_cache_keys():
 @router.get("/prewarming/status")
 async def get_prewarming_status():
     """
-    获取缓存预热任务状态
+    获取缓存预热任务状态（Stage 4任务4.4）
 
     返回当前预热队列的状态信息，包括：
     - 队列中的任务数
     - 正在执行的任务
     - 预热统计（成功/失败次数）
+    - 调度器统计（最后更新时间、优先级列表大小）
+    - 热度分数Top 10
+    - 预测的未来热门币种
     """
     try:
+        from app.services.prewarming_scheduler import get_scheduler
+        from app.core.redis_client import redis_client
+
         prewarming_manager = get_prewarming_manager()
-        status_info = prewarming_manager.get_status()
+        scheduler = get_scheduler()
+
+        # 预热管理器状态
+        manager_status = prewarming_manager.get_status()
+
+        # 调度器统计
+        scheduler_stats = scheduler.get_stats()
+
+        # 获取优先级列表大小
+        async with redis_client() as redis:
+            high_priority_size = await redis.llen("prewarming:high_priority")
+            medium_priority_size = await redis.llen("prewarming:medium_priority")
+            low_priority_size = await redis.llen("prewarming:low_priority")
+
+        # 获取热度分数Top 10
+        async with redis_client() as redis:
+            top_coins = await redis.zrevrange(
+                "hotness:scores",
+                0,
+                9,  # Top 10
+                withscores=True
+            )
+
+        # 格式化Top 10
+        hotness_top10 = []
+        for item in top_coins:
+            if isinstance(item, tuple):
+                coin_id, score = item
+            else:
+                # 如果返回格式不同，尝试解析
+                coin_id = item
+                score = 0
+
+            hotness_top10.append({
+                "coin_id": coin_id.decode() if isinstance(coin_id, bytes) else coin_id,
+                "hotness_score": round(float(score), 2)
+            })
+
+        # 获取预测的未来热门币种
+        predictions = await scheduler.predict_hot_coins(limit=10)
+        predicted_coins = [
+            {
+                "coin_id": coin_id,
+                "prediction_score": round(score, 2)
+            }
+            for coin_id, score in predictions
+        ]
 
         return {
             "timestamp": datetime.now().isoformat(),
-            "status": status_info
+            "manager": manager_status,
+            "scheduler": {
+                **scheduler_stats,
+                "priority_list_sizes": {
+                    "high": high_priority_size,
+                    "medium": medium_priority_size,
+                    "low": low_priority_size
+                }
+            },
+            "hotness_top10": hotness_top10,
+            "predicted_hot_coins": predicted_coins
         }
 
     except Exception as e:
@@ -277,4 +339,104 @@ async def get_prewarming_status():
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get prewarming status: {str(e)}"
+        )
+
+
+@router.get("/scheduler/status")
+async def get_scheduler_status():
+    """
+    获取调度器状态（Stage 4任务4.6）
+
+    返回调度器的详细状态信息，包括：
+    - 热度分数排名（Top 20）
+    - 优先级列表统计
+    - 趋势分析结果
+    - 预测结果
+
+    **响应示例：**
+    ```json
+    {
+      "timestamp": "2025-10-28T12:00:00Z",
+      "last_update": "2025-10-28T11:00:00Z",
+      "hotness_rankings": [
+        {"coin_id": "bitcoin", "score": 98.5},
+        {"coin_id": "ethereum", "score": 95.2}
+      ],
+      "priority_lists": {
+        "high": 10,
+        "medium": 100,
+        "low": 50
+      },
+      "predictions": [
+        {"coin_id": "solana", "score": 85.3}
+      ]
+    }
+    ```
+    """
+    try:
+        from app.services.prewarming_scheduler import get_scheduler
+        from app.core.redis_client import redis_client
+
+        scheduler = get_scheduler()
+
+        # 调度器基本统计
+        scheduler_stats = scheduler.get_stats()
+
+        # 获取优先级列表大小
+        async with redis_client() as redis:
+            high_priority_size = await redis.llen("prewarming:high_priority")
+            medium_priority_size = await redis.llen("prewarming:medium_priority")
+            low_priority_size = await redis.llen("prewarming:low_priority")
+
+        # 获取热度分数Top 20
+        async with redis_client() as redis:
+            top_coins = await redis.zrevrange(
+                "hotness:scores",
+                0,
+                19,  # Top 20
+                withscores=True
+            )
+
+        # 格式化Top 20
+        hotness_rankings = []
+        for item in top_coins:
+            if isinstance(item, tuple):
+                coin_id, score = item
+            else:
+                coin_id = item
+                score = 0
+
+            hotness_rankings.append({
+                "coin_id": coin_id.decode() if isinstance(coin_id, bytes) else coin_id,
+                "hotness_score": round(float(score), 2)
+            })
+
+        # 获取预测的未来热门币种（Top 10）
+        predictions = await scheduler.predict_hot_coins(limit=10)
+        predicted_coins = [
+            {
+                "coin_id": coin_id,
+                "prediction_score": round(score, 2)
+            }
+            for coin_id, score in predictions
+        ]
+
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "last_update": scheduler_stats.get("last_update_datetime"),
+            "hotness_rankings": hotness_rankings,
+            "priority_lists": {
+                "high": high_priority_size,
+                "medium": medium_priority_size,
+                "low": low_priority_size,
+                "total": high_priority_size + medium_priority_size + low_priority_size
+            },
+            "predictions": predicted_coins
+        }
+
+    except Exception as e:
+        logger.error(f"Get scheduler status failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get scheduler status: {str(e)}"
         )

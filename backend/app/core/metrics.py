@@ -350,6 +350,72 @@ class MetricsCollector:
             }
 
     # ================================
+    # 预热任务统计（Phase 15）
+    # ================================
+
+    def get_prewarming_stats(self) -> Dict[str, Any]:
+        """
+        获取缓存预热任务统计
+
+        Returns:
+            Dict: 预热任务统计信息
+        """
+        # 高优先级任务统计
+        high_executed = self.counters.get("prewarming_task_executed.priority:high", 0)
+        high_failed = self.counters.get("prewarming_task_failed.priority:high", 0)
+
+        # 中优先级任务统计
+        medium_executed = self.counters.get("prewarming_task_executed.priority:medium", 0)
+        medium_failed = self.counters.get("prewarming_task_failed.priority:medium", 0)
+
+        # 热度更新统计
+        hotness_updated = self.counters.get("hotness_scores_updated", 0)
+        hotness_failed = self.counters.get("hotness_update_failed", 0)
+
+        # 计算成功率
+        total_executed = high_executed + medium_executed
+        total_failed = high_failed + medium_failed
+        total_tasks = total_executed + total_failed
+
+        success_rate = (
+            (total_executed / total_tasks * 100)
+            if total_tasks > 0
+            else 0.0
+        )
+
+        return {
+            "success_rate": round(success_rate, 2),
+            "high_priority": {
+                "executed": high_executed,
+                "failed": high_failed,
+                "success_rate": (
+                    (high_executed / (high_executed + high_failed) * 100)
+                    if (high_executed + high_failed) > 0
+                    else 0.0
+                )
+            },
+            "medium_priority": {
+                "executed": medium_executed,
+                "failed": medium_failed,
+                "success_rate": (
+                    (medium_executed / (medium_executed + medium_failed) * 100)
+                    if (medium_executed + medium_failed) > 0
+                    else 0.0
+                )
+            },
+            "hotness_updates": {
+                "success": hotness_updated,
+                "failed": hotness_failed,
+                "success_rate": (
+                    (hotness_updated / (hotness_updated + hotness_failed) * 100)
+                    if (hotness_updated + hotness_failed) > 0
+                    else 0.0
+                )
+            },
+            "total_tasks": total_tasks
+        }
+
+    # ================================
     # 全局统计和导出
     # ================================
 
@@ -371,6 +437,7 @@ class MetricsCollector:
                 "by_api": self.get_all_api_stats(),
             },
             "data_sources": self.get_data_source_availability(),
+            "prewarming": self.get_prewarming_stats(),
             "timestamp": datetime.utcnow().isoformat(),
         }
 

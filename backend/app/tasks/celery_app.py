@@ -19,6 +19,7 @@ celery_app = Celery(
     include=[
         "app.tasks.data_collection",
         "app.tasks.quality_check",
+        "app.tasks.cache_prewarming",
     ],
 )
 
@@ -124,6 +125,30 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(minute=30),  # 每小时的第30分钟
         "options": {"queue": "default"},
     },
+
+    # ================================
+    # 缓存预热任务（Phase 15）
+    # ================================
+    # Top 10热门币种预热（每1分钟）
+    "prewarm-hot-coins": {
+        "task": "app.tasks.cache_prewarming.prewarm_hot_coins",
+        "schedule": crontab(minute="*/1"),  # 每1分钟
+        "options": {"queue": "high_priority"},
+    },
+
+    # Top 100趋势币种预热（每5分钟）
+    "prewarm-trending-coins": {
+        "task": "app.tasks.cache_prewarming.prewarm_trending_coins",
+        "schedule": crontab(minute="*/5"),  # 每5分钟
+        "options": {"queue": "default"},
+    },
+
+    # 热度分数更新（每小时）
+    "update-hotness-scores": {
+        "task": "app.tasks.cache_prewarming.update_hotness_scores",
+        "schedule": crontab(minute=0),  # 每小时整点
+        "options": {"queue": "default"},
+    },
 }
 
 # ================================
@@ -139,4 +164,8 @@ celery_app.conf.task_routes = {
     "app.tasks.data_collection.cleanup_expired_cache": {"queue": "low_priority"},
     "app.tasks.data_collection.update_hotspots": {"queue": "default"},
     "app.tasks.quality_check.generate_data_quality_report": {"queue": "default"},
+    # 缓存预热任务路由
+    "app.tasks.cache_prewarming.prewarm_hot_coins": {"queue": "high_priority"},
+    "app.tasks.cache_prewarming.prewarm_trending_coins": {"queue": "default"},
+    "app.tasks.cache_prewarming.update_hotness_scores": {"queue": "default"},
 }

@@ -51,6 +51,25 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             print(f"⚠️ Database initialization warning: {e}")
 
+    # Stage 4: 启动预加载（后台任务，不阻塞API启动）
+    import asyncio
+    from app.services.startup_preloader import run_startup_preloading
+
+    async def preload_in_background():
+        """后台执行预加载"""
+        try:
+            print("🔥 Starting cache preloading...")
+            stats = await run_startup_preloading()
+            print(
+                f"✅ Cache preloading completed: "
+                f"{stats['coins_prewarmed']} coins in {stats['duration_seconds']}s"
+            )
+        except Exception as e:
+            print(f"⚠️  Cache preloading warning: {e}")
+
+    # 创建后台任务（不等待完成）
+    asyncio.create_task(preload_in_background())
+
     print("✅ API is ready!")
 
     yield  # 应用运行中

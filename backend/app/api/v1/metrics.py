@@ -138,3 +138,72 @@ async def reset_all_metrics():
         "success": True,
         "message": "所有性能指标已重置"
     }
+
+
+@router.get("/metrics/dashboard")
+async def get_metrics_dashboard():
+    """
+    获取性能监控仪表板数据（Stage 4任务4.5）
+
+    聚合所有性能指标，提供统一的监控视图，包括：
+    - 预热任务统计
+    - 响应时间趋势（P50/P95/P99）
+    - 缓存命中率（L1/L2/总体）
+    - API调用成功率
+    - 数据源可用性
+
+    Returns:
+        dict: 完整的仪表板数据
+    """
+    summary = get_metrics_summary()
+
+    return {
+        "timestamp": summary["timestamp"],
+        "uptime_seconds": summary["uptime_seconds"],
+
+        # 预热任务统计
+        "prewarming": summary.get("prewarming", {}),
+
+        # 响应时间趋势
+        "response_times": {
+            "endpoints": summary.get("response_times", {}),
+            "summary": {
+                # 计算所有端点的平均值
+                "avg_p50": _calculate_avg_percentile(summary.get("response_times", {}), "p50"),
+                "avg_p95": _calculate_avg_percentile(summary.get("response_times", {}), "p95"),
+                "avg_p99": _calculate_avg_percentile(summary.get("response_times", {}), "p99"),
+            }
+        },
+
+        # 缓存命中率
+        "cache": summary.get("cache", {}),
+
+        # API调用成功率
+        "api_calls": summary.get("api_calls", {}),
+
+        # 数据源可用性
+        "data_sources": summary.get("data_sources", {})
+    }
+
+
+def _calculate_avg_percentile(response_times: dict, percentile: str) -> float:
+    """
+    计算所有端点的平均百分位数
+
+    Args:
+        response_times: 响应时间字典
+        percentile: 百分位数名称（p50/p95/p99）
+
+    Returns:
+        float: 平均值
+    """
+    if not response_times:
+        return 0.0
+
+    values = [
+        stats.get(percentile, 0.0)
+        for stats in response_times.values()
+        if stats.get("count", 0) > 0
+    ]
+
+    return round(sum(values) / len(values), 2) if values else 0.0

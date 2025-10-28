@@ -60,26 +60,81 @@ async def database_pool_stats():
 @router.get("/dependencies")
 async def dependencies_health(response: Response):
     """
-    所有依赖项健康检查
+    所有依赖项健康检查（Stage 4任务4.3）
 
-    检查数据库、Redis等所有外部依赖
+    检查数据库、Redis、缓存、预热服务等所有外部依赖
+
+    返回格式：
+    - status: healthy（全部正常）| degraded（部分降级）| unhealthy（关键依赖失败）
+    - dependencies: 各依赖项的详细健康状态
     """
-    # TODO: 添加Redis健康检查
-    # TODO: 添加外部API健康检查（CoinGecko、OpenRouter等）
+    from app.core.redis_client import check_redis_health
+    from app.core.cache_manager import get_cache_manager
+    from app.services.cache_prewarming import get_prewarming_manager
 
+    # 检查所有依赖项
     db_health = await check_database_health()
+    redis_health = await check_redis_health()
 
-    all_healthy = db_health["status"] == "healthy"
+    # 检查L1缓存状态
+    try:
+        cache_manager = get_cache_manager()
+        cache_stats = await cache_manager.get_stats()
+        cache_health = {
+            "status": "healthy",
+            "l1_size": cache_stats["l1"]["size"],
+            "l1_capacity": cache_stats["l1"]["max_size"],
+            "l1_hit_rate": cache_stats["l1"]["hit_rate"],
+            "l2_hit_rate": cache_stats["l2"]["hit_rate"]
+        }
+    except Exception as e:
+        cache_health = {
+            "status": "unhealthy",
+            "error": str(e)
+        }
 
-    if not all_healthy:
+    # 检查预热服务状态
+    try:
+        prewarming_manager = get_prewarming_manager()
+        prewarming_status = prewarming_manager.get_status()
+        prewarming_health = {
+            "status": "healthy",
+            "queue_size": prewarming_status.get("queue_size", 0),
+            "is_running": prewarming_status.get("is_running", False),
+            "stats": prewarming_status.get("stats", {})
+        }
+    except Exception as e:
+        prewarming_health = {
+            "status": "unhealthy",
+            "error": str(e)
+        }
+
+    # 判断整体健康状态
+    statuses = [
+        db_health["status"],
+        redis_health["status"],
+        cache_health["status"],
+        prewarming_health["status"]
+    ]
+
+    # 如果有任何unhealthy，整体为unhealthy
+    if "unhealthy" in statuses:
+        overall_status = "unhealthy"
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    # 如果有degraded，整体为degraded
+    elif "degraded" in statuses:
+        overall_status = "degraded"
+    else:
+        overall_status = "healthy"
 
     return {
-        "status": "healthy" if all_healthy else "degraded",
+        "status": overall_status,
         "timestamp": datetime.now().isoformat(),
         "dependencies": {
             "database": db_health,
-            # TODO: 添加更多依赖项
+            "redis": redis_health,
+            "cache": cache_health,
+            "prewarming": prewarming_health
         },
     }
 

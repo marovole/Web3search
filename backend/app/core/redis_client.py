@@ -306,3 +306,121 @@ async def session_delete(session_id: str) -> int:
     """
     key = f"session:{session_id}"
     return await cache_delete(key)
+
+
+# ================================
+# Redis健康检查（Stage 4任务4.2）
+# ================================
+
+async def check_redis_health() -> dict:
+    """
+    检查Redis连接和性能
+
+    测试Redis的连接状态、响应延迟和基本操作
+
+    Returns:
+        dict: 健康检查结果
+            - status: "healthy" | "unhealthy"
+            - latency_ms: 响应延迟（毫秒）
+            - connected: 是否连接成功
+            - error: 错误信息（如果有）
+    """
+    import time
+
+    try:
+        redis = await get_async_redis()
+
+        # 测试PING命令并计算延迟
+        start = time.time()
+        pong = await redis.ping()
+        latency = (time.time() - start) * 1000  # 转换为毫秒
+
+        if not pong:
+            return {
+                "status": "unhealthy",
+                "connected": False,
+                "latency_ms": 0,
+                "error": "PING command failed"
+            }
+
+        # 测试SET/GET操作
+        test_key = "health_check:test"
+        test_value = "ok"
+
+        await redis.set(test_key, test_value, ex=10)
+        retrieved = await redis.get(test_key)
+
+        if retrieved != test_value:
+            return {
+                "status": "unhealthy",
+                "connected": True,
+                "latency_ms": latency,
+                "error": "SET/GET test failed"
+            }
+
+        # 清理测试键
+        await redis.delete(test_key)
+
+        # 判断健康状态（延迟超过100ms视为降级）
+        status = "healthy" if latency < 100 else "degraded"
+
+        return {
+            "status": status,
+            "connected": True,
+            "latency_ms": round(latency, 2),
+            "error": None
+        }
+
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "connected": False,
+            "latency_ms": 0,
+            "error": str(e)
+        }
+
+
+async def get_redis_info() -> dict:
+    """
+    获取Redis服务器信息
+
+    包括内存使用、连接数、命中率等统计信息
+
+    Returns:
+        dict: Redis服务器信息
+            - used_memory_human: 已用内存（人类可读）
+            - used_memory_peak_human: 峰值内存
+            - connected_clients: 连接客户端数
+            - total_commands_processed: 总命令数
+            - instantaneous_ops_per_sec: 每秒操作数
+            - keyspace_hits: 命中次数
+            - keyspace_misses: 未命中次数
+            - hit_rate: 命中率
+    """
+    try:
+        redis = await get_async_redis()
+        info = await redis.info()
+
+        # 提取关键指标
+        stats = {
+            "used_memory_human": info.get("used_memory_human", "N/A"),
+            "used_memory_peak_human": info.get("used_memory_peak_human", "N/A"),
+            "connected_clients": info.get("connected_clients", 0),
+            "total_commands_processed": info.get("total_commands_processed", 0),
+            "instantaneous_ops_per_sec": info.get("instantaneous_ops_per_sec", 0),
+            "keyspace_hits": info.get("keyspace_hits", 0),
+            "keyspace_misses": info.get("keyspace_misses", 0),
+        }
+
+        # 计算命中率
+        hits = stats["keyspace_hits"]
+        misses = stats["keyspace_misses"]
+        total = hits + misses
+        stats["hit_rate"] = round(hits / total, 4) if total > 0 else 0.0
+
+        return stats
+
+    except Exception as e:
+        return {
+            "error": str(e)
+        }
