@@ -11,7 +11,11 @@ from app.services.data_aggregator import data_aggregator
 from app.services.prompt_manager import prompt_manager
 
 # 导入9个Analyzer和统一输出接口
-from app.services.research_engine.analyzers.analyzer_output import AnalyzerOutput, VisualizationHint
+from app.services.research_engine.analyzers.analyzer_output import (
+    AnalyzerOutput,
+    VisualizationHint,
+    create_error_output,
+)
 from app.services.research_engine.analyzers.tldr_generator import tldr_generator
 from app.services.research_engine.analyzers.timeframe_analyzer import timeframe_analyzer
 from app.services.research_engine.analyzers.sentiment_analyzer import sentiment_analyzer
@@ -115,18 +119,12 @@ class DeepResearchEngine:
         if progress_callback:
             await progress_callback("📝 正在生成研究报告和投资建议...", 75)
 
-        # 阶段3: 生成结论和建议（使用ConclusionSynthesizer）
-        conclusion_result = await self._generate_conclusion(
-            symbol,
-            analyzer_outputs,
-        )
-
-        # 添加conclusion到analyzer_outputs
-        analyzer_outputs["conclusion"] = conclusion_result
-
-        # 提取文本版本的conclusion（向后兼容）
-        conclusion_data = conclusion_result.get("data", {})
-        conclusion_summary = conclusion_data.get("summary", "⚠️ 结论生成失败")
+        # 结论已经在_generate_sections()中生成，直接使用
+        conclusion_result = analyzer_outputs.get("conclusion")
+        if not conclusion_result:
+            # 如果conclusion生成失败，创建错误输出
+            conclusion_result = create_error_output("conclusion", "结论生成失败")
+            analyzer_outputs["conclusion"] = conclusion_result
 
         # 组装完整报告
         end_time = datetime.utcnow()
@@ -256,7 +254,7 @@ class DeepResearchEngine:
         raw_data: Dict[str, Any],
     ) -> Dict[str, Any]:
         """
-        并行调用7个Analyzer生成分析内容（不包括tldr和conclusion）
+        并行调用8个Analyzer生成分析内容（不包括tldr，包括conclusion）
 
         Args:
             query: 用户查询
@@ -267,7 +265,7 @@ class DeepResearchEngine:
         Returns:
             Dict[str, Any]: 包含analyzer_outputs（AnalyzerOutput对象）和sections（文本内容）
         """
-        print("  🔬 并行调用7个Analyzer...")
+        print("  🔬 并行调用8个Analyzer...")
 
         # 准备各analyzer所需的数据
         market_data = raw_data.get("market_data", {})
@@ -286,7 +284,7 @@ class DeepResearchEngine:
             "max_supply": market_data.get("max_supply"),
         }
 
-        # 并行调用7个analyzer
+        # 并行调用8个analyzer（包括conclusion）
         (
             timeframe_output,
             sentiment_output,
@@ -295,6 +293,7 @@ class DeepResearchEngine:
             competitor_output,
             tokenomics_output,
             risk_output,
+            conclusion_output,
         ) = await asyncio.gather(
             self.timeframe_analyzer.analyze(symbol, query, market_data),
             self.sentiment_analyzer.analyze(symbol, social_data),
@@ -303,6 +302,7 @@ class DeepResearchEngine:
             self.competitor_analyzer.analyze(symbol, competitors_str),
             self.tokenomics_analyzer.analyze(symbol, tokenomics_data),
             self.risk_assessor.analyze(symbol, raw_data),
+            self.conclusion_synthesizer.synthesize(symbol, query, raw_data),
             return_exceptions=True,
         )
 
@@ -319,37 +319,39 @@ class DeepResearchEngine:
             ("competitor", competitor_output, "竞品分析"),
             ("tokenomics", tokenomics_output, "代币经济学"),
             ("risk", risk_output, "风险评估"),
+            ("conclusion", conclusion_output, "结论合成"),
         ]
+
+        # 处理每个analyzer的输出并统计失败情况
+        failed_analyzers = []
+        successful_analyzers = []
 
         for key, output, name in analyzers_data:
             if isinstance(output, Exception):
                 print(f"  ⚠️ {name}失败: {str(output)}")
-                # 创建降级输出
-                analyzer_outputs[key] = {
-                    "data": {"error": str(output), "summary": f"{name}生成失败"},
-                    "metadata": {
-                        "analyzer_name": key,
-                        "error": True,
-                    },
-                }
+                # 使用统一的错误输出创建函数
+                analyzer_outputs[key] = create_error_output(key, str(output))
+                failed_analyzers.append((key, name, str(output)))
             elif isinstance(output, AnalyzerOutput):
-                # 正常输出
-                analyzer_outputs[key] = {
-                    "data": output.data,
-                    "metadata": output.metadata.model_dump(),
-                    "error": output.error,
-                }
-                # 收集可视化提示
-                visualization_hints.extend(output.visualization_hints)
+                if output.error:
+                    # AnalyzerOutput对象但包含错误
+                    print(f"  ⚠️ {name}失败: {output.error}")
+                    failed_analyzers.append((key, name, output.error))
+                else:
+                    # 正常输出
+                    analyzer_outputs[key] = output
+                    successful_analyzers.append((key, name))
+                    # 收集可视化提示
+                    visualization_hints.extend(output.visualization_hints)
             else:
                 print(f"  ⚠️ {name}返回了意外的类型: {type(output)}")
-                analyzer_outputs[key] = {
-                    "data": {"error": "返回类型错误", "summary": f"{name}返回格式不正确"},
-                    "metadata": {
-                        "analyzer_name": key,
-                        "error": True,
-                    },
-                }
+                analyzer_outputs[key] = create_error_output(
+                    key, f"返回类型错误: {type(output)}"
+                )
+                failed_analyzers.append((key, name, f"返回类型错误: {type(output)}"))
+
+        # 应用智能降级策略
+        self._apply_fallback_strategy(analyzer_outputs, failed_analyzers, successful_analyzers, symbol)
 
         # 构建向后兼容的sections字典（提取文本内容）
         sections = {
@@ -360,6 +362,7 @@ class DeepResearchEngine:
             "competitor_analysis": self._extract_summary(analyzer_outputs.get("competitor")),
             "tokenomics": self._extract_summary(analyzer_outputs.get("tokenomics")),
             "risk_assessment": self._extract_summary(analyzer_outputs.get("risk")),
+            "conclusion": self._extract_summary(analyzer_outputs.get("conclusion")),
         }
 
         return {
@@ -368,69 +371,187 @@ class DeepResearchEngine:
             "visualization_hints": visualization_hints,
         }
 
-    def _extract_summary(self, analyzer_output: Optional[Dict[str, Any]]) -> str:
+    def _extract_summary(self, analyzer_output: Optional[AnalyzerOutput]) -> str:
         """从analyzer输出中提取摘要文本（用于向后兼容）"""
         if not analyzer_output:
             return "⚠️ 分析数据不可用"
 
-        data = analyzer_output.get("data", {})
-        if analyzer_output.get("error"):
-            return f"⚠️ {data.get('summary', '生成失败')}"
+        if isinstance(analyzer_output, AnalyzerOutput):
+            # 处理新的AnalyzerOutput对象
+            if analyzer_output.error:
+                return f"⚠️ {analyzer_output.error}"
 
-        # 尝试提取summary字段
-        if "summary" in data:
-            return data["summary"]
+            # 尝试提取summary字段
+            data = analyzer_output.data
+            if "summary" in data:
+                return data["summary"]
+            elif "judgment" in data:  # TL;DR 使用judgment字段
+                return data["judgment"]
+            else:
+                # 如果没有summary，返回第一个字符串字段
+                for key, value in data.items():
+                    if isinstance(value, str) and value.strip():
+                        return value
+                return "✅ 分析完成"
 
-        # 如果没有summary，返回JSON格式的数据摘要
-        return str(data)[:500]  # 截取前500字符
+        # 向后兼容：处理旧的字典格式
+        elif isinstance(analyzer_output, dict):
+            data = analyzer_output.get("data", {})
+            if analyzer_output.get("error"):
+                return f"⚠️ {data.get('summary', '生成失败')}"
 
-    async def _generate_conclusion(
+            if "summary" in data:
+                return data["summary"]
+            elif "judgment" in data:
+                return data["judgment"]
+
+        return "⚠️ 分析数据不可用"
+
+    def _apply_fallback_strategy(
         self,
-        symbol: str,
-        analyzer_outputs: Dict[str, Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        analyzer_outputs: Dict[str, AnalyzerOutput],
+        failed_analyzers: list,
+        successful_analyzers: list,
+        symbol: str
+    ) -> None:
         """
-        生成结论和投资建议（使用ConclusionSynthesizer）
+        应用智能降级策略，当多个analyzers失败时提供有意义的反馈
 
         Args:
+            analyzer_outputs: 所有analyzer的输出字典
+            failed_analyzers: 失败的analyzer列表 [(key, name, error), ...]
+            successful_analyzers: 成功的analyzer列表 [(key, name), ...]
             symbol: 代币符号
-            analyzer_outputs: 所有analyzer的输出
-
-        Returns:
-            Dict[str, Any]: 包含data（conclusion数据）和metadata的字典
         """
-        print("  🎯 生成最终结论和投资建议...")
+        failure_rate = len(failed_analyzers) / 8.0  # 8个analyzer
 
-        # 构建all_analyses字典（ConclusionSynthesizer需要的格式）
-        all_analyses = {"symbol": symbol}
+        # 记录失败情况
+        if failed_analyzers:
+            failed_names = [name for _, name, _ in failed_analyzers]
+            print(f"  📊 分析完成: {len(successful_analyzers)}/8 个模块成功")
+            if len(successful_analyzers) > 0:
+                successful_names = [name for _, name in successful_analyzers]
+                print(f"  ✅ 成功模块: {', '.join(successful_names)}")
+            if len(failed_analyzers) > 0:
+                print(f"  ⚠️ 失败模块: {', '.join(failed_names)}")
 
-        # 提取各analyzer的data部分
-        for key, output in analyzer_outputs.items():
-            all_analyses[key] = output.get("data", {})
+        # 根据失败率应用不同的降级策略
+        if failure_rate >= 0.75:  # 75%以上失败
+            print(f"  🚨 严重失败率 ({failure_rate:.1%})，应用紧急降级策略")
+            self._emergency_fallback(analyzer_outputs, symbol, failed_analyzers)
+        elif failure_rate >= 0.5:  # 50%以上失败
+            print(f"  ⚠️ 高失败率 ({failure_rate:.1%})，应用部分降级策略")
+            self._partial_fallback(analyzer_outputs, symbol, failed_analyzers)
+        elif failure_rate >= 0.25:  # 25%以上失败
+            print(f"  📝 中等失败率 ({failure_rate:.1%})，应用温和降级策略")
+            self._gentle_fallback(analyzer_outputs, symbol, failed_analyzers)
+        # 低于25%失败率不需要特殊降级处理
 
-        # 调用ConclusionSynthesizer
-        conclusion_output = await self.conclusion_synthesizer.analyze(all_analyses)
+    def _emergency_fallback(
+        self,
+        analyzer_outputs: Dict[str, AnalyzerOutput],
+        symbol: str,
+        failed_analyzers: list
+    ) -> None:
+        """紧急降级策略：当大部分analyzers失败时"""
+        from app.services.research_engine.analyzers.analyzer_output import create_analyzer_output
 
-        if isinstance(conclusion_output, Exception):
-            print(f"  ⚠️ 结论生成失败: {str(conclusion_output)}")
-            return {
-                "data": {"summary": f"⚠️ 结论生成失败: {str(conclusion_output)}"},
-                "metadata": {"analyzer_name": "ConclusionSynthesizer", "error": True},
-            }
-
-        if isinstance(conclusion_output, AnalyzerOutput):
-            return {
-                "data": conclusion_output.data,
-                "metadata": conclusion_output.metadata.model_dump(),
-                "error": conclusion_output.error,
-            }
-
-        # 意外类型
-        print(f"  ⚠️ 结论返回了意外的类型: {type(conclusion_output)}")
-        return {
-            "data": {"summary": "⚠️ 结论返回格式不正确"},
-            "metadata": {"analyzer_name": "ConclusionSynthesizer", "error": True},
+        # 创建基础的市场信息
+        fallback_data = {
+            "summary": f"⚠️ {symbol} 分析服务遇到严重问题，仅提供基础信息",
+            "fallback_level": "emergency",
+            "basic_info": {
+                "symbol": symbol,
+                "status": "部分功能可用",
+                "note": "建议稍后重试或联系技术支持"
+            },
+            "failed_analyzers": [name for _, name, _ in failed_analyzers]
         }
+
+        # 更新关键的analyzers输出
+        critical_analyzers = ["timeframe", "sentiment", "conclusion"]
+        for analyzer_name in critical_analyzers:
+            if analyzer_name in analyzer_outputs and analyzer_outputs[analyzer_name].error:
+                analyzer_outputs[analyzer_name] = create_analyzer_output(
+                    data=fallback_data,
+                    analyzer_name=analyzer_name,
+                    model_used="fallback_emergency",
+                    confidence=0,
+                    validation_passed=False,
+                    validation_warnings=["Emergency fallback due to multiple analyzer failures"]
+                )
+
+    def _partial_fallback(
+        self,
+        analyzer_outputs: Dict[str, AnalyzerOutput],
+        symbol: str,
+        failed_analyzers: list
+    ) -> None:
+        """部分降级策略：当较多analyzers失败时"""
+        from app.services.research_engine.analyzers.analyzer_output import create_analyzer_output
+
+        # 为失败的analyzers提供有意义的降级信息
+        fallback_templates = {
+            "timeframe": {
+                "summary": f"⚠️ {symbol} 时间窗分析暂时不可用，建议关注价格走势和市场情绪",
+                "fallback_note": "基础市场信息获取失败"
+            },
+            "sentiment": {
+                "summary": f"⚠️ {symbol} 社交情绪分析暂时不可用，请参考其他分析维度",
+                "fallback_note": "社交媒体数据获取失败"
+            },
+            "technical": {
+                "summary": f"⚠️ {symbol} 技术分析暂时不可用，建议关注基本面和市场表现",
+                "fallback_note": "技术指标计算失败"
+            },
+            "onchain": {
+                "summary": f"⚠️ {symbol} 链上数据分析暂时不可用，请参考价格和市场表现",
+                "fallback_note": "区块链数据获取失败"
+            },
+            "competitor": {
+                "summary": f"⚠️ {symbol} 竞品分析暂时不可用，建议关注项目本身基本面",
+                "fallback_note": "竞品数据获取失败"
+            },
+            "tokenomics": {
+                "summary": f"⚠️ {symbol} 代币经济学分析暂时不可用，建议关注市场表现",
+                "fallback_note": "代币经济数据获取失败"
+            },
+            "risk": {
+                "summary": f"⚠️ {symbol} 风险评估暂时不可用，请注意投资风险，建议谨慎决策",
+                "fallback_note": "风险评估计算失败"
+            },
+            "conclusion": {
+                "summary": f"⚠️ {symbol} 综合结论暂时无法生成，部分分析维度遇到技术问题，建议稍后重试",
+                "fallback_note": "综合分析失败"
+            }
+        }
+
+        for analyzer_name, _, _ in failed_analyzers:
+            if analyzer_name in fallback_templates:
+                template = fallback_templates[analyzer_name]
+                analyzer_outputs[analyzer_name] = create_analyzer_output(
+                    data=template,
+                    analyzer_name=analyzer_name,
+                    model_used="fallback_partial",
+                    confidence=20,  # 低置信度
+                    validation_passed=False,
+                    validation_warnings=["Partial fallback due to analyzer failure"]
+                )
+
+    def _gentle_fallback(
+        self,
+        analyzer_outputs: Dict[str, AnalyzerOutput],
+        symbol: str,
+        failed_analyzers: list
+    ) -> None:
+        """温和降级策略：当少数analyzers失败时"""
+        # 只记录警告，不替换输出，让现有的错误输出保持原样
+        failed_count = len(failed_analyzers)
+        total_count = 8
+        success_count = total_count - failed_count
+
+        print(f"  📊 分析结果: {success_count}/{total_count} 个模块成功")
+        print(f"  💡 提示: {failed_count} 个模块遇到问题，但不影响整体分析质量")
 
 
 # ================================

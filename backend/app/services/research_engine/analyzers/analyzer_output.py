@@ -98,6 +98,128 @@ class AnalyzerOutput(BaseModel):
         description="错误信息（如果分析失败）"
     )
 
+    def validate(self) -> bool:
+        """
+        验证AnalyzerOutput的完整性和有效性
+
+        Returns:
+            bool: 验证是否通过
+        """
+        validation_warnings = []
+        validation_passed = True
+
+        # 检查基本字段
+        if not self.data:
+            validation_warnings.append("数据字段为空")
+            validation_passed = False
+
+        if not self.metadata.analyzer_name:
+            validation_warnings.append("analyzer名称为空")
+            validation_passed = False
+
+        # 检查置信度范围
+        if self.metadata.confidence is not None:
+            if not (0 <= self.metadata.confidence <= 100):
+                validation_warnings.append(f"置信度超出范围: {self.metadata.confidence}")
+                validation_passed = False
+
+        # 检查数据源
+        if not self.metadata.data_sources and not self.error:
+            validation_warnings.append("未指定数据源")
+
+        # 检查可视化提示
+        for i, hint in enumerate(self.visualization_hints):
+            if hint.type == "table":
+                if not hint.table_columns or not hint.table_data:
+                    validation_warnings.append(f"表格可视化提示 {i} 缺少必要字段")
+            elif hint.type == "chart":
+                if not hint.chart_type or not hint.chart_data:
+                    validation_warnings.append(f"图表可视化提示 {i} 缺少必要字段")
+
+        # 检查生成时间合理性
+        if self.metadata.generation_time_ms is not None:
+            if self.metadata.generation_time_ms < 0:
+                validation_warnings.append("生成时间不能为负数")
+            elif self.metadata.generation_time_ms > 300000:  # 5分钟
+                validation_warnings.append("生成时间过长，可能存在性能问题")
+
+        # 更新验证状态
+        self.metadata.validation_passed = validation_passed
+        self.metadata.validation_warnings = validation_warnings
+
+        return validation_passed
+
+    def get_quality_score(self) -> float:
+        """
+        计算输出质量分数 (0-100)
+
+        Returns:
+            float: 质量分数
+        """
+        score = 0.0
+
+        # 基础分数 (有数据)
+        if self.data and len(self.data) > 0:
+            score += 30
+
+        # 元数据完整性
+        if self.metadata.analyzer_name:
+            score += 10
+        if self.metadata.model_used:
+            score += 10
+        if self.metadata.confidence is not None:
+            score += 10
+        if self.metadata.data_sources:
+            score += 10
+        if self.metadata.generation_time_ms is not None:
+            score += 5
+
+        # 无错误
+        if not self.error:
+            score += 15
+
+        # 有可视化提示
+        if self.visualization_hints:
+            score += 10
+
+        return min(score, 100.0)
+
+    def get_summary_text(self) -> str:
+        """
+        获取摘要文本，支持多种字段
+
+        Returns:
+            str: 摘要文本
+        """
+        if self.error:
+            return f"⚠️ {self.error}"
+
+        # 尝试不同的摘要字段
+        for field in ["summary", "judgment", "conclusion", "analysis"]:
+            if field in self.data and isinstance(self.data[field], str):
+                return self.data[field]
+
+        # 如果没有摘要字段，返回第一个字符串字段
+        for key, value in self.data.items():
+            if isinstance(value, str) and value.strip():
+                return value
+
+        return f"✅ {self.metadata.analyzer_name} 完成"
+
+    def is_high_quality(self) -> bool:
+        """
+        判断是否为高质量输出
+
+        Returns:
+            bool: 是否为高质量
+        """
+        return (
+            not self.error and
+            self.metadata.validation_passed and
+            self.get_quality_score() >= 70 and
+            self.metadata.confidence and self.metadata.confidence >= 60
+        )
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -144,6 +266,7 @@ def create_analyzer_output(
     validation_passed: bool = True,
     validation_warnings: Optional[List[str]] = None,
     error: Optional[str] = None,
+    auto_validate: bool = True,
 ) -> AnalyzerOutput:
     """
     便捷函数：创建AnalyzerOutput对象
@@ -160,6 +283,7 @@ def create_analyzer_output(
         validation_passed: 是否通过验证
         validation_warnings: 验证警告
         error: 错误信息
+        auto_validate: 是否自动执行验证
 
     Returns:
         AnalyzerOutput对象
@@ -175,12 +299,18 @@ def create_analyzer_output(
         validation_warnings=validation_warnings or [],
     )
 
-    return AnalyzerOutput(
+    output = AnalyzerOutput(
         data=data,
         metadata=metadata,
         visualization_hints=visualization_hints or [],
         error=error,
     )
+
+    # 自动验证输出
+    if auto_validate and not error:
+        output.validate()
+
+    return output
 
 
 def create_error_output(
