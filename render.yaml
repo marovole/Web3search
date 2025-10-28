@@ -22,20 +22,13 @@ services:
         fromDatabase:
           name: web3search-db
           property: connectionString
-      - key: REDIS_URL
-        fromDatabase:
-          name: web3search-redis
-          property: connectionString
-      - key: CELERY_BROKER_URL
-        fromDatabase:
-          name: web3search-redis
-          property: connectionString
-      - key: CELERY_RESULT_BACKEND
-        fromDatabase:
-          name: web3search-redis
-          property: connectionString
       - key: CORS_ORIGINS
         value: "*"
+      # 注意：Redis 配置已禁用，因为 Render 免费计划不支持 Redis
+      # 应用将在没有缓存层的情况下运行（对 Staging 验证足够）
+      # 后续升级时可以：
+      # 1. 升级 Render 计划获得 Redis 支持
+      # 2. 或改用 Redis Cloud 等第三方服务
   # 注意：Celery Worker 和 Beat 服务在 Render 免费计划中不支持
   # 需要升级到付费计划才能使用 type: worker
   # 临时说明：当前仅部署 Web API + 数据库以验证 Staging 环境
@@ -50,6 +43,6 @@ databases:
     databaseName: web3search
     user: web3search
 
-  # Redis缓存
-  - name: web3search-redis
-    plan: free
+  # 注意：Redis 已从免费计划中移除
+  # Render 免费计划不支持 Redis，需要升级到付费计划
+  # 应用将在没有 Redis 缓存的情况下运行
