@@ -4,9 +4,16 @@ Competitor Analyzer
 """
 import yaml
 import json
+import time
 from pathlib import Path
 from typing import Dict, List, Any, Tuple, Optional
-from app.services.llm.openrouter_client import OpenRouterClient
+from app.services.llm import llm_client
+from app.services.research_engine.analyzers.analyzer_output import (
+    AnalyzerOutput,
+    create_analyzer_output,
+    create_error_output,
+    create_competitor_table_hint,
+)
 
 
 class CompetitorAnalyzer:
@@ -29,11 +36,12 @@ class CompetitorAnalyzer:
     def __init__(self):
         """初始化竞品分析器"""
         self._load_prompts()
-        self.llm_client = OpenRouterClient()
+        self.llm_client = llm_client
 
     def _load_prompts(self):
         """加载 prompt 模板"""
-        prompt_path = Path(__file__).parent.parent.parent.parent.parent / "prompts" / "deep_research" / "competitor.yaml"
+        from app.core.config import settings
+        prompt_path = settings.BASE_DIR / "prompts" / "deep_research" / "competitor.yaml"
 
         with open(prompt_path, 'r', encoding='utf-8') as f:
             prompts = yaml.safe_load(f)
@@ -331,7 +339,7 @@ class CompetitorAnalyzer:
 
         return prompt
 
-    async def analyze(self, aggregated_data: Dict) -> Dict:
+    async def analyze(self, aggregated_data: Dict) -> AnalyzerOutput:
         """
         执行竞品对比分析
 
@@ -339,32 +347,62 @@ class CompetitorAnalyzer:
             aggregated_data: 聚合数据
 
         Returns:
-            分析结果字典
+            AnalyzerOutput: 包含竞品分析数据、元数据和可视化提示
         """
+        start_time = time.time()
+        symbol = aggregated_data.get("symbol", "Unknown")
+
         try:
             # 格式化 prompt
             user_prompt = self._format_prompt(aggregated_data)
 
-            # 调用 LLM
-            result = await self._call_llm(user_prompt)
+            # 调用 LLM（返回 result, model_used, fallback_used 三元组）
+            result, model_used, fallback_used = await self._call_llm(user_prompt)
 
             if result is None:
-                return self._create_error_response("LLM 调用失败")
+                return self._create_error_response("LLM 调用失败", model_used)
 
             # 验证输出
             is_valid, errors = self._validate_output(result)
 
+            validation_warnings = []
             if not is_valid:
                 # 尝试修复
+                validation_warnings.append(f"输出验证失败: {', '.join(errors)}")
                 result = self._fix_invalid_output(result, errors)
 
-            result["error"] = False
-            return result
+            # 计算生成时间
+            generation_time_ms = int((time.time() - start_time) * 1000)
+
+            # 创建竞品对比表格可视化提示
+            visualization_hints = []
+            if "comparison_table" in result and result["comparison_table"]:
+                # 提取表格数据
+                competitors_data = result["comparison_table"].get("data", [])
+                metrics = result["comparison_table"].get("metrics", [])
+                if competitors_data and metrics:
+                    visualization_hints.append(
+                        create_competitor_table_hint(competitors_data, metrics)
+                    )
+
+            # 包装为AnalyzerOutput
+            return create_analyzer_output(
+                data=result,
+                analyzer_name="CompetitorAnalyzer",
+                model_used=model_used,
+                fallback_used=fallback_used,
+                generation_time_ms=generation_time_ms,
+                confidence=result.get("market_position", {}).get("confidence_score"),
+                data_sources=["CoinGecko", "DeFi Llama"],
+                visualization_hints=visualization_hints,
+                validation_passed=len(validation_warnings) == 0,
+                validation_warnings=validation_warnings,
+            )
 
         except Exception as e:
-            return self._create_error_response(f"分析过程出错: {str(e)}")
+            return self._create_error_response(f"分析过程出错: {str(e)}", self.model_config.get("primary_model", "unknown"))
 
-    async def _call_llm(self, user_prompt: str) -> Optional[Dict]:
+    async def _call_llm(self, user_prompt: str) -> Tuple[Optional[Dict], str, bool]:
         """
         调用 LLM
 
@@ -372,12 +410,15 @@ class CompetitorAnalyzer:
             user_prompt: 用户 prompt
 
         Returns:
-            LLM 响应字典
+            三元组: (LLM响应字典, 使用的模型, 是否使用fallback)
         """
+        model_used = self.model_config["primary_model"]
+        fallback_used = False
+
         try:
             # 主模型
             response = await self.llm_client.chat_completion(
-                model=self.model_config["primary_model"],
+                model=model_used,
                 messages=[
                     {"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -393,15 +434,18 @@ class CompetitorAnalyzer:
                 json_end = content.rfind("}") + 1
                 if json_start != -1 and json_end > json_start:
                     json_str = content[json_start:json_end]
-                    return json.loads(json_str)
+                    return json.loads(json_str), model_used, fallback_used
 
         except Exception as e:
             print(f"Primary model failed: {e}")
 
         # Fallback 模型
+        model_used = self.model_config["fallback_model"]
+        fallback_used = True
+
         try:
             response = await self.llm_client.chat_completion(
-                model=self.model_config["fallback_model"],
+                model=model_used,
                 messages=[
                     {"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -416,12 +460,12 @@ class CompetitorAnalyzer:
                 json_end = content.rfind("}") + 1
                 if json_start != -1 and json_end > json_start:
                     json_str = content[json_start:json_end]
-                    return json.loads(json_str)
+                    return json.loads(json_str), model_used, fallback_used
 
         except Exception as e:
             print(f"Fallback model failed: {e}")
 
-        return None
+        return None, model_used, fallback_used
 
     def _validate_output(self, output: Dict) -> Tuple[bool, List[str]]:
         """
@@ -558,65 +602,22 @@ class CompetitorAnalyzer:
 
         return output
 
-    def _create_error_response(self, error_message: str) -> Dict:
+    def _create_error_response(self, error_message: str, model_used: str) -> AnalyzerOutput:
         """
         创建错误响应
 
         Args:
             error_message: 错误消息
+            model_used: 尝试使用的模型
 
         Returns:
-            错误响应字典
+            AnalyzerOutput: 错误响应
         """
-        return {
-            "error": True,
-            "message": error_message,
-            "competitive_landscape": {
-                "sector": "数据不足",
-                "market_size": "数据不足",
-                "growth_trend": "数据不足",
-                "key_trends": [],
-                "competition_intensity": "数据不足"
-            },
-            "competitors": [],
-            "comparison_table": {
-                "metrics": [],
-                "target_project": {},
-                "competitors": []
-            },
-            "valuation_multiples": {
-                "target_project": {
-                    "ps_ratio": 0,
-                    "fdv_to_revenue": 0,
-                    "fdv_to_tvl": 0,
-                    "pe_ratio": 0
-                },
-                "sector_median": {
-                    "ps_ratio": 0,
-                    "fdv_to_revenue": 0,
-                    "fdv_to_tvl": 0,
-                    "pe_ratio": 0
-                },
-                "valuation_assessment": "数据不足",
-                "rationale": error_message
-            },
-            "competitive_advantages": {
-                "strengths": [],
-                "moat_score": 0,
-                "moat_types": []
-            },
-            "competitive_risks": {
-                "threats": [],
-                "risk_level": "未知"
-            },
-            "market_position": {
-                "ranking": "数据不足",
-                "position_type": "未知",
-                "market_share_trend": "数据不足",
-                "strategic_recommendation": "数据不足"
-            },
-            "summary": f"竞品分析失败: {error_message}"
-        }
+        return create_error_output(
+            analyzer_name="CompetitorAnalyzer",
+            error_msg=f"竞品分析失败: {error_message}",
+            model_used=model_used,
+        )
 
 
 # 创建全局单例

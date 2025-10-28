@@ -37,10 +37,21 @@ ENV PYTHONUNBUFFERED=1 \
 # 设置工作目录
 WORKDIR /app
 
-# 安装运行时依赖
+# 安装运行时依赖（包括WeasyPrint和中文字体）
 RUN apt-get update && apt-get install -y \
     libpq5 \
     curl \
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libcairo2 \
+    libgdk-pixbuf2.0-0 \
+    libffi-dev \
+    shared-mime-info \
+    fonts-noto-cjk \
+    fonts-noto-cjk-extra \
+    fonts-wqy-microhei \
+    fonts-wqy-zenhei \
+    && fc-cache -f -v \
     && rm -rf /var/lib/apt/lists/*
 
 # 从builder阶段复制虚拟环境

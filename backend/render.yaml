@@ -1,0 +1,112 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: web3search-postgres
+    plan: free
+    region: oregon
+    ipAllowList: []
+    postgresMajorVersion: 15
+
+  # Redis Cache
+  - type: redis
+    name: web3search-redis
+    plan: free
+    region: oregon
+    ipAllowList: []
+
+  # FastAPI Web Service
+  - type: web
+    name: web3search-api
+    runtime: python
+    plan: starter
+    region: oregon
+    buildCommand: >
+      pip install --no-cache-dir -r requirements.txt &&
+      python -m pip install --no-cache-dir gunicorn
+    startCommand: >
+      gunicorn app.main:app
+      --workers 2
+      --worker-class uvicorn.workers.UvicornWorker
+      --bind 0.0.0.0:8000
+      --timeout 120
+      --access-logfile -
+      --error-logfile -
+    healthCheckPath: /health
+    envVars:
+      # Environment Configuration
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: LOG_LEVEL
+        value: INFO
+
+      # Database Configuration
+      - key: DATABASE_URL
+        fromDatabase:
+          name: web3search-postgres
+          property: connectionString
+
+      # Redis Configuration
+      - key: REDIS_URL
+        fromService:
+          name: web3search-redis
+          type: redis
+          property: connectionString
+
+      # API Configuration
+      - key: OPENROUTER_API_KEY
+        sync: false  # Must be set manually in Render Dashboard
+      - key: SENTRY_DSN
+        sync: false  # Optional, set manually if using Sentry
+
+      # CORS Configuration
+      - key: CORS_ORIGINS
+        value: "https://web3search.vercel.app,https://api.web3search.com"
+
+      # Timeout Configuration
+      - key: CHAT_TIMEOUT
+        value: "120"
+      - key: RESEARCH_TIMEOUT
+        value: "180"
+      - key: PDF_TIMEOUT
+        value: "60"
+
+      # Cache Configuration
+      - key: CACHE_TTL_HOURS
+        value: "24"
+      - key: CACHE_REPORT_DAYS
+        value: "7"
+
+      # Monitoring
+      - key: PROMETHEUS_PORT
+        value: "9090"
+
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-XSS-Protection
+        value: "1; mode=block"
+
+    routes:
+      - path: /
+        matchType: prefix
+        name: app
+
+databases:
+  - name: web3search-postgres
+    database: web3search
+    plan: free
+    region: oregon
+    postgresMajorVersion: 15
+
+redis:
+  - name: web3search-redis
+    plan: free
+    region: oregon
+    ipAllowList: []

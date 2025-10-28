@@ -13,6 +13,7 @@ import os
 import logging
 from typing import List, Optional, Any
 from urllib.parse import urlparse
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import (
     Field,
@@ -33,6 +34,14 @@ class Settings(BaseSettings):
     - 强类型验证和格式检查
     - 敏感信息脱敏
     """
+
+    # ================================
+    # 项目路径配置
+    # ================================
+    BASE_DIR: Path = Field(
+        default_factory=lambda: Path(__file__).resolve().parent.parent.parent.parent,
+        description="项目根目录（Web3search目录）"
+    )
 
     # ================================
     # 基础配置

@@ -3,12 +3,24 @@ Deep Research 引擎
 生成15-30秒的深度研究报告
 """
 import asyncio
-from typing import Dict, Any, Optional, Callable, Awaitable
+from typing import Dict, Any, Optional, Callable, Awaitable, List
 from datetime import datetime
 
 from app.services.llm import llm_client, ModelConfig
 from app.services.data_aggregator import data_aggregator
 from app.services.prompt_manager import prompt_manager
+
+# 导入9个Analyzer和统一输出接口
+from app.services.research_engine.analyzers.analyzer_output import AnalyzerOutput, VisualizationHint
+from app.services.research_engine.analyzers.tldr_generator import tldr_generator
+from app.services.research_engine.analyzers.timeframe_analyzer import timeframe_analyzer
+from app.services.research_engine.analyzers.sentiment_analyzer import sentiment_analyzer
+from app.services.research_engine.analyzers.technical_analyzer import technical_analyzer
+from app.services.research_engine.analyzers.onchain_analyzer import onchain_analyzer
+from app.services.research_engine.analyzers.competitor_analyzer import competitor_analyzer
+from app.services.research_engine.analyzers.tokenomics_analyzer import tokenomics_analyzer
+from app.services.research_engine.analyzers.risk_assessor import risk_assessor
+from app.services.research_engine.analyzers.conclusion_synthesizer import conclusion_synthesizer
 
 
 class DeepResearchEngine:
@@ -22,6 +34,17 @@ class DeepResearchEngine:
         self.llm_client = llm_client
         self.data_aggregator = data_aggregator
         self.prompt_manager = prompt_manager
+
+        # 初始化9个Analyzer（使用全局单例）
+        self.tldr_generator = tldr_generator
+        self.timeframe_analyzer = timeframe_analyzer
+        self.sentiment_analyzer = sentiment_analyzer
+        self.technical_analyzer = technical_analyzer
+        self.onchain_analyzer = onchain_analyzer
+        self.competitor_analyzer = competitor_analyzer
+        self.tokenomics_analyzer = tokenomics_analyzer
+        self.risk_assessor = risk_assessor
+        self.conclusion_synthesizer = conclusion_synthesizer
 
     async def research(
         self,
@@ -73,46 +96,75 @@ class DeepResearchEngine:
         if progress_callback:
             await progress_callback("🤖 正在进行深度分析（生成摘要、技术分析、市场分析等）...", 50)
 
-        # 阶段1: 生成TL;DR（快速模型）
-        tldr = await self._generate_tldr(query, formatted_data)
+        # 阶段1: 生成TL;DR（使用TldrGenerator）
+        tldr_result = await self._generate_tldr(query, symbol, aggregated_data)
+        tldr_data = tldr_result.get("data", {})
+        tldr_summary = tldr_data.get("summary", "⚠️ TL;DR生成失败")
 
-        # 阶段2: 六维度分析（并行生成）
-        sections = await self._generate_sections(query, formatted_data, aggregated_data)
+        # 阶段2: 七维度分析（并行调用7个analyzer）
+        sections_result = await self._generate_sections(query, symbol, formatted_data, aggregated_data)
+
+        # 提取结果
+        analyzer_outputs = sections_result["analyzer_outputs"]
+        # 添加tldr到analyzer_outputs
+        analyzer_outputs["tldr"] = tldr_result
+        sections = sections_result["sections"]
+        visualization_hints = sections_result["visualization_hints"]
 
         # 发送进度：分析完成，生成报告
         if progress_callback:
             await progress_callback("📝 正在生成研究报告和投资建议...", 75)
 
-        # 阶段3: 生成结论和建议
-        conclusion = await self._generate_conclusion(
-            query,
-            tldr,
-            sections,
-            formatted_data,
+        # 阶段3: 生成结论和建议（使用ConclusionSynthesizer）
+        conclusion_result = await self._generate_conclusion(
+            symbol,
+            analyzer_outputs,
         )
+
+        # 添加conclusion到analyzer_outputs
+        analyzer_outputs["conclusion"] = conclusion_result
+
+        # 提取文本版本的conclusion（向后兼容）
+        conclusion_data = conclusion_result.get("data", {})
+        conclusion_summary = conclusion_data.get("summary", "⚠️ 结论生成失败")
 
         # 组装完整报告
         end_time = datetime.utcnow()
         generation_time = (end_time - start_time).total_seconds()
 
+        # 收集所有使用的模型
+        models_used = {}
+        for key, output in analyzer_outputs.items():
+            metadata = output.get("metadata", {})
+            if "model_used" in metadata:
+                models_used[key] = metadata["model_used"]
+
+        # 收集所有数据源
+        data_sources = set()
+        for key, output in analyzer_outputs.items():
+            metadata = output.get("metadata", {})
+            if "data_sources" in metadata:
+                data_sources.update(metadata.get("data_sources", []))
+
         report = {
             "symbol": symbol,
             "query": query,
-            "tldr": tldr,
+            # 向后兼容的文本字段
+            "tldr": tldr_summary,
             "sections": sections,
-            "conclusion": conclusion,
-            "data_sources": [
+            "conclusion": conclusion_summary,
+            # 新的结构化数据字段
+            "analyzer_outputs": analyzer_outputs,
+            "visualization_hints": visualization_hints,
+            # 元数据
+            "data_sources": list(data_sources) if data_sources else [
                 "CoinGecko",
                 "Etherscan/BSCScan",
                 "Twitter",
                 "Reddit",
                 "CryptoPanic",
             ],
-            "models_used": {
-                "tldr": ModelConfig.DEEP_RESEARCH_SUMMARY,
-                "sections": ModelConfig.DEEP_RESEARCH_ANALYSIS,
-                "conclusion": ModelConfig.DEEP_RESEARCH_ANALYSIS,
-            },
+            "models_used": models_used,
             "generation_time": generation_time,
             "timestamp": datetime.utcnow().isoformat(),
         }
@@ -152,256 +204,233 @@ class DeepResearchEngine:
     async def _generate_tldr(
         self,
         query: str,
-        formatted_data: Dict[str, str],
-    ) -> str:
+        symbol: str,
+        aggregated_data: Dict[str, Any],
+    ) -> Dict[str, Any]:
         """
-        生成TL;DR摘要
+        生成TL;DR摘要（使用TldrGenerator）
 
         Args:
             query: 用户查询
-            formatted_data: 格式化数据
+            symbol: 代币符号
+            aggregated_data: 聚合数据
 
         Returns:
-            str: TL;DR摘要
+            Dict[str, Any]: 包含data（tldr数据）和metadata的字典
         """
-        prompt = self.prompt_manager.get_tldr_prompt(
+        print("  📝 生成TL;DR摘要...")
+
+        # 调用TldrGenerator
+        tldr_output = await self.tldr_generator.generate_tldr(
             query=query,
-            market_data=formatted_data.get("market_data", ""),
-            project_info=formatted_data.get("project_info", ""),
-            social_data=formatted_data.get("social_data", ""),
+            symbol=symbol,
+            aggregated_data=aggregated_data,
         )
 
-        # 使用高质量模型生成摘要
-        summary = await self.llm_client.deep_research_summary(
-            context=prompt,
-            query=query,
-        )
+        if isinstance(tldr_output, Exception):
+            print(f"  ⚠️ TL;DR生成失败: {str(tldr_output)}")
+            return {
+                "data": {"summary": f"⚠️ TL;DR生成失败: {str(tldr_output)}"},
+                "metadata": {"analyzer_name": "TldrGenerator", "error": True},
+            }
 
-        return summary
+        if isinstance(tldr_output, AnalyzerOutput):
+            return {
+                "data": tldr_output.data,
+                "metadata": tldr_output.metadata.model_dump(),
+                "error": tldr_output.error,
+            }
+
+        # 意外类型
+        print(f"  ⚠️ TL;DR返回了意外的类型: {type(tldr_output)}")
+        return {
+            "data": {"summary": "⚠️ TL;DR返回格式不正确"},
+            "metadata": {"analyzer_name": "TldrGenerator", "error": True},
+        }
 
     async def _generate_sections(
         self,
         query: str,
+        symbol: str,
         formatted_data: Dict[str, str],
         raw_data: Dict[str, Any],
-    ) -> Dict[str, str]:
+    ) -> Dict[str, Any]:
         """
-        并行生成六个分析维度的内容
+        并行调用7个Analyzer生成分析内容（不包括tldr和conclusion）
 
         Args:
             query: 用户查询
+            symbol: 代币符号
             formatted_data: 格式化数据
             raw_data: 原始数据
 
         Returns:
-            Dict[str, str]: 各维度分析内容
+            Dict[str, Any]: 包含analyzer_outputs（AnalyzerOutput对象）和sections（文本内容）
         """
-        # 并行生成所有维度
-        overview, technical, market, community, risk, competitor = await asyncio.gather(
-            self._generate_overview(query, formatted_data),
-            self._generate_technical_analysis(query, formatted_data, raw_data),
-            self._generate_market_analysis(query, formatted_data),
-            self._generate_community_analysis(query, formatted_data),
-            self._generate_risk_assessment(query, formatted_data, raw_data),
-            self._generate_competitor_analysis(query, formatted_data, raw_data),
+        print("  🔬 并行调用7个Analyzer...")
+
+        # 准备各analyzer所需的数据
+        market_data = raw_data.get("market_data", {})
+        social_data = raw_data.get("social_data", {})
+        onchain_data = raw_data.get("onchain_data", {})
+        project_info = raw_data.get("project_info", {})
+
+        # 提取竞品信息
+        categories = project_info.get("categories", [])
+        competitors_str = ", ".join(categories) if categories else "加密货币"
+
+        # 提取代币经济学数据
+        tokenomics_data = {
+            "total_supply": market_data.get("total_supply"),
+            "circulating_supply": market_data.get("circulating_supply"),
+            "max_supply": market_data.get("max_supply"),
+        }
+
+        # 并行调用7个analyzer
+        (
+            timeframe_output,
+            sentiment_output,
+            technical_output,
+            onchain_output,
+            competitor_output,
+            tokenomics_output,
+            risk_output,
+        ) = await asyncio.gather(
+            self.timeframe_analyzer.analyze(symbol, query, market_data),
+            self.sentiment_analyzer.analyze(symbol, social_data),
+            self.technical_analyzer.analyze(symbol, market_data),
+            self.onchain_analyzer.analyze(symbol, onchain_data),
+            self.competitor_analyzer.analyze(symbol, competitors_str),
+            self.tokenomics_analyzer.analyze(symbol, tokenomics_data),
+            self.risk_assessor.analyze(symbol, raw_data),
             return_exceptions=True,
         )
 
-        # 处理异常结果
-        if isinstance(overview, Exception):
-            overview = f"⚠️ 生成失败: {str(overview)}"
-        if isinstance(technical, Exception):
-            technical = f"⚠️ 生成失败: {str(technical)}"
-        if isinstance(market, Exception):
-            market = f"⚠️ 生成失败: {str(market)}"
-        if isinstance(community, Exception):
-            community = f"⚠️ 生成失败: {str(community)}"
-        if isinstance(risk, Exception):
-            risk = f"⚠️ 生成失败: {str(risk)}"
-        if isinstance(competitor, Exception):
-            competitor = f"⚠️ 生成失败: {str(competitor)}"
+        # 收集analyzer输出和降级处理
+        analyzer_outputs = {}
+        visualization_hints: List[VisualizationHint] = []
 
-        return {
-            "overview": overview,
-            "technical_analysis": technical,
-            "market_analysis": market,
-            "community_analysis": community,
-            "risk_assessment": risk,
-            "competitor_analysis": competitor,
+        # 处理每个analyzer的输出
+        analyzers_data = [
+            ("timeframe", timeframe_output, "时间窗分析"),
+            ("sentiment", sentiment_output, "情绪分析"),
+            ("technical", technical_output, "技术分析"),
+            ("onchain", onchain_output, "链上分析"),
+            ("competitor", competitor_output, "竞品分析"),
+            ("tokenomics", tokenomics_output, "代币经济学"),
+            ("risk", risk_output, "风险评估"),
+        ]
+
+        for key, output, name in analyzers_data:
+            if isinstance(output, Exception):
+                print(f"  ⚠️ {name}失败: {str(output)}")
+                # 创建降级输出
+                analyzer_outputs[key] = {
+                    "data": {"error": str(output), "summary": f"{name}生成失败"},
+                    "metadata": {
+                        "analyzer_name": key,
+                        "error": True,
+                    },
+                }
+            elif isinstance(output, AnalyzerOutput):
+                # 正常输出
+                analyzer_outputs[key] = {
+                    "data": output.data,
+                    "metadata": output.metadata.model_dump(),
+                    "error": output.error,
+                }
+                # 收集可视化提示
+                visualization_hints.extend(output.visualization_hints)
+            else:
+                print(f"  ⚠️ {name}返回了意外的类型: {type(output)}")
+                analyzer_outputs[key] = {
+                    "data": {"error": "返回类型错误", "summary": f"{name}返回格式不正确"},
+                    "metadata": {
+                        "analyzer_name": key,
+                        "error": True,
+                    },
+                }
+
+        # 构建向后兼容的sections字典（提取文本内容）
+        sections = {
+            "timeframe": self._extract_summary(analyzer_outputs.get("timeframe")),
+            "sentiment": self._extract_summary(analyzer_outputs.get("sentiment")),
+            "technical_analysis": self._extract_summary(analyzer_outputs.get("technical")),
+            "onchain_analysis": self._extract_summary(analyzer_outputs.get("onchain")),
+            "competitor_analysis": self._extract_summary(analyzer_outputs.get("competitor")),
+            "tokenomics": self._extract_summary(analyzer_outputs.get("tokenomics")),
+            "risk_assessment": self._extract_summary(analyzer_outputs.get("risk")),
         }
 
-    async def _generate_overview(
-        self,
-        query: str,
-        formatted_data: Dict[str, str],
-    ) -> str:
-        """生成项目概览"""
-        prompt = self.prompt_manager.get_overview_prompt(
-            query=query,
-            project_info=formatted_data.get("project_info", ""),
-            market_data=formatted_data.get("market_data", ""),
-        )
+        return {
+            "analyzer_outputs": analyzer_outputs,
+            "sections": sections,
+            "visualization_hints": visualization_hints,
+        }
 
-        return await self.llm_client.deep_research_analysis(
-            context=prompt,
-            query=query,
-            analysis_type="fundamental",
-        )
+    def _extract_summary(self, analyzer_output: Optional[Dict[str, Any]]) -> str:
+        """从analyzer输出中提取摘要文本（用于向后兼容）"""
+        if not analyzer_output:
+            return "⚠️ 分析数据不可用"
 
-    async def _generate_technical_analysis(
-        self,
-        query: str,
-        formatted_data: Dict[str, str],
-        raw_data: Dict[str, Any],
-    ) -> str:
-        """生成技术分析"""
-        onchain_data = raw_data.get("onchain_data", {})
+        data = analyzer_output.get("data", {})
+        if analyzer_output.get("error"):
+            return f"⚠️ {data.get('summary', '生成失败')}"
 
-        # 检查合约验证状态
-        contract_verified = False
-        for chain, data in onchain_data.items():
-            if isinstance(data, dict) and data.get("is_verified"):
-                contract_verified = True
-                break
+        # 尝试提取summary字段
+        if "summary" in data:
+            return data["summary"]
 
-        prompt = self.prompt_manager.get_technical_analysis_prompt(
-            query=query,
-            project_info=formatted_data.get("project_info", ""),
-            onchain_data=formatted_data.get("onchain_data", ""),
-            contract_verified=contract_verified,
-        )
-
-        return await self.llm_client.deep_research_analysis(
-            context=prompt,
-            query=query,
-            analysis_type="technical",
-        )
-
-    async def _generate_market_analysis(
-        self,
-        query: str,
-        formatted_data: Dict[str, str],
-    ) -> str:
-        """生成市场分析"""
-        prompt = self.prompt_manager.get_market_analysis_prompt(
-            query=query,
-            market_data=formatted_data.get("market_data", ""),
-            historical_data="",  # 可以添加图表数据
-        )
-
-        return await self.llm_client.deep_research_analysis(
-            context=prompt,
-            query=query,
-            analysis_type="market",
-        )
-
-    async def _generate_community_analysis(
-        self,
-        query: str,
-        formatted_data: Dict[str, str],
-    ) -> str:
-        """生成社区分析"""
-        prompt = self.prompt_manager.get_community_analysis_prompt(
-            query=query,
-            twitter_data=formatted_data.get("social_data", ""),
-            reddit_data=formatted_data.get("social_data", ""),
-            news_data=formatted_data.get("news_data", ""),
-        )
-
-        return await self.llm_client.deep_research_analysis(
-            context=prompt,
-            query=query,
-            analysis_type="community",
-        )
-
-    async def _generate_risk_assessment(
-        self,
-        query: str,
-        formatted_data: Dict[str, str],
-        raw_data: Dict[str, Any],
-    ) -> str:
-        """生成风险评估"""
-        prompt = self.prompt_manager.get_risk_assessment_prompt(
-            query=query,
-            project_info=formatted_data.get("project_info", ""),
-            market_data=formatted_data.get("market_data", ""),
-            onchain_data=formatted_data.get("onchain_data", ""),
-            news_data=formatted_data.get("news_data", ""),
-        )
-
-        return await self.llm_client.deep_research_analysis(
-            context=prompt,
-            query=query,
-            analysis_type="risk",
-        )
-
-    async def _generate_competitor_analysis(
-        self,
-        query: str,
-        formatted_data: Dict[str, str],
-        raw_data: Dict[str, Any],
-    ) -> str:
-        """生成竞品分析"""
-        # 获取项目类别
-        project_info = raw_data.get("project_info", {})
-        categories = project_info.get("categories", [])
-
-        # 简单实现：使用类别信息
-        category_str = ", ".join(categories) if categories else "加密货币"
-
-        prompt = self.prompt_manager.get_competitor_analysis_prompt(
-            query=query,
-            target_project=formatted_data.get("project_info", ""),
-            competitors=f"类别: {category_str}",
-        )
-
-        return await self.llm_client.deep_research_analysis(
-            context=prompt,
-            query=query,
-            analysis_type="competitor",
-        )
+        # 如果没有summary，返回JSON格式的数据摘要
+        return str(data)[:500]  # 截取前500字符
 
     async def _generate_conclusion(
         self,
-        query: str,
-        tldr: str,
-        sections: Dict[str, str],
-        formatted_data: Dict[str, str],
-    ) -> str:
+        symbol: str,
+        analyzer_outputs: Dict[str, Dict[str, Any]],
+    ) -> Dict[str, Any]:
         """
-        生成结论和投资建议
+        生成结论和投资建议（使用ConclusionSynthesizer）
 
         Args:
-            query: 用户查询
-            tldr: TL;DR摘要
-            sections: 各维度分析
-            formatted_data: 格式化数据
+            symbol: 代币符号
+            analyzer_outputs: 所有analyzer的输出
 
         Returns:
-            str: 结论内容
+            Dict[str, Any]: 包含data（conclusion数据）和metadata的字典
         """
-        # 构建上下文
-        context = f"""
-基于以下分析，总结项目的关键发现并给出投资建议：
+        print("  🎯 生成最终结论和投资建议...")
 
-TL;DR: {tldr}
+        # 构建all_analyses字典（ConclusionSynthesizer需要的格式）
+        all_analyses = {"symbol": symbol}
 
-市场数据: {formatted_data.get('market_data', '')}
+        # 提取各analyzer的data部分
+        for key, output in analyzer_outputs.items():
+            all_analyses[key] = output.get("data", {})
 
-风险评估: {sections.get('risk_assessment', '')[:500]}
+        # 调用ConclusionSynthesizer
+        conclusion_output = await self.conclusion_synthesizer.analyze(all_analyses)
 
-要求：
-- 列出3-5个关键发现
-- 给出投资建议（保守/中性/积极）
-- 说明理由
-- 保持客观和谨慎
-"""
+        if isinstance(conclusion_output, Exception):
+            print(f"  ⚠️ 结论生成失败: {str(conclusion_output)}")
+            return {
+                "data": {"summary": f"⚠️ 结论生成失败: {str(conclusion_output)}"},
+                "metadata": {"analyzer_name": "ConclusionSynthesizer", "error": True},
+            }
 
-        return await self.llm_client.deep_research_analysis(
-            context=context,
-            query=query,
-            analysis_type="risk",
-        )
+        if isinstance(conclusion_output, AnalyzerOutput):
+            return {
+                "data": conclusion_output.data,
+                "metadata": conclusion_output.metadata.model_dump(),
+                "error": conclusion_output.error,
+            }
+
+        # 意外类型
+        print(f"  ⚠️ 结论返回了意外的类型: {type(conclusion_output)}")
+        return {
+            "data": {"summary": "⚠️ 结论返回格式不正确"},
+            "metadata": {"analyzer_name": "ConclusionSynthesizer", "error": True},
+        }
 
 
 # ================================

@@ -3,12 +3,18 @@
 分析用户活动、协议基本面、持币分布等链上指标
 """
 import json
+import time
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 import yaml
 
 from app.services.llm import llm_client, ModelConfig
 from app.core.config import settings
+from app.services.research_engine.analyzers.analyzer_output import (
+    AnalyzerOutput,
+    create_analyzer_output,
+    create_error_output,
+)
 
 
 class OnchainAnalyzer:
@@ -42,7 +48,7 @@ class OnchainAnalyzer:
     async def analyze(
         self,
         aggregated_data: Dict[str, Any],
-    ) -> Dict[str, Any]:
+    ) -> AnalyzerOutput:
         """
         链上数据分析
 
@@ -50,8 +56,10 @@ class OnchainAnalyzer:
             aggregated_data: 聚合后的项目数据（来自DataAggregator）
 
         Returns:
-            Dict: 链上数据分析结果
+            AnalyzerOutput: 包含链上数据分析结果、元数据和可视化提示
         """
+        start_time = time.time()
+
         # 提取必要数据
         symbol = aggregated_data.get("symbol", "Unknown")
         project_info = aggregated_data.get("project_info", {})
@@ -76,22 +84,44 @@ class OnchainAnalyzer:
         )
 
         # 调用LLM生成（使用qwen3-235b）
+        model_used = self.model_config.get("primary_model", ModelConfig.DEEP_RESEARCH_SUMMARY)
+        fallback_used = False
+
         try:
             result = await self._call_llm(user_prompt, use_fallback=False)
         except Exception as e:
             print(f"⚠️ 主模型调用失败: {e}，尝试fallback模型")
             try:
                 result = await self._call_llm(user_prompt, use_fallback=True)
+                model_used = self.model_config.get("fallback_model", ModelConfig.QUICK_CHAT)
+                fallback_used = True
             except Exception as fallback_error:
                 print(f"❌ Fallback模型也失败: {fallback_error}")
-                return self._create_error_response(symbol, str(fallback_error))
+                return self._create_error_response(symbol, str(fallback_error), model_used)
 
         # 验证输出格式
+        validation_warnings = []
         if not self._validate_output(result):
             print("⚠️ 输出格式验证失败，使用默认值补全")
+            validation_warnings.append("输出格式验证失败，已使用默认值补全")
             result = self._fix_invalid_output(result, symbol)
 
-        return result
+        # 计算生成时间
+        generation_time_ms = int((time.time() - start_time) * 1000)
+
+        # 包装为AnalyzerOutput
+        return create_analyzer_output(
+            data=result,
+            analyzer_name="OnchainAnalyzer",
+            model_used=model_used,
+            fallback_used=fallback_used,
+            generation_time_ms=generation_time_ms,
+            confidence=result.get("onchain_health_score", {}).get("confidence"),
+            data_sources=["Etherscan", "Dune Analytics"],
+            visualization_hints=[],
+            validation_passed=len(validation_warnings) == 0,
+            validation_warnings=validation_warnings,
+        )
 
     def _analyze_user_activity(self, onchain_data: Dict) -> Dict:
         """
@@ -496,50 +526,23 @@ class OnchainAnalyzer:
 
         return result
 
-    def _create_error_response(self, symbol: str, error_msg: str) -> Dict[str, Any]:
+    def _create_error_response(self, symbol: str, error_msg: str, model_used: str) -> AnalyzerOutput:
         """
         创建错误响应
 
         Args:
             symbol: 币种符号
             error_msg: 错误信息
+            model_used: 尝试使用的模型
 
         Returns:
-            Dict: 错误响应数据
+            AnalyzerOutput: 错误响应
         """
-        from datetime import datetime, timezone
-
-        return {
-            "user_activity": {
-                "active_addresses": {"daily": 0, "weekly": 0, "monthly": 0, "trend": "数据不足", "growth_rate_30d": "N/A", "interpretation": "分析失败"},
-                "new_users": {"new_addresses_30d": 0, "growth_rate": "N/A", "interpretation": "分析失败"},
-                "transaction_activity": {"daily_txs": 0, "trend": "数据不足", "interpretation": "分析失败"},
-                "overall_narrative": f"{symbol}的用户活动分析失败。",
-            },
-            "protocol_fundamentals": {
-                "tvl": {"current": 0, "change_30d": "N/A", "change_90d": "N/A", "rank": 999, "interpretation": "分析失败"},
-                "revenue": {"fees_30d": 0, "revenue_30d": 0, "annualized_revenue": 0, "growth_rate": "N/A", "interpretation": "分析失败"},
-                "revenue_distribution": {"staker_share": 0, "treasury_buyback": 0, "burn": 0, "model": "N/A", "interpretation": "分析失败"},
-                "valuation_metrics": {"market_cap": 0, "tvl": 0, "mcap_to_tvl": 0, "pe_ratio": 0, "interpretation": "分析失败"},
-                "overall_narrative": f"{symbol}的协议基本面分析失败。",
-            },
-            "token_distribution": {
-                "concentration": {"top_10_pct": 0, "top_100_pct": 0, "gini_coefficient": 0, "rating": "数据不足", "interpretation": "分析失败"},
-                "whale_activity": {"whale_count": 0, "whale_holdings_pct": 0, "net_flow_30d": "0", "trend": "数据不足", "interpretation": "分析失败"},
-                "exchange_balance": {"balance_pct": 0, "net_flow_30d": "0", "interpretation": "分析失败"},
-                "overall_narrative": f"{symbol}的持币分布分析失败。",
-            },
-            "onchain_health_score": {
-                "score": 30,
-                "rating": "差",
-                "strengths": [],
-                "weaknesses": ["分析失败"],
-                "outlook": f"{symbol}的链上数据分析失败: {error_msg}",
-            },
-            "data_sources": [],
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "error": error_msg,
-        }
+        return create_error_output(
+            analyzer_name="OnchainAnalyzer",
+            error_msg=f"{symbol}的链上数据分析失败: {error_msg}",
+            model_used=model_used,
+        )
 
 
 # 全局单例

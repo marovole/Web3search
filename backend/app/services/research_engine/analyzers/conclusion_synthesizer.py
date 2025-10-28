@@ -4,9 +4,15 @@ Conclusion Synthesizer
 """
 import yaml
 import json
+import time
 from pathlib import Path
 from typing import Dict, List, Any, Tuple, Optional
-from app.services.llm.openrouter_client import OpenRouterClient
+from app.services.llm import llm_client
+from app.services.research_engine.analyzers.analyzer_output import (
+    AnalyzerOutput,
+    create_analyzer_output,
+    create_error_output,
+)
 
 
 class ConclusionSynthesizer:
@@ -15,11 +21,12 @@ class ConclusionSynthesizer:
     def __init__(self):
         """初始化结论综合器"""
         self._load_prompts()
-        self.llm_client = OpenRouterClient()
+        self.llm_client = llm_client
 
     def _load_prompts(self):
         """加载 prompt 模板"""
-        prompt_path = Path(__file__).parent.parent.parent.parent.parent / "prompts" / "deep_research" / "conclusion.yaml"
+        from app.core.config import settings
+        prompt_path = settings.BASE_DIR / "prompts" / "deep_research" / "conclusion.yaml"
 
         with open(prompt_path, 'r', encoding='utf-8') as f:
             prompts = yaml.safe_load(f)
@@ -89,7 +96,7 @@ class ConclusionSynthesizer:
 
         return prompt
 
-    async def analyze(self, all_analyses: Dict) -> Dict:
+    async def analyze(self, all_analyses: Dict) -> AnalyzerOutput:
         """
         执行结论综合
 
@@ -106,32 +113,51 @@ class ConclusionSynthesizer:
                 - risk: 风险评估结果
 
         Returns:
-            分析结果字典
+            AnalyzerOutput: 包含结论综合数据、元数据和可视化提示
         """
+        start_time = time.time()
+        symbol = all_analyses.get("symbol", "Unknown")
+
         try:
             # 格式化 prompt
             user_prompt = self._format_prompt(all_analyses)
 
-            # 调用 LLM
-            result = await self._call_llm(user_prompt)
+            # 调用 LLM（返回 result, model_used, fallback_used 三元组）
+            result, model_used, fallback_used = await self._call_llm(user_prompt)
 
             if result is None:
-                return self._create_error_response("LLM 调用失败")
+                return self._create_error_response("LLM 调用失败", model_used)
 
             # 验证输出
             is_valid, errors = self._validate_output(result)
 
+            validation_warnings = []
             if not is_valid:
                 # 尝试修复
+                validation_warnings.append(f"输出验证失败: {', '.join(errors)}")
                 result = self._fix_invalid_output(result, errors)
 
-            result["error"] = False
-            return result
+            # 计算生成时间
+            generation_time_ms = int((time.time() - start_time) * 1000)
+
+            # 包装为AnalyzerOutput
+            return create_analyzer_output(
+                data=result,
+                analyzer_name="ConclusionSynthesizer",
+                model_used=model_used,
+                fallback_used=fallback_used,
+                generation_time_ms=generation_time_ms,
+                confidence=result.get("final_rating", {}).get("confidence"),
+                data_sources=["All Analyzers"],
+                visualization_hints=[],
+                validation_passed=len(validation_warnings) == 0,
+                validation_warnings=validation_warnings,
+            )
 
         except Exception as e:
-            return self._create_error_response(f"分析过程出错: {str(e)}")
+            return self._create_error_response(f"分析过程出错: {str(e)}", self.model_config.get("primary_model", "unknown"))
 
-    async def _call_llm(self, user_prompt: str) -> Optional[Dict]:
+    async def _call_llm(self, user_prompt: str) -> Tuple[Optional[Dict], str, bool]:
         """
         调用 LLM
 
@@ -139,12 +165,15 @@ class ConclusionSynthesizer:
             user_prompt: 用户 prompt
 
         Returns:
-            LLM 响应字典
+            三元组: (LLM响应字典, 使用的模型, 是否使用fallback)
         """
+        model_used = self.model_config["primary_model"]
+        fallback_used = False
+
         try:
             # 主模型
             response = await self.llm_client.chat_completion(
-                model=self.model_config["primary_model"],
+                model=model_used,
                 messages=[
                     {"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -160,15 +189,18 @@ class ConclusionSynthesizer:
                 json_end = content.rfind("}") + 1
                 if json_start != -1 and json_end > json_start:
                     json_str = content[json_start:json_end]
-                    return json.loads(json_str)
+                    return json.loads(json_str), model_used, fallback_used
 
         except Exception as e:
             print(f"Primary model failed: {e}")
 
         # Fallback 模型
+        model_used = self.model_config["fallback_model"]
+        fallback_used = True
+
         try:
             response = await self.llm_client.chat_completion(
-                model=self.model_config["fallback_model"],
+                model=model_used,
                 messages=[
                     {"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -183,12 +215,12 @@ class ConclusionSynthesizer:
                 json_end = content.rfind("}") + 1
                 if json_start != -1 and json_end > json_start:
                     json_str = content[json_start:json_end]
-                    return json.loads(json_str)
+                    return json.loads(json_str), model_used, fallback_used
 
         except Exception as e:
             print(f"Fallback model failed: {e}")
 
-        return None
+        return None, model_used, fallback_used
 
     def _validate_output(self, output: Dict) -> Tuple[bool, List[str]]:
         """
@@ -340,80 +372,22 @@ class ConclusionSynthesizer:
 
         return output
 
-    def _create_error_response(self, error_message: str) -> Dict:
+    def _create_error_response(self, error_message: str, model_used: str) -> AnalyzerOutput:
         """
         创建错误响应
 
         Args:
             error_message: 错误消息
+            model_used: 尝试使用的模型
 
         Returns:
-            错误响应字典
+            AnalyzerOutput: 错误响应
         """
-        return {
-            "error": True,
-            "message": error_message,
-            "executive_summary": {
-                "one_sentence_thesis": f"分析失败: {error_message}",
-                "bull_thesis": [],
-                "bear_thesis": [],
-                "key_assumptions": [],
-                "invalidation_triggers": []
-            },
-            "investment_outlook": {
-                "short_term": {
-                    "timeframe": "1-2周",
-                    "view": "中性",
-                    "price_target": "数据不足",
-                    "key_events": [],
-                    "rationale": error_message
-                },
-                "medium_term": {
-                    "timeframe": "1-2月",
-                    "view": "中性",
-                    "price_target": "数据不足",
-                    "key_events": [],
-                    "rationale": error_message
-                }
-            },
-            "key_metrics_to_watch": [
-                {"metric": "数据不足", "current_value": "N/A", "target": "N/A", "importance": "中", "rationale": error_message}
-                for _ in range(5)
-            ],
-            "confidence_assessment": {
-                "overall_confidence": 0,
-                "confidence_level": "低",
-                "data_quality": "差",
-                "analysis_completeness": "严重缺失",
-                "uncertainty_factors": [error_message],
-                "confidence_rationale": error_message
-            },
-            "investment_recommendation": {
-                "rating": "中性",
-                "action": "观望",
-                "position_sizing": "0%",
-                "entry_strategy": "数据不足",
-                "exit_strategy": "数据不足",
-                "risk_management": [],
-                "suitable_for": "数据不足",
-                "not_suitable_for": "数据不足"
-            },
-            "catalyst_calendar": [],
-            "comparative_analysis": {
-                "vs_competitors": error_message,
-                "vs_sector": error_message,
-                "vs_market": error_message
-            },
-            "final_verdict": {
-                "verdict": "中性",
-                "conviction_level": "低",
-                "time_horizon": "数据不足",
-                "expected_return": "数据不足",
-                "max_drawdown_risk": "数据不足",
-                "risk_reward_ratio": 0,
-                "summary": f"结论综合失败: {error_message}"
-            }
-        }
+        return create_error_output(
+            analyzer_name="ConclusionSynthesizer",
+            error_msg=f"结论综合失败: {error_message}",
+            model_used=model_used,
+        )
 
 
 # 创建全局单例

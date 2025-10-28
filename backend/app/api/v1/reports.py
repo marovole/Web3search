@@ -1,11 +1,13 @@
 """
 报告查询API端点
-提供报告列表、详情查询等功能
+提供报告列表、详情查询、PDF导出等功能
 """
 from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, asc
 from typing import Optional
+import os
 
 from app.core.database import get_db
 from app.schemas.report import (
@@ -17,6 +19,7 @@ from app.schemas.report import (
     SharedReportResponse,
 )
 from app.models.report import Report, ReportType, ReportStatus
+from app.services.report.pdf_exporter import pdf_exporter
 
 
 router = APIRouter()
@@ -652,4 +655,134 @@ async def disable_share_link(
         raise HTTPException(
             status_code=500,
             detail=f"禁用分享链接失败: {str(e)}"
+        )
+
+
+# ================================
+# PDF导出API
+# ================================
+
+@router.get(
+    "/reports/{report_id}/export/pdf",
+    summary="导出报告为PDF",
+    description="将报告导出为PDF文件并下载",
+    tags=["Reports"],
+    responses={
+        200: {
+            "description": "成功生成并返回PDF文件",
+            "content": {"application/pdf": {}},
+        },
+        404: {"description": "报告不存在"},
+        400: {"description": "只能导出已完成的报告"},
+        500: {"description": "PDF生成失败"},
+    }
+)
+async def export_report_pdf(
+    report_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    导出报告为PDF - 生成专业格式的PDF报告文件
+
+    该端点将Markdown格式的报告转换为PDF文件,支持中文字体、表格和图表。
+
+    **特性:**
+    - 📄 专业的PDF排版（A4页面、页眉页脚）
+    - 🎨 自适应表格和图表渲染
+    - 🌏 中文字体支持
+    - ⏱️ 超时控制（30秒）
+    - 🗑️ 自动清理临时文件
+
+    **限制:**
+    - 只能导出已完成的报告
+    - PDF生成超时时间：30秒
+    - 文件大小限制：50MB
+
+    **请求示例:**
+    ```bash
+    # 下载PDF报告
+    curl "http://localhost:8000/api/v1/reports/123/export/pdf" \\
+      -o bitcoin_report.pdf
+    ```
+
+    **响应:**
+    - Content-Type: application/pdf
+    - Content-Disposition: attachment; filename="BTC_深度研究报告_20250126.pdf"
+
+    **错误响应:**
+    ```json
+    {
+      "detail": "只能导出已完成的报告"
+    }
+    ```
+    """
+    try:
+        # 查询报告
+        stmt = select(Report).where(Report.id == report_id)
+        result = await db.execute(stmt)
+        report = result.scalar_one_or_none()
+
+        if not report:
+            raise HTTPException(status_code=404, detail="报告不存在")
+
+        # 只能导出已完成的报告
+        if not report.is_completed:
+            raise HTTPException(status_code=400, detail="只能导出已完成的报告")
+
+        # 检查Markdown内容是否存在
+        if not report.content_markdown:
+            raise HTTPException(status_code=400, detail="报告内容为空，无法导出")
+
+        print(f"📄 开始为报告 {report_id} 生成PDF...")
+
+        # 生成临时PDF文件路径
+        safe_symbol = "".join(c for c in (report.symbol or "Unknown") if c.isalnum())
+        pdf_filename = f"{safe_symbol}_{report_id}"
+        temp_pdf_path = pdf_exporter.generate_temp_pdf_path(pdf_filename)
+
+        # 生成PDF
+        title = report.title or f"{report.symbol} 深度研究报告"
+        try:
+            pdf_path = pdf_exporter.export_to_pdf(
+                markdown_content=report.content_markdown,
+                output_path=temp_pdf_path,
+                title=title,
+                timeout=30
+            )
+        except Exception as pdf_error:
+            print(f"❌ PDF生成失败: {pdf_error}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"PDF生成失败: {str(pdf_error)}"
+            )
+
+        # 检查文件是否生成成功
+        if not os.path.exists(pdf_path):
+            raise HTTPException(status_code=500, detail="PDF文件生成失败")
+
+        # 构建下载文件名
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d")
+        download_filename = f"{safe_symbol}_深度研究报告_{timestamp}.pdf"
+
+        # 返回PDF文件（FastAPI会自动处理文件传输和清理）
+        return FileResponse(
+            path=pdf_path,
+            media_type="application/pdf",
+            filename=download_filename,
+            headers={
+                "Content-Disposition": f'attachment; filename="{download_filename}"',
+                "Cache-Control": "no-cache",
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ 导出PDF错误: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"导出PDF失败: {str(e)}"
         )

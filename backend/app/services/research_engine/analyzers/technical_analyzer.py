@@ -3,6 +3,7 @@
 分析价格走势、技术指标、支撑阻力位和衍生品市场数据
 """
 import json
+import time
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 import yaml
@@ -10,6 +11,12 @@ import statistics
 
 from app.services.llm import llm_client, ModelConfig
 from app.core.config import settings
+from app.services.research_engine.analyzers.analyzer_output import (
+    AnalyzerOutput,
+    create_analyzer_output,
+    create_error_output,
+    create_price_chart_hint,
+)
 
 
 class TechnicalAnalyzer:
@@ -43,7 +50,7 @@ class TechnicalAnalyzer:
     async def analyze(
         self,
         aggregated_data: Dict[str, Any],
-    ) -> Dict[str, Any]:
+    ) -> AnalyzerOutput:
         """
         技术面分析
 
@@ -51,8 +58,10 @@ class TechnicalAnalyzer:
             aggregated_data: 聚合后的项目数据（来自DataAggregator）
 
         Returns:
-            Dict: 技术面分析数据
+            AnalyzerOutput: 包含技术面分析数据、元数据和可视化提示
         """
+        start_time = time.time()
+
         # 提取必要数据
         symbol = aggregated_data.get("symbol", "Unknown")
         project_info = aggregated_data.get("project_info", {})
@@ -88,22 +97,44 @@ class TechnicalAnalyzer:
         )
 
         # 调用LLM生成（使用deepseek-r1）
+        model_used = self.model_config.get("primary_model", ModelConfig.DEEP_RESEARCH_SUMMARY)
+        fallback_used = False
+
         try:
             result = await self._call_llm(user_prompt, use_fallback=False)
         except Exception as e:
             print(f"⚠️ 主模型调用失败: {e}，尝试fallback模型")
             try:
                 result = await self._call_llm(user_prompt, use_fallback=True)
+                model_used = self.model_config.get("fallback_model", ModelConfig.QUICK_CHAT)
+                fallback_used = True
             except Exception as fallback_error:
                 print(f"❌ Fallback模型也失败: {fallback_error}")
-                return self._create_error_response(symbol, str(fallback_error))
+                return self._create_error_response(symbol, str(fallback_error), model_used)
 
         # 验证输出格式
+        validation_warnings = []
         if not self._validate_output(result):
             print("⚠️ 输出格式验证失败，使用默认值补全")
+            validation_warnings.append("输出格式验证失败，已使用默认值补全")
             result = self._fix_invalid_output(result, symbol)
 
-        return result
+        # 计算生成时间
+        generation_time_ms = int((time.time() - start_time) * 1000)
+
+        # 包装为AnalyzerOutput
+        return create_analyzer_output(
+            data=result,
+            analyzer_name="TechnicalAnalyzer",
+            model_used=model_used,
+            fallback_used=fallback_used,
+            generation_time_ms=generation_time_ms,
+            confidence=result.get("technical_rating", {}).get("confidence"),
+            data_sources=["CoinGecko", "TradingView"],
+            visualization_hints=[],  # 可选：添加价格图表hint
+            validation_passed=len(validation_warnings) == 0,
+            validation_warnings=validation_warnings,
+        )
 
     def _extract_price_history(self, aggregated_data: Dict) -> Dict:
         """
@@ -715,54 +746,23 @@ class TechnicalAnalyzer:
 
         return result
 
-    def _create_error_response(self, symbol: str, error_msg: str) -> Dict[str, Any]:
+    def _create_error_response(self, symbol: str, error_msg: str, model_used: str) -> AnalyzerOutput:
         """
         创建错误响应
 
         Args:
             symbol: 币种符号
             error_msg: 错误信息
+            model_used: 尝试使用的模型
 
         Returns:
-            Dict: 错误响应数据
+            AnalyzerOutput: 错误响应
         """
-        from datetime import datetime, timezone
-
-        return {
-            "technical_indicators": {
-                "rsi": {"value": 50, "signal": "中性", "interpretation": "分析失败，数据不可用"},
-                "macd": {"macd_line": 0, "signal_line": 0, "histogram": 0, "signal": "中性", "interpretation": "分析失败，数据不可用"},
-                "bollinger_bands": {"upper": 0, "middle": 0, "lower": 0, "current_position": "数据不足", "bandwidth": "数据不足", "interpretation": "分析失败，数据不可用"},
-            },
-            "support_resistance": {
-                "immediate_support": [],
-                "immediate_resistance": [],
-                "strong_support": [],
-                "strong_resistance": [],
-                "key_levels_narrative": "分析失败",
-            },
-            "trend_analysis": {
-                "short_term_trend": "横盘",
-                "medium_term_trend": "横盘",
-                "trend_strength": "弱",
-                "narrative": f"{symbol}的技术面分析生成失败。",
-            },
-            "derivatives_analysis": {
-                "open_interest": {"value": 0, "change_24h": 0, "signal": "中性", "interpretation": "数据不足"},
-                "funding_rate": {"value": 0, "interpretation": "数据不足"},
-                "liquidation_risk": {"level": "低", "long_liquidations_24h": 0, "short_liquidations_24h": 0, "interpretation": "数据不足"},
-            },
-            "overall_technical_view": {
-                "bias": "中性",
-                "confidence": 30,
-                "time_horizon": "短期",
-                "narrative": f"{symbol}的技术面分析失败: {error_msg}",
-            },
-            "risk_warnings": [],
-            "data_sources": [],
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "error": error_msg,
-        }
+        return create_error_output(
+            analyzer_name="TechnicalAnalyzer",
+            error_msg=f"{symbol}的技术面分析失败: {error_msg}",
+            model_used=model_used,
+        )
 
 
 # 全局单例

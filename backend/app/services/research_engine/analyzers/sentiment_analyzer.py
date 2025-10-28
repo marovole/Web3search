@@ -3,12 +3,19 @@
 分析Twitter、Reddit、新闻等社交媒体数据，识别情绪倾向和热门话题
 """
 import json
+import time
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 import yaml
 
 from app.services.llm import llm_client, ModelConfig
 from app.core.config import settings
+from app.services.research_engine.analyzers.analyzer_output import (
+    AnalyzerOutput,
+    create_analyzer_output,
+    create_error_output,
+    create_sentiment_pie_hint,
+)
 
 
 class SentimentAnalyzer:
@@ -42,7 +49,7 @@ class SentimentAnalyzer:
     async def analyze(
         self,
         aggregated_data: Dict[str, Any],
-    ) -> Dict[str, Any]:
+    ) -> AnalyzerOutput:
         """
         分析社交媒体情绪
 
@@ -50,7 +57,8 @@ class SentimentAnalyzer:
             aggregated_data: 聚合后的项目数据（来自DataAggregator）
 
         Returns:
-            Dict: 情绪分析数据，格式：
+            AnalyzerOutput: 包含情绪分析数据、元数据和可视化提示
+            data格式：
             {
                 "overall_sentiment": {
                     "label": "积极 | 中性 | 消极",
@@ -73,6 +81,8 @@ class SentimentAnalyzer:
                 "updated_at": "..."
             }
         """
+        start_time = time.time()
+
         # 提取必要数据
         symbol = aggregated_data.get("symbol", "Unknown")
         project_info = aggregated_data.get("project_info", {})
@@ -95,6 +105,9 @@ class SentimentAnalyzer:
         )
 
         # 调用LLM生成
+        model_used = self.model_config.get("primary_model", ModelConfig.DEEP_RESEARCH_SUMMARY)
+        fallback_used = False
+
         try:
             # 使用qwen3-30b模型（情绪分析专用）
             result = await self._call_llm(user_prompt, use_fallback=False)
@@ -103,17 +116,49 @@ class SentimentAnalyzer:
             try:
                 # Fallback到qwen3-30b（情绪分析用同一个模型）
                 result = await self._call_llm(user_prompt, use_fallback=True)
+                model_used = self.model_config.get("fallback_model", ModelConfig.QUICK_CHAT)
+                fallback_used = True
             except Exception as fallback_error:
                 # 如果两个模型都失败，返回默认响应
                 print(f"❌ Fallback模型也失败: {fallback_error}")
-                return self._create_error_response(symbol, str(fallback_error))
+                return self._create_error_response(symbol, str(fallback_error), model_used)
 
         # 验证输出格式
+        validation_warnings = []
         if not self._validate_output(result):
             print("⚠️ 输出格式验证失败，使用默认值补全")
+            validation_warnings.append("输出格式验证失败，已使用默认值补全")
             result = self._fix_invalid_output(result, symbol)
 
-        return result
+        # 计算生成时间
+        generation_time_ms = int((time.time() - start_time) * 1000)
+
+        # 提取情绪百分比用于可视化
+        sentiment_breakdown = result.get("sentiment_breakdown", {})
+        positive_pct = sentiment_breakdown.get("positive_percent", 0)
+        neutral_pct = sentiment_breakdown.get("neutral_percent", 0)
+        negative_pct = sentiment_breakdown.get("negative_percent", 0)
+
+        # 创建情绪饼图可视化提示
+        visualization_hints = []
+        if positive_pct or neutral_pct or negative_pct:
+            visualization_hints.append(
+                create_sentiment_pie_hint(positive_pct, neutral_pct, negative_pct)
+            )
+
+        # 包装为AnalyzerOutput
+        return create_analyzer_output(
+            data=result,
+            analyzer_name="SentimentAnalyzer",
+            model_used=model_used,
+            fallback_used=fallback_used,
+            generation_time_ms=generation_time_ms,
+            confidence=result.get("overall_sentiment", {}).get("confidence"),
+            data_sources=["Twitter", "Reddit", "News"],
+            visualization_hints=visualization_hints,
+            validation_passed=len(validation_warnings) == 0,
+            validation_warnings=validation_warnings,
+        )
 
     def _extract_twitter_data(self, aggregated_data: Dict) -> Dict:
         """
@@ -566,53 +611,23 @@ class SentimentAnalyzer:
 
         return result
 
-    def _create_error_response(self, symbol: str, error_msg: str) -> Dict[str, Any]:
+    def _create_error_response(self, symbol: str, error_msg: str, model_used: str) -> AnalyzerOutput:
         """
         创建错误响应
 
         Args:
             symbol: 币种符号
             error_msg: 错误信息
+            model_used: 尝试使用的模型
 
         Returns:
-            Dict: 错误响应数据
+            AnalyzerOutput: 错误响应
         """
-        from datetime import datetime, timezone
-
-        return {
-            "overall_sentiment": {
-                "label": "中性",
-                "score": 50,
-                "confidence": 30,
-                "summary": f"{symbol}的社交媒体情绪分析生成失败，可能是数据源问题或AI服务暂时不可用。",
-            },
-            "sentiment_breakdown": {
-                "positive_percent": 33,
-                "neutral_percent": 34,
-                "negative_percent": 33,
-                "trend": "数据不足",
-            },
-            "top_topics": [],
-            "key_influencers": [],
-            "community_health": {
-                "activity_level": "低",
-                "growth_trend": "数据不足",
-                "engagement_quality": "一般",
-                "fud_level": "无法判断",
-                "fomo_level": "无法判断",
-                "concerns": ["分析失败"],
-            },
-            "narrative_analysis": {
-                "dominant_narrative": "数据不足",
-                "narrative_strength": "弱",
-                "competing_narratives": [],
-                "narrative_shift": "无法判断",
-            },
-            "risk_signals": [],
-            "data_sources": [],
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "error": error_msg,
-        }
+        return create_error_output(
+            analyzer_name="SentimentAnalyzer",
+            error_msg=f"{symbol}的社交媒体情绪分析失败: {error_msg}",
+            model_used=model_used,
+        )
 
 
 # 全局单例

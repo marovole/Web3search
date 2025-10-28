@@ -3,12 +3,18 @@ TL;DR 生成器
 生成符合specs要求的TL;DR摘要（核心判断+置信度+总结）
 """
 import json
+import time
 from typing import Dict, Any, Optional
 from pathlib import Path
 import yaml
 
 from app.services.llm import llm_client, ModelConfig
 from app.core.config import settings
+from app.services.research_engine.analyzers.analyzer_output import (
+    AnalyzerOutput,
+    create_analyzer_output,
+    create_error_output,
+)
 
 
 class TLDRGenerator:
@@ -43,7 +49,7 @@ class TLDRGenerator:
         self,
         query: str,
         aggregated_data: Dict[str, Any],
-    ) -> Dict[str, Any]:
+    ) -> AnalyzerOutput:
         """
         生成TL;DR摘要
 
@@ -52,7 +58,8 @@ class TLDRGenerator:
             aggregated_data: 聚合后的项目数据（来自DataAggregator）
 
         Returns:
-            Dict: TL;DR数据，格式：
+            AnalyzerOutput: 包含TL;DR数据、元数据和可视化提示
+            data格式：
             {
                 "judgment": "BULL | NEUTRAL | BEAR",
                 "judgment_emoji": "🟢 | 🟡 | 🔴",
@@ -63,6 +70,8 @@ class TLDRGenerator:
                 "reasoning": "判断理由..."
             }
         """
+        start_time = time.time()
+
         # 提取必要数据
         symbol = aggregated_data.get("symbol", "Unknown")
         project_info = aggregated_data.get("project_info", {})
@@ -81,6 +90,9 @@ class TLDRGenerator:
         )
 
         # 调用LLM生成
+        model_used = self.model_config.get("primary_model", ModelConfig.DEEP_RESEARCH_SUMMARY)
+        fallback_used = False
+
         try:
             # 使用qwen3-235b主模型
             result = await self._call_llm(user_prompt, use_fallback=False)
@@ -89,17 +101,36 @@ class TLDRGenerator:
             try:
                 # Fallback到qwen3-30b
                 result = await self._call_llm(user_prompt, use_fallback=True)
+                model_used = self.model_config.get("fallback_model", ModelConfig.QUICK_CHAT)
+                fallback_used = True
             except Exception as fallback_error:
-                # 如果两个模型都失败，返回默认响应
+                # 如果两个模型都失败，返回错误响应
                 print(f"❌ Fallback模型也失败: {fallback_error}")
-                return self._create_error_response(symbol, str(fallback_error))
+                return self._create_error_response(symbol, str(fallback_error), model_used)
 
         # 验证输出格式
+        validation_warnings = []
         if not self._validate_output(result):
             print("⚠️ 输出格式验证失败，使用默认值补全")
+            validation_warnings.append("输出格式验证失败，已使用默认值补全")
             result = self._fix_invalid_output(result, symbol)
 
-        return result
+        # 计算生成时间
+        generation_time_ms = int((time.time() - start_time) * 1000)
+
+        # 包装为AnalyzerOutput
+        return create_analyzer_output(
+            data=result,
+            analyzer_name="TldrGenerator",
+            model_used=model_used,
+            fallback_used=fallback_used,
+            generation_time_ms=generation_time_ms,
+            confidence=result.get("confidence"),
+            data_sources=["CoinGecko", "Twitter", "Reddit"],
+            visualization_hints=[],  # TL;DR不需要可视化
+            validation_passed=len(validation_warnings) == 0,
+            validation_warnings=validation_warnings,
+        )
 
     def _format_prompt(
         self,
@@ -292,27 +323,23 @@ class TLDRGenerator:
 
         return fixed
 
-    def _create_error_response(self, symbol: str, error_msg: str) -> Dict[str, Any]:
+    def _create_error_response(self, symbol: str, error_msg: str, model_used: str) -> AnalyzerOutput:
         """
         创建错误响应
 
         Args:
             symbol: 币种符号
             error_msg: 错误信息
+            model_used: 尝试使用的模型
 
         Returns:
-            Dict: 错误响应数据
+            AnalyzerOutput: 错误响应
         """
-        return {
-            "judgment": "NEUTRAL",
-            "judgment_emoji": "🟡",
-            "confidence": 30,
-            "confidence_level": "低",
-            "summary": f"{symbol}项目的TL;DR生成失败，可能是数据源问题或AI服务暂时不可用。",
-            "key_metrics": {},
-            "reasoning": f"生成失败: {error_msg}",
-            "error": error_msg,
-        }
+        return create_error_output(
+            analyzer_name="TldrGenerator",
+            error_msg=f"{symbol}项目的TL;DR生成失败: {error_msg}",
+            model_used=model_used,
+        )
 
 
 # 全局单例

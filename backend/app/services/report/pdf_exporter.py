@@ -22,19 +22,25 @@ class PDFExporter:
         # CSS 样式路径
         self.css_path = self.template_dir / "pdf_style.css"
 
+        # 临时文件目录
+        self.temp_dir = Path(__file__).parent / "temp_pdf"
+        self.temp_dir.mkdir(exist_ok=True)
+
     def export_to_pdf(
         self,
         markdown_content: str,
         output_path: str,
-        title: Optional[str] = None
+        title: Optional[str] = None,
+        timeout: int = 30
     ) -> str:
         """
-        将 Markdown 内容导出为 PDF
+        将 Markdown 内容导出为 PDF（增强版，支持超时控制）
 
         Args:
             markdown_content: Markdown 格式的报告内容
             output_path: PDF 输出路径（绝对路径）
             title: 报告标题（可选）
+            timeout: 生成超时时间（秒，默认30秒）
 
         Returns:
             str: 生成的 PDF 文件路径
@@ -42,28 +48,71 @@ class PDFExporter:
         Raises:
             Exception: PDF 生成失败时抛出异常
         """
+        import time
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError
+
+        start_time = time.time()
+
         try:
             import markdown2
             from weasyprint import HTML, CSS
 
+            print(f"  📄 开始PDF导出: {os.path.basename(output_path)}")
+
             # 1. Markdown → HTML
+            print("  🔄 转换Markdown到HTML...")
             html_content = self._markdown_to_html(markdown_content, title)
 
             # 2. 应用 CSS 样式
+            print("  🎨 应用CSS样式...")
             css = self._load_css()
 
-            # 3. HTML → PDF
-            HTML(string=html_content).write_pdf(
-                output_path,
-                stylesheets=[CSS(string=css)] if css else None
-            )
+            # 3. HTML → PDF（带超时控制）
+            print(f"  ⚙️  生成PDF文件（超时: {timeout}秒）...")
+
+            def generate_pdf():
+                HTML(string=html_content).write_pdf(
+                    output_path,
+                    stylesheets=[CSS(string=css)] if css else None
+                )
+
+            # 使用线程池执行PDF生成，带超时控制
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(generate_pdf)
+                try:
+                    future.result(timeout=timeout)
+                except TimeoutError:
+                    raise Exception(f"PDF生成超时（>{timeout}秒）")
+
+            # 验证文件是否生成成功
+            if not os.path.exists(output_path):
+                raise Exception("PDF文件生成失败：文件不存在")
+
+            file_size = os.path.getsize(output_path)
+            if file_size == 0:
+                raise Exception("PDF文件生成失败：文件大小为0")
+
+            elapsed_time = time.time() - start_time
+            print(f"  ✅ PDF生成成功！文件大小: {file_size / 1024:.2f} KB, 耗时: {elapsed_time:.2f}秒")
 
             return output_path
 
         except ImportError as e:
             raise Exception(f"缺少依赖库: {str(e)}. 请安装: pip install markdown2 weasyprint")
 
+        except TimeoutError:
+            raise Exception(f"PDF 生成超时（超过 {timeout} 秒）")
+
         except Exception as e:
+            # 清理可能生成的不完整文件
+            if os.path.exists(output_path):
+                try:
+                    os.remove(output_path)
+                except:
+                    pass
+
+            elapsed_time = time.time() - start_time
+            print(f"  ❌ PDF生成失败（耗时: {elapsed_time:.2f}秒）: {str(e)}")
             raise Exception(f"PDF 生成失败: {str(e)}")
 
     def _markdown_to_html(self, markdown_content: str, title: Optional[str] = None) -> str:
@@ -172,7 +221,9 @@ class PDFExporter:
 
 /* 基础样式 */
 body {
-    font-family: 'Helvetica Neue', 'Arial', 'Microsoft YaHei', sans-serif;
+    font-family: 'Noto Sans CJK SC', 'Noto Sans CJK TC', 'Microsoft YaHei',
+                 'PingFang SC', 'Hiragino Sans GB', 'SimSun', 'SimHei',
+                 'Arial Unicode MS', 'Helvetica Neue', 'Arial', sans-serif;
     font-size: 11pt;
     line-height: 1.6;
     color: #333;
@@ -420,7 +471,115 @@ table, img, pre, blockquote {
     margin: 12pt 0;
     page-break-inside: avoid;
 }
+
+/* 图表样式 - 针对Base64嵌入的图片 */
+img[src^="data:image"] {
+    max-width: 100%;
+    max-height: 500pt;
+    height: auto;
+    display: block;
+    margin: 16pt auto;
+    page-break-inside: avoid;
+    border: 1px solid #e0e0e0;
+    border-radius: 4pt;
+    padding: 8pt;
+    background-color: #ffffff;
+    box-shadow: 0 2pt 4pt rgba(0,0,0,0.1);
+}
+
+/* 图表标题样式 */
+h3 + img,
+h4 + img {
+    margin-top: 12pt;
+}
+
+/* 确保表格在PDF中正确渲染 */
+table {
+    table-layout: auto;
+    word-wrap: break-word;
+}
+
+/* 表格单元格文本换行 */
+td, th {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 200pt;
+}
+
+/* 数字列右对齐 */
+td:has(> :only-child:is(span, strong):matches("[0-9]+")) {
+    text-align: right;
+}
+
+/* Emoji 支持 */
+.emoji {
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+}
 """
+
+    def generate_temp_pdf_path(self, filename: str = None) -> str:
+        """
+        生成临时PDF文件路径
+
+        Args:
+            filename: 文件名（不含扩展名）
+
+        Returns:
+            str: 临时PDF文件的绝对路径
+        """
+        import uuid
+
+        if not filename:
+            filename = f"report_{uuid.uuid4().hex[:8]}"
+
+        # 确保文件名安全
+        safe_filename = "".join(c for c in filename if c.isalnum() or c in ('-', '_'))
+        pdf_filename = f"{safe_filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        return str(self.temp_dir / pdf_filename)
+
+    def cleanup_old_temp_files(self, max_age_hours: int = 24):
+        """
+        清理过期的临时PDF文件
+
+        Args:
+            max_age_hours: 文件最大保留时间（小时）
+        """
+        import time
+
+        try:
+            current_time = time.time()
+            max_age_seconds = max_age_hours * 3600
+
+            deleted_count = 0
+            for pdf_file in self.temp_dir.glob("*.pdf"):
+                file_age = current_time - pdf_file.stat().st_mtime
+                if file_age > max_age_seconds:
+                    try:
+                        pdf_file.unlink()
+                        deleted_count += 1
+                    except Exception as e:
+                        print(f"  ⚠️  删除临时文件失败 {pdf_file.name}: {e}")
+
+            if deleted_count > 0:
+                print(f"  🧹 清理了 {deleted_count} 个过期的临时PDF文件")
+
+        except Exception as e:
+            print(f"  ⚠️  清理临时文件出错: {e}")
+
+    def cleanup_temp_file(self, file_path: str):
+        """
+        清理指定的临时文件
+
+        Args:
+            file_path: 要删除的文件路径
+        """
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                print(f"  🗑️  已删除临时文件: {os.path.basename(file_path)}")
+        except Exception as e:
+            print(f"  ⚠️  删除临时文件失败: {e}")
 
     def create_default_css_file(self):
         """
@@ -443,3 +602,6 @@ pdf_exporter = PDFExporter()
 
 # 自动创建默认 CSS 文件
 pdf_exporter.create_default_css_file()
+
+# 自动清理过期的临时文件（24小时）
+pdf_exporter.cleanup_old_temp_files(max_age_hours=24)
