@@ -23,14 +23,12 @@ export interface DeepResearchRequest {
 
 // API Response types
 export interface QuickChatResponse {
-  answer: string
-  conversation_id: string
-  model_used: string
-  token_usage?: {
-    prompt_tokens: number
-    completion_tokens: number
-    total_tokens: number
-  }
+  content: string
+  symbol?: string
+  query_type: string
+  response_time: number
+  model: string
+  session_id: string
 }
 
 export interface DeepResearchResponse {

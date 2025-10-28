@@ -69,11 +69,11 @@ const ChatInterface: React.FC = () => {
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: response.answer,
+          content: response.content,
           timestamp: new Date(),
         }
         setMessages((prev) => [...prev, assistantMessage])
-        setConversationId(response.conversation_id)
+        setConversationId(response.session_id)
       } else {
         // Deep Research mode (SSE streaming)
         handleDeepResearchStream(userInput)
@@ -126,25 +126,56 @@ const ChatInterface: React.FC = () => {
       try {
         const data = JSON.parse(event.data)
 
-        // Update loading stage
-        if (data.stage !== undefined && data.stage < loadingStages.length) {
-          setLoadingStage(data.stage)
-        }
+        // Handle different types of SSE events
+        if (data.type === 'progress') {
+          // Update loading stage based on progress
+          if (data.stage === 'data_collection') {
+            setLoadingStage(1)
+          } else if (data.stage === 'analysis') {
+            setLoadingStage(2)
+          } else if (data.stage === 'report_generation') {
+            setLoadingStage(3)
+          }
 
-        // Append content
-        if (data.content) {
-          accumulatedContent += data.content
+          // Show progress message in content
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === assistantMessage.id
-                ? { ...msg, content: accumulatedContent }
+                ? { ...msg, content: data.content || `${loadingStages[loadingStage] || '处理中...'}` }
                 : msg
             )
           )
-        }
-
-        // Handle completion
-        if (data.done) {
+        } else if (data.type === 'content') {
+          // Append actual content
+          if (data.content) {
+            accumulatedContent = data.content // Replace with full content
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessage.id
+                  ? { ...msg, content: accumulatedContent }
+                  : msg
+              )
+            )
+          }
+        } else if (data.type === 'error') {
+          // Handle error
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessage.id
+                ? {
+                    ...msg,
+                    content: `❌ 错误：${data.content}`,
+                    isStreaming: false,
+                  }
+                : msg
+            )
+          )
+          setIsLoading(false)
+          eventSource.close()
+          eventSourceRef.current = null
+          return
+        } else if (data.type === 'complete' || data.done) {
+          // Handle completion
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === assistantMessage.id
@@ -153,8 +184,8 @@ const ChatInterface: React.FC = () => {
             )
           )
           setIsLoading(false)
-          if (data.conversation_id) {
-            setConversationId(data.conversation_id)
+          if (data.session_id) {
+            setConversationId(data.session_id)
           }
           eventSource.close()
           eventSourceRef.current = null
@@ -166,6 +197,13 @@ const ChatInterface: React.FC = () => {
 
     eventSource.onerror = (error) => {
       console.error('EventSource error:', error)
+
+      // Check if it's a connection error that might be worth retrying
+      if (eventSource.readyState === EventSource.CLOSED) {
+        // Optionally implement retry logic here
+        console.log('EventSource connection closed')
+      }
+
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantMessage.id
@@ -173,7 +211,7 @@ const ChatInterface: React.FC = () => {
                 ...msg,
                 content:
                   accumulatedContent ||
-                  '❌ 抱歉，连接中断。请重试。',
+                  '❌ 抱歉，连接中断。请检查网络连接后重试。',
                 isStreaming: false,
               }
             : msg
