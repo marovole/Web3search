@@ -255,22 +255,28 @@ async def health_check():
         health_status["status"] = "unhealthy"
 
     # 检查Redis连接
+    # 注意：Redis在Render免费计划中不可用是预期行为，不影响API健康状态
     try:
         redis = await get_async_redis()
         await redis.ping()
         health_status["redis"] = "connected"
     except Exception as e:
-        health_status["redis"] = f"error: {str(e)}"
-        health_status["status"] = "unhealthy"
+        health_status["redis"] = f"unavailable: {str(e)}"
+        # Redis不可用不影响整体健康状态
 
     # 检查Celery状态
+    # 注意：Celery在Render免费计划中不可用是预期行为（没有Worker）
     try:
         from app.tasks.celery_app import celery_app
 
         # 检查broker连接（通过ping Redis）
-        redis = await get_async_redis()
-        await redis.ping()
-        broker_status = "connected"
+        try:
+            redis = await get_async_redis()
+            await redis.ping()
+            broker_status = "connected"
+        except Exception:
+            # Redis不可用，Broker离线（预期）
+            broker_status = "unavailable"
 
         # 尝试获取active workers信息
         try:
@@ -287,21 +293,24 @@ async def health_check():
 
             # 如果没有worker运行，标记为警告（不影响API服务）
             if active_workers == 0:
-                health_status["celery"]["warning"] = "No active workers detected"
+                health_status["celery"]["warning"] = "No active workers (expected in staging)"
         except Exception:
-            # 如果无法获取worker信息，标记为unknown（不影响API服务）
+            # 如果无法获取worker信息，标记为unavailable（不影响API服务）
             health_status["celery"] = {
                 "broker": broker_status,
-                "workers": "unknown",
-                "status": "unknown"
+                "workers": "none",
+                "status": "unavailable"
             }
     except Exception as e:
-        health_status["celery"] = f"error: {str(e)}"
+        health_status["celery"] = {
+            "status": "unavailable",
+            "error": str(e)
+        }
         # Celery问题不影响API服务的健康状态
-        # health_status["status"] = "unhealthy"
 
-    # 如果有关键服务不健康，返回503状态码
-    status_code = 200 if health_status["status"] == "healthy" else 503
+    # 只有在关键依赖（数据库）失败时才返回503
+    # Redis和Celery不可用在Render免费计划中是预期行为
+    status_code = 200 if health_status["status"] != "unhealthy" else 503
 
     return JSONResponse(content=health_status, status_code=status_code)
 
