@@ -39,54 +39,53 @@ TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose 
 - **AND** 通知开发团队回滚事件
 
 ### Requirement: Railway后端部署
-系统后端**SHALL**部署到Railway平台，包含FastAPI、PostgreSQL、Redis和Celery Worker。
+系统后端**SHALL**部署到Railway平台，包含FastAPI、PostgreSQL、Redis和Celery Worker。**集成缓存预热启动流程。**
 
-#### Scenario: 完整服务部署
-- **WHEN** Railway项目配置完成
-- **THEN** 部署以下服务：
-  1. **backend**：FastAPI应用（监听8000端口）
-  2. **worker**：Celery后台任务
-  3. **postgres**：PostgreSQL 15数据库
-  4. **redis**：Redis 7缓存服务
-- **AND** 所有服务在同一私有网络（内部通信无需公网）
-- **AND** 仅backend服务暴露公网访问（通过Railway提供的域名）
-- **AND** 服务间通过内部DNS通信（如`postgres.railway.internal`）
+#### Scenario: 启动时缓存预加载
+- **WHEN** Railway后端服务启动
+- **THEN** 在uvicorn启动后执行缓存预加载
+- **AND** 预加载Top 10币种数据（< 5秒）
+- **AND** 预加载日志输出到Railway Logs
+- **AND** 预加载失败不阻塞服务启动
+- **AND** 健康检查端点(/health)包含预加载状态
 
-#### Scenario: 环境变量自动注入
-- **WHEN** Railway启动服务
-- **THEN** 自动注入以下环境变量：
-  - `DATABASE_URL`: PostgreSQL连接字符串（自动生成）
-  - `REDIS_URL`: Redis连接字符串（自动生成）
-  - `PORT`: 应用监听端口（Railway分配）
-- **AND** 手动配置的变量：
-  - `OPENROUTER_API_KEY`: OpenRouter API密钥
-  - `COINGECKO_API_KEY`: CoinGecko API密钥
-  - `TWITTER_BEARER_TOKEN`: Twitter API令牌
-- **AND** 变量变更无需重新部署（自动重启服务）
+#### Scenario: 健康检查包含缓存状态
+- **WHEN** 访问/health端点
+- **THEN** 响应包含缓存预热信息：
+  ```json
+  {
+    "status": "healthy",
+    "cache": {
+      "prewarming": {
+        "status": "active",
+        "last_run": "2025-01-27T12:00:00Z",
+        "success_rate": 0.98,
+        "cached_coins": 98
+      },
+      "l1_cache": {
+        "size": 85,
+        "capacity": 100,
+        "hit_rate": 0.82
+      },
+      "l2_cache": {
+        "size": 9850,
+        "capacity": 10000,
+        "hit_rate": 0.78
+      }
+    }
+  }
+  ```
+- **AND** 健康检查响应时间< 100ms
 
-#### Scenario: 数据库迁移自动执行
-- **WHEN** 后端服务启动时
-- **THEN** 自动执行数据库迁移脚本（使用Alembic）
-- **AND** 运行`alembic upgrade head`
-- **AND** 迁移成功后启动FastAPI应用
-- **AND** 迁移失败时服务启动失败并记录错误日志
-- **AND** 保留迁移历史记录（`alembic_version`表）
-
-#### Scenario: Celery Worker配置
-- **WHEN** worker服务启动
-- **THEN** 执行命令`celery -A tasks worker --loglevel=info`
-- **AND** 连接到Redis作为消息队列
-- **AND** 自动发现并注册所有定时任务
-- **AND** Worker数量可通过环境变量`CELERY_WORKERS`配置（默认1）
-- **AND** Worker健康检查：每分钟执行测试任务
-
-#### Scenario: 服务扩展
-- **WHEN** 流量增加需要扩容
-- **THEN** 在Railway Dashboard调整服务实例数
-- **AND** backend服务支持水平扩展（多实例负载均衡）
-- **AND** worker服务支持增加Worker数量
-- **AND** PostgreSQL和Redis支持升级配置（CPU/内存/存储）
-- **AND** 扩展操作无停机时间（滚动更新）
+#### Scenario: Celery Beat预热任务配置
+- **WHEN** Celery Beat启动（Railway Cron Job）
+- **THEN** 配置预热任务调度：
+  - `prewarm_top10_coins`: schedule=crontab(minute='*/1')  # 每分钟
+  - `prewarm_top100_coins`: schedule=crontab(minute='*/5')  # 每5分钟
+  - `adjust_prewarming_list`: schedule=crontab(minute=0)  # 每小时
+- **AND** 任务注册到Celery Beat scheduler
+- **AND** 任务执行日志输出到Railway Logs
+- **AND** 任务失败触发Sentry告警
 
 ### Requirement: 健康检查与监控
 系统**SHALL**提供健康检查端点和实时监控能力。

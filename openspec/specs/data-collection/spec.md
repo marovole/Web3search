@@ -50,32 +50,16 @@ TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose 
 - **AND** 触发监控告警通知运维人员
 
 ### Requirement: 定时数据更新
-系统**SHALL**使用Celery定时任务自动更新数据，确保信息时效性。
+系统**SHALL**使用Celery定时任务自动更新数据，确保信息时效性。**集成智能预热调度。**
 
-#### Scenario: 定时任务正常执行
-- **WHEN** 到达预定更新时间（如每15分钟的第0秒）
-- **THEN** Celery Worker执行数据采集任务`update_market_data`
-- **AND** 更新Top 100加密货币的价格到PostgreSQL数据库
-- **AND** 刷新Redis缓存对应的key
-- **AND** 任务执行时间< 60秒
-- **AND** 记录任务执行日志（开始时间、结束时间、更新数量）
-
-#### Scenario: 定时任务失败重试
-- **WHEN** 定时任务执行失败（如网络错误导致API调用失败）
-- **THEN** 自动重试最多3次
-- **AND** 重试间隔递增（第1次1分钟、第2次5分钟、第3次15分钟）
-- **AND** 3次重试后仍失败则标记任务为FAILED
-- **AND** 发送告警邮件或Slack通知
-- **AND** 保留失败任务的错误堆栈信息用于调试
-
-#### Scenario: 不同数据类型的更新频率
+#### Scenario: 智能预热任务调度
 - **WHEN** Celery Beat调度器启动
-- **THEN** 配置以下定时任务：
-  - `update_prices`：每1分钟执行（价格数据）
-  - `update_onchain_data`：每5分钟执行（链上数据）
-  - `update_social_data`：每15分钟执行（Twitter/Reddit）
-  - `update_news`：每30分钟执行（新闻资讯）
-- **AND** 所有任务独立执行，互不阻塞
+- **THEN** 配置以下预热任务：
+  - `prewarm_top10_coins`：每1分钟执行（Top 10币种）
+  - `prewarm_top100_coins`：每5分钟执行（Top 11-100币种）
+  - `adjust_prewarming_list`：每小时执行（动态调整预热列表）
+- **AND** 预热任务与数据更新任务独立执行
+- **AND** 预热任务优先级高于常规更新任务
 - **AND** 任务执行状态可通过`GET /api/v1/tasks/status`查询
 
 ### Requirement: 数据持久化与缓存
@@ -129,4 +113,73 @@ TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose 
   - 数据更新延迟时间
 - **AND** 当成功率< 95%时触发告警
 - **AND** 当响应时间p95 > 5秒时触发告警
+
+### Requirement: 智能缓存预热系统
+系统**SHALL**实现智能缓存预热机制，在用户请求前主动加载热门币种数据到缓存。
+
+#### Scenario: Top 100币种自动预热
+- **WHEN** 系统启动或每5分钟执行预热任务
+- **THEN** 从CoinGecko获取Top 100市值币种列表
+- **AND** 批量预热这些币种的价格数据到Redis缓存
+- **AND** 预热任务执行时间< 30秒
+- **AND** 预热成功率> 98%
+- **AND** 记录预热任务日志（预热数量、成功数、失败数、耗时）
+
+#### Scenario: 分层预热策略
+- **WHEN** 预热任务执行时
+- **THEN** 按优先级分层预热：
+  - **高优先级**（Top 10）：每1分钟更新一次
+  - **中优先级**（Top 11-100）：每5分钟更新一次
+  - **低优先级**（长尾币种）：按需更新或15分钟更新
+- **AND** 高优先级任务优先执行，不被阻塞
+- **AND** 每层任务独立监控和统计
+
+#### Scenario: 启动时快速预加载
+- **WHEN** 服务启动（uvicorn启动完成）
+- **THEN** 立即触发Top 10币种的预加载
+- **AND** 预加载完成时间< 5秒
+- **AND** 预加载失败不阻塞服务启动
+- **AND** 预加载进度通过日志输出（"Preloading 1/10..."）
+- **AND** 预加载状态纳入/health健康检查
+
+#### Scenario: 预热任务失败重试
+- **WHEN** 预热任务中某个币种数据获取失败
+- **THEN** 自动重试该币种（最多3次）
+- **AND** 重试间隔为1秒、2秒、4秒（指数退避）
+- **AND** 3次重试后仍失败则跳过该币种
+- **AND** 记录失败详情到错误日志
+- **AND** 不影响其他币种的预热进程
+
+#### Scenario: 智能预热列表动态调整
+- **WHEN** 每小时分析用户查询历史
+- **THEN** 计算每个币种的查询热度得分
+- **AND** 根据热度动态调整预热列表（替换低热度币种）
+- **AND** 保持预热列表最大100个币种
+- **AND** 记录预热列表变更日志
+- **AND** 预热列表变更不影响当前正在执行的预热任务
+
+### Requirement: L1内存缓存层
+系统**SHALL**实现L1内存缓存层，进一步降低Redis访问延迟。
+
+#### Scenario: L1缓存命中
+- **WHEN** 用户请求热门币种价格（如BTC）
+- **THEN** 首先检查L1内存缓存
+- **AND** 如果L1命中，直接返回（延迟< 1ms）
+- **AND** 如果L1未命中，检查L2 Redis缓存
+- **AND** 如果L2命中，将数据写入L1并返回
+- **AND** 如果L2也未命中，查询数据源并写入L1和L2
+
+#### Scenario: L1缓存淘汰策略
+- **WHEN** L1缓存达到容量上限（100条）
+- **THEN** 使用LRU + 访问频率权重淘汰最低价值条目
+- **AND** 访问频率高的条目权重增加50%
+- **AND** 淘汰的数据仍保留在L2 Redis中
+- **AND** 记录淘汰事件到监控指标
+
+#### Scenario: L1/L2缓存一致性
+- **WHEN** L2缓存数据更新（预热任务或数据采集）
+- **THEN** 同时失效L1对应的缓存条目
+- **AND** 下次访问时重新从L2加载到L1
+- **AND** 确保L1和L2数据一致性
+- **AND** 一致性检查每分钟执行一次
 

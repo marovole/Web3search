@@ -4,41 +4,24 @@
 TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose after archive.
 ## Requirements
 ### Requirement: 双模式对话交互
-系统**SHALL**提供Quick Chat和Deep Research两种交互模式，满足不同用户需求。
+系统**SHALL**提供Quick Chat和Deep Research两种交互模式，满足不同用户需求。**集成L1内存缓存加速响应。**
 
-#### Scenario: Quick Chat即时响应
-- **WHEN** 用户选择Quick Chat模式并提问"What is the current price of Bitcoin?"
-- **THEN** 系统3秒内返回简洁文字回答（如"Bitcoin当前价格$65,432，24h涨幅+2.5%"）
-- **AND** 支持SSE流式输出（逐字显示，提升体验）
-- **AND** 自动识别意图类型（价格查询/项目对比/概念解释）
-- **AND** 响应格式为纯文本（不包含Markdown格式）
+#### Scenario: Quick Chat with L1 Cache
+- **WHEN** 用户提问热门币种（如"BTC price"）
+- **THEN** 首先检查L1内存缓存
+- **AND** L1命中时响应延迟< 500ms（含AI生成）
+- **AND** L1未命中但L2命中时响应延迟< 1秒
+- **AND** 缓存完全未命中时响应延迟< 3秒
+- **AND** 响应头包含缓存信息（X-Cache: HIT-L1/HIT-L2/MISS）
 
-#### Scenario: Deep Research生成报告
-- **WHEN** 用户选择Deep Research模式并输入项目名"Hyperliquid"
-- **THEN** 显示分析进度提示：
-  - "正在采集市场数据..." (0-8秒)
-  - "正在分析链上活动..." (8-15秒)
-  - "正在评估社交情绪..." (15-20秒)
-  - "正在生成技术面分析..." (20-25秒)
-  - "正在组装报告..." (25-30秒)
-- **AND** 15-30秒内生成完整研究报告（3000-5000字）
-- **AND** 报告格式符合Markdown标准（包含标题/列表/表格/粗体）
-- **AND** 报告结构符合PDF示例标准（TL;DR → 核心分析 → 结论）
-
-#### Scenario: 模式切换保留上下文
-- **WHEN** 用户在对话中从Quick Chat切换到Deep Research模式
-- **THEN** 保留之前的对话历史（最近10条消息）
-- **AND** 新模式可以引用之前的内容（如"刚才提到的Hyperliquid"）
-- **AND** 上下文存储在Redis中（session_id为key）
-- **AND** 切换动画流畅（< 300ms过渡效果）
-
-#### Scenario: 模式选择指引
-- **WHEN** 用户首次访问或输入框为空时
-- **THEN** 显示模式选择提示：
-  - **Quick Chat**: 适合快速问答、价格查询、简单对比
-  - **Deep Research**: 适合生成完整研究报告、多维度分析
-- **AND** 显示示例查询（每个模式3个示例）
-- **AND** 点击示例自动填充到输入框
+#### Scenario: Cache-aware Response Headers
+- **WHEN** 系统返回Quick Chat或Deep Research响应
+- **THEN** 响应头包含缓存状态信息：
+  - `X-Cache`: HIT-L1 | HIT-L2 | MISS
+  - `X-Cache-Age`: 缓存数据年龄（秒）
+  - `X-Data-Source`: cached | live | fallback
+- **AND** 用户可以在开发工具中查看缓存状态
+- **AND** 监控系统记录缓存命中率统计
 
 ### Requirement: 对话历史管理
 系统**SHALL**保存用户的对话历史，支持多轮对话和上下文理解。
