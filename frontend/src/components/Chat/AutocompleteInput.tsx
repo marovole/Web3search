@@ -47,7 +47,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
     }
 
     // 设置新的定时器（300ms延迟）
-    debounceTimerRef.current = setTimeout(async () => {
+    debounceTimerRef.current = window.setTimeout(async () => {
       try {
         setIsSearching(true)
         const response = await searchAutocomplete(query)
