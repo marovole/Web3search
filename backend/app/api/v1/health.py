@@ -110,19 +110,19 @@ async def dependencies_health(response: Response):
         }
 
     # 判断整体健康状态
-    statuses = [
+    # 注意：Redis在Render免费计划中不可用是预期行为，不应影响整体状态
+    critical_statuses = [
         db_health["status"],
-        redis_health["status"],
         cache_health["status"],
         prewarming_health["status"]
     ]
 
     # 如果有任何unhealthy，整体为unhealthy
-    if "unhealthy" in statuses:
+    if "unhealthy" in critical_statuses:
         overall_status = "unhealthy"
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    # 如果有degraded，整体为degraded
-    elif "degraded" in statuses:
+    # 如果有degraded或Redis不可用，整体为degraded
+    elif "degraded" in critical_statuses or redis_health["status"] in ["degraded", "unavailable"]:
         overall_status = "degraded"
     else:
         overall_status = "healthy"

@@ -320,7 +320,7 @@ async def check_redis_health() -> dict:
 
     Returns:
         dict: 健康检查结果
-            - status: "healthy" | "unhealthy"
+            - status: "healthy" | "degraded" | "unavailable" | "unhealthy"
             - latency_ms: 响应延迟（毫秒）
             - connected: 是否连接成功
             - error: 错误信息（如果有）
@@ -337,7 +337,7 @@ async def check_redis_health() -> dict:
 
         if not pong:
             return {
-                "status": "unhealthy",
+                "status": "unavailable",
                 "connected": False,
                 "latency_ms": 0,
                 "error": "PING command failed"
@@ -352,7 +352,7 @@ async def check_redis_health() -> dict:
 
         if retrieved != test_value:
             return {
-                "status": "unhealthy",
+                "status": "unavailable",
                 "connected": True,
                 "latency_ms": latency,
                 "error": "SET/GET test failed"
@@ -372,8 +372,9 @@ async def check_redis_health() -> dict:
         }
 
     except Exception as e:
+        # Redis不可用不影响整体服务（在Render免费计划中为正常情况）
         return {
-            "status": "unhealthy",
+            "status": "unavailable",
             "connected": False,
             "latency_ms": 0,
             "error": str(e)
