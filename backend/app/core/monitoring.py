@@ -435,3 +435,95 @@ class MetricsCollector:
 
 # 指标收集器
 metrics = MetricsCollector()
+
+
+# ================================
+# Sentry缓存指标上报（Stage 4任务4.5）
+# ================================
+
+
+async def send_cache_metrics_to_sentry():
+    """
+    定期发送缓存指标到Sentry
+
+    应该由Celery定时任务调用，频率建议：每5分钟
+
+    发送的指标包括：
+    - cache.hit_rate: 缓存命中率（L1, L2, 组合）
+    - cache.size: L1缓存大小
+    - cache.hits: 缓存命中次数
+    - cache.misses: 缓存未命中次数
+    - cache.latency: 缓存操作延迟
+    """
+    try:
+        import sentry_sdk
+        from app.core.cache_manager import get_cache_manager
+        from app.services.cache_prewarming import get_prewarming_manager
+        from app.core.metrics import metrics_collector
+
+        # 1. 获取缓存统计
+        cache_manager = get_cache_manager()
+        cache_stats = await cache_manager.get_stats()
+
+        # 2. 获取预热统计
+        prewarming_manager = get_prewarming_manager()
+        prewarming_stats = prewarming_manager.get_stats()
+
+        # 3. 获取性能指标
+        metrics_summary = metrics_collector.get_summary()
+
+        # 4. 发送L1缓存指标
+        l1_stats = cache_stats.get("l1", {})
+        sentry_sdk.set_measurement("cache.l1.hit_rate", l1_stats.get("hit_rate", 0.0), "ratio")
+        sentry_sdk.set_measurement("cache.l1.size", l1_stats.get("size", 0), "none")
+        sentry_sdk.set_measurement("cache.l1.hits", l1_stats.get("hits", 0), "none")
+        sentry_sdk.set_measurement("cache.l1.misses", l1_stats.get("misses", 0), "none")
+        sentry_sdk.set_measurement("cache.l1.evictions", l1_stats.get("evictions", 0), "none")
+
+        # 5. 发送L2缓存指标
+        l2_stats = cache_stats.get("l2", {})
+        sentry_sdk.set_measurement("cache.l2.hit_rate", l2_stats.get("hit_rate", 0.0), "ratio")
+        sentry_sdk.set_measurement("cache.l2.hits", l2_stats.get("total_hits", 0), "none")
+        sentry_sdk.set_measurement("cache.l2.misses", l2_stats.get("total_misses", 0), "none")
+
+        # 6. 发送组合缓存指标
+        combined_stats = cache_stats.get("combined", {})
+        sentry_sdk.set_measurement("cache.combined.hit_rate", combined_stats.get("hit_rate", 0.0), "ratio")
+        sentry_sdk.set_measurement("cache.combined.hits", combined_stats.get("total_hits", 0), "none")
+        sentry_sdk.set_measurement("cache.combined.misses", combined_stats.get("total_misses", 0), "none")
+
+        # 7. 发送预热统计
+        sentry_sdk.set_measurement("cache.prewarming.total", prewarming_stats.get("total_prewarmed", 0), "none")
+        sentry_sdk.set_measurement("cache.prewarming.success", prewarming_stats.get("total_success", 0), "none")
+        sentry_sdk.set_measurement("cache.prewarming.failed", prewarming_stats.get("total_failed", 0), "none")
+        sentry_sdk.set_measurement("cache.prewarming.cached_coins", prewarming_stats.get("cached_coins", 0), "none")
+
+        # 8. 发送响应时间指标
+        sentry_sdk.set_measurement(
+            "performance.avg_response_time",
+            metrics_summary.get("avg_response_time_ms", 0),
+            "millisecond"
+        )
+        sentry_sdk.set_measurement(
+            "performance.p95_response_time",
+            metrics_summary.get("p95_response_time_ms", 0),
+            "millisecond"
+        )
+        sentry_sdk.set_measurement(
+            "performance.p99_response_time",
+            metrics_summary.get("p99_response_time_ms", 0),
+            "millisecond"
+        )
+
+        # 9. 记录日志
+        logger.info(
+            f"✅ Sent cache metrics to Sentry: "
+            f"L1 hit_rate={l1_stats.get('hit_rate', 0):.2%}, "
+            f"L2 hit_rate={l2_stats.get('hit_rate', 0):.2%}, "
+            f"Combined hit_rate={combined_stats.get('hit_rate', 0):.2%}"
+        )
+
+    except ImportError:
+        logger.warning("⚠️ sentry-sdk not installed, skipping metrics upload")
+    except Exception as e:
+        logger.error(f"❌ Failed to send cache metrics to Sentry: {e}", exc_info=True)

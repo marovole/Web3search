@@ -542,6 +542,85 @@ class PrewarmingManager:
             },
         }
 
+    async def add_task(
+        self,
+        coin_id: str,
+        priority: PrewarmingPriority = PrewarmingPriority.MEDIUM,
+        force_refresh: bool = False
+    ) -> bool:
+        """
+        动态添加预热任务到队列
+
+        Args:
+            coin_id: CoinGecko币种ID
+            priority: 优先级
+            force_refresh: 是否强制刷新（忽略缓存）
+
+        Returns:
+            bool: 是否成功添加
+        """
+        try:
+            # 检查是否已在队列中
+            all_queues = [
+                self.high_priority_queue,
+                self.medium_priority_queue,
+                self.low_priority_queue
+            ]
+            for queue in all_queues:
+                if any(task.coin_id == coin_id for task in queue):
+                    logger.debug(f"任务已存在: {coin_id}")
+                    return False
+
+            # 创建任务（简化版，不需要完整币种信息）
+            task = PrewarmingTask(
+                coin_id=coin_id,
+                symbol=coin_id.upper()[:10],  # 临时symbol
+                priority=priority,
+                market_cap_rank=0  # 动态添加的任务不设置排名
+            )
+
+            # 添加到对应队列
+            if priority == PrewarmingPriority.HIGH:
+                self.high_priority_queue.append(task)
+            elif priority == PrewarmingPriority.MEDIUM:
+                self.medium_priority_queue.append(task)
+            else:
+                self.low_priority_queue.append(task)
+
+            logger.debug(f"任务已添加: {coin_id} (priority={priority.value})")
+            return True
+
+        except Exception as e:
+            logger.error(f"添加任务失败: {coin_id}, error={e}")
+            return False
+
+    def get_status(self) -> Dict[str, Any]:
+        """
+        获取预热系统状态（用于健康检查）
+
+        Returns:
+            Dict: 状态信息
+                - queue_size: 队列总大小
+                - is_running: 是否正在运行
+                - stats: 统计信息
+        """
+        total_queue_size = (
+            len(self.high_priority_queue) +
+            len(self.medium_priority_queue) +
+            len(self.low_priority_queue)
+        )
+
+        return {
+            "queue_size": total_queue_size,
+            "queue_breakdown": {
+                "high": len(self.high_priority_queue),
+                "medium": len(self.medium_priority_queue),
+                "low": len(self.low_priority_queue),
+            },
+            "is_running": False,  # 注：Celery任务是独立的，无法直接检测
+            "stats": self.stats.copy(),
+        }
+
 
 # ================================
 # 全局实例

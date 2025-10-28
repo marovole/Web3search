@@ -17,7 +17,7 @@ from app.services.cache_prewarming import (
     PrewarmingPriority,
 )
 from app.services.prewarming_scheduler import get_scheduler
-from app.services.data_sources.coingecko_client import coingecko_client
+from app.services.collectors.coingecko import coingecko_collector as coingecko_client
 from app.core.metrics import metrics_collector
 
 logger = logging.getLogger(__name__)

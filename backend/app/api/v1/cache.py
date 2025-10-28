@@ -440,3 +440,157 @@ async def get_scheduler_status():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get scheduler status: {str(e)}"
         )
+
+
+@router.get("/dashboard")
+async def get_cache_dashboard():
+    """
+    获取缓存Dashboard完整数据（Stage 4任务4.6）
+
+    整合所有缓存相关指标，提供一站式Dashboard数据导出。
+    包括：
+    - L1/L2缓存统计（命中率、大小、性能）
+    - 预热队列状态（队列大小、执行统计）
+    - 调度器状态（热度排名、预测）
+    - 系统性能指标
+
+    **响应示例：**
+    ```json
+    {
+      "timestamp": "2025-10-28T12:00:00Z",
+      "cache": {
+        "l1": {"size": 85, "hit_rate": 0.65},
+        "l2": {"hit_rate": 0.85},
+        "combined_hit_rate": 0.832
+      },
+      "prewarming": {
+        "queue_size": 25,
+        "stats": {"total_prewarmed": 1000}
+      },
+      "scheduler": {
+        "hotness_top10": [...],
+        "predictions": [...]
+      },
+      "performance": {
+        "avg_response_time_ms": 125.5,
+        "p95_response_time_ms": 450.2
+      }
+    }
+    ```
+    """
+    try:
+        from app.services.prewarming_scheduler import get_scheduler
+        from app.core.metrics import metrics_collector
+        from app.core.redis_client import redis_client
+
+        # 1. 获取缓存统计
+        cache_manager = get_cache_manager()
+        cache_stats = await cache_manager.get_stats()
+
+        # 2. 获取预热状态
+        prewarming_manager = get_prewarming_manager()
+        prewarming_status = prewarming_manager.get_status()
+
+        # 3. 获取调度器状态
+        scheduler = get_scheduler()
+        scheduler_stats = scheduler.get_stats()
+
+        # 4. 获取热度分数Top 10
+        async with redis_client() as redis:
+            top_coins = await redis.zrevrange(
+                "hotness:scores",
+                0,
+                9,  # Top 10
+                withscores=True
+            )
+
+        hotness_top10 = []
+        for item in top_coins:
+            if isinstance(item, tuple):
+                coin_id, score = item
+            else:
+                coin_id = item
+                score = 0
+
+            hotness_top10.append({
+                "coin_id": coin_id.decode() if isinstance(coin_id, bytes) else coin_id,
+                "hotness_score": round(float(score), 2)
+            })
+
+        # 5. 获取预测
+        predictions = await scheduler.predict_hot_coins(limit=10)
+        predicted_coins = [
+            {
+                "coin_id": coin_id,
+                "prediction_score": round(score, 2)
+            }
+            for coin_id, score in predictions
+        ]
+
+        # 6. 获取性能指标
+        metrics_summary = metrics_collector.get_summary()
+
+        # 7. 计算组合命中率
+        l1_stats = cache_stats.get("l1", {})
+        l2_stats = cache_stats.get("l2", {})
+        combined_stats = cache_stats.get("combined", {})
+
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "cache": {
+                "l1": {
+                    "size": l1_stats.get("size", 0),
+                    "max_size": l1_stats.get("max_size", 100),
+                    "hit_rate": round(l1_stats.get("hit_rate", 0.0), 4),
+                    "hits": l1_stats.get("hits", 0),
+                    "misses": l1_stats.get("misses", 0),
+                    "evictions": l1_stats.get("evictions", 0)
+                },
+                "l2": {
+                    "hit_rate": round(l2_stats.get("hit_rate", 0.0), 4),
+                    "total_hits": l2_stats.get("total_hits", 0),
+                    "total_misses": l2_stats.get("total_misses", 0)
+                },
+                "combined": {
+                    "hit_rate": round(combined_stats.get("hit_rate", 0.0), 4),
+                    "total_hits": combined_stats.get("total_hits", 0),
+                    "total_misses": combined_stats.get("total_misses", 0)
+                }
+            },
+            "prewarming": {
+                "queue_size": prewarming_status.get("queue_size", 0),
+                "queue_breakdown": prewarming_status.get("queue_breakdown", {}),
+                "is_running": prewarming_status.get("is_running", False),
+                "stats": prewarming_status.get("stats", {})
+            },
+            "scheduler": {
+                "last_update": scheduler_stats.get("last_update_datetime"),
+                "hotness_top10": hotness_top10,
+                "predictions": predicted_coins,
+                "stats": scheduler_stats
+            },
+            "performance": {
+                "avg_response_time_ms": round(
+                    metrics_summary.get("avg_response_time_ms", 0), 2
+                ),
+                "p95_response_time_ms": round(
+                    metrics_summary.get("p95_response_time_ms", 0), 2
+                ),
+                "p99_response_time_ms": round(
+                    metrics_summary.get("p99_response_time_ms", 0), 2
+                ),
+                "cache_hit_rate": round(
+                    metrics_summary.get("cache_hit_rate", 0.0), 4
+                ),
+                "api_success_rate": round(
+                    metrics_summary.get("api_success_rate", 0.0), 4
+                )
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Get cache dashboard failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get cache dashboard: {str(e)}"
+        )
