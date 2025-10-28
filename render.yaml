@@ -3,7 +3,7 @@ services:
   - type: web
     name: web3search-api
     env: python
-    runtime: python-3.11.0
+    runtime: python
     region: oregon
     plan: free
     branch: main
@@ -41,7 +41,7 @@ services:
   - type: worker
     name: web3search-celery-worker
     env: python
-    runtime: python-3.11.0
+    runtime: python
     region: oregon
     plan: free
     branch: main
@@ -88,7 +88,7 @@ services:
   - type: worker
     name: web3search-celery-beat
     env: python
-    runtime: python-3.11.0
+    runtime: python
     region: oregon
     plan: free
     branch: main
