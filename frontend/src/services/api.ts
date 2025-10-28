@@ -15,18 +15,20 @@ import type { HotspotsResponse } from '../types/hotspot'
 // Import Mock API
 import * as mockApi from './api.mock'
 
-// Check if Mock mode is enabled
-const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === 'true'
+// Load environment configuration
+import { getApiConfig, isDevelopment } from '../utils/env'
 
-if (USE_MOCK) {
+const apiConfig = getApiConfig()
+
+if (apiConfig.useMock) {
   console.log('🎭 Mock API Mode Enabled - Using mock data instead of real backend')
 } else {
-  console.log('🌐 Real API Mode - Connecting to backend at', import.meta.env.VITE_API_BASE_URL)
+  console.log('🌐 Real API Mode - Connecting to backend at', apiConfig.baseUrl)
 }
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+  baseURL: apiConfig.baseUrl,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -75,9 +77,9 @@ const quickChatReal = async (
 
 /**
  * Quick Chat - 快速问答（3秒内响应）
- * 根据环境变量自动选择Mock或真实API
+ * 根据环境配置自动选择Mock或真实API
  */
-export const quickChat = USE_MOCK ? mockApi.quickChat : quickChatReal
+export const quickChat = apiConfig.useMock ? mockApi.quickChat : quickChatReal
 
 /**
  * Deep Research Stream - Real API版本
@@ -95,9 +97,9 @@ const deepResearchStreamReal = (request: DeepResearchRequest): EventSource => {
 /**
  * Deep Research - 深度研究报告（流式输出）
  * 注意：这个方法返回EventSource用于SSE流式接收
- * 根据环境变量自动选择Mock或真实API
+ * 根据环境配置自动选择Mock或真实API
  */
-export const deepResearchStream = USE_MOCK ? mockApi.deepResearchStream : deepResearchStreamReal
+export const deepResearchStream = apiConfig.useMock ? mockApi.deepResearchStream : deepResearchStreamReal
 
 /**
  * Deep Research - Real API版本（非流式）
@@ -114,9 +116,9 @@ const deepResearchReal = async (
 
 /**
  * Deep Research - 非流式版本（等待完整响应）
- * 根据环境变量自动选择Mock或真实API
+ * 根据环境配置自动选择Mock或真实API
  */
-export const deepResearch = USE_MOCK ? mockApi.deepResearch : deepResearchReal
+export const deepResearch = apiConfig.useMock ? mockApi.deepResearch : deepResearchReal
 
 // ================================
 // Reports API - Real implementations
@@ -134,7 +136,7 @@ const getReportReal = async (reportId: number): Promise<Report> => {
  * 获取报告详情
  * 根据环境变量自动选择Mock或真实API
  */
-export const getReport = USE_MOCK ? mockApi.getReport : getReportReal
+export const getReport = apiConfig.useMock ? mockApi.getReport : getReportReal
 
 /**
  * 获取报告列表 - Real API版本
@@ -153,7 +155,7 @@ const getReportsReal = async (params?: {
  * 获取报告列表
  * 根据环境变量自动选择Mock或真实API
  */
-export const getReports = USE_MOCK ? mockApi.getReports : getReportsReal
+export const getReports = apiConfig.useMock ? mockApi.getReports : getReportsReal
 
 /**
  * 创建分享链接 - Real API版本
@@ -173,7 +175,7 @@ const createShareLinkReal = async (
  * 创建分享链接
  * 根据环境变量自动选择Mock或真实API
  */
-export const createShareLink = USE_MOCK ? mockApi.createShareLink : createShareLinkReal
+export const createShareLink = apiConfig.useMock ? mockApi.createShareLink : createShareLinkReal
 
 /**
  * 获取分享报告 - Real API版本
@@ -191,7 +193,7 @@ const getSharedReportReal = async (
  * 获取分享报告
  * 根据环境变量自动选择Mock或真实API
  */
-export const getSharedReport = USE_MOCK ? mockApi.getSharedReport : getSharedReportReal
+export const getSharedReport = apiConfig.useMock ? mockApi.getSharedReport : getSharedReportReal
 
 /**
  * 禁用分享链接 - Real API版本
@@ -204,7 +206,7 @@ const disableShareLinkReal = async (reportId: number): Promise<void> => {
  * 禁用分享链接
  * 根据环境变量自动选择Mock或真实API
  */
-export const disableShareLink = USE_MOCK ? mockApi.disableShareLink : disableShareLinkReal
+export const disableShareLink = apiConfig.useMock ? mockApi.disableShareLink : disableShareLinkReal
 
 // ================================
 // Search API
@@ -249,6 +251,6 @@ const healthCheckReal = async (): Promise<{ status: string }> => {
  * 健康检查
  * 根据环境变量自动选择Mock或真实API
  */
-export const healthCheck = USE_MOCK ? mockApi.healthCheck : healthCheckReal
+export const healthCheck = apiConfig.useMock ? mockApi.healthCheck : healthCheckReal
 
 export default api
