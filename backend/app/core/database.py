@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import NullPool
+from sqlalchemy import text
 
 from app.core.config import settings
 from app.core.db_middleware import setup_query_monitoring, setup_pool_monitoring
@@ -81,7 +82,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         try:
             # 设置事务超时（PostgreSQL）
             await session.execute(
-                f"SET LOCAL statement_timeout = '{int(settings.DATABASE_COMMAND_TIMEOUT * 1000)}'"
+                text(f"SET LOCAL statement_timeout = '{int(settings.DATABASE_COMMAND_TIMEOUT * 1000)}'")
             )
 
             yield session
