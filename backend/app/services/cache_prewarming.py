@@ -555,6 +555,16 @@ prewarming_manager = PrewarmingManager()
 # ================================
 
 
+def get_prewarming_manager() -> PrewarmingManager:
+    """
+    获取全局预热管理器实例
+
+    Returns:
+        PrewarmingManager: 预热管理器实例
+    """
+    return prewarming_manager
+
+
 async def initialize_prewarming(limit: int = 100) -> Dict[str, int]:
     """
     初始化预热系统（构建队列）
