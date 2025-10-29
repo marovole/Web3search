@@ -1,10 +1,15 @@
 /**
  * 搜索自动补全输入组件
- * 支持键盘导航、防抖搜索、点击选择
+ * 支持键盘导航、防抖搜索、点击选择、移动端触摸优化
  */
 
 import React, { useState, useRef, useEffect, KeyboardEvent } from 'react'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import { searchAutocomplete } from '../../services/api'
+import { Loader, Send, X } from 'lucide-react'
+import { useKeyboardDetection } from '../../hooks/useTouchGestures'
 import type { AutocompleteItem } from '../../types/autocomplete'
 
 interface AutocompleteInputProps {
@@ -14,6 +19,8 @@ interface AutocompleteInputProps {
   disabled?: boolean
   placeholder?: string
   maxLength?: number
+  /** 是否启用移动端优化（默认启用） */
+  mobileOptimized?: boolean
 }
 
 const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
@@ -23,14 +30,29 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   disabled = false,
   placeholder = '输入消息...',
   maxLength = 1000,
+  mobileOptimized = true,
 }) => {
   const [suggestions, setSuggestions] = useState<AutocompleteItem[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
+  const [isMobile, setIsMobile] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const debounceTimerRef = useRef<number>()
+
+  // 检测移动设备
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // 键盘检测
+  const { isKeyboardOpen, keyboardHeight } = useKeyboardDetection()
 
   // 防抖搜索
   const debouncedSearch = (query: string) => {
@@ -65,16 +87,12 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   }
 
   // 处理输入变化
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value
-    if (newValue.length <= maxLength) {
-      onChange(newValue)
-      // Auto-resize textarea
-      e.target.style.height = 'auto'
-      e.target.style.height = `${e.target.scrollHeight}px`
+  const handleInputChange = (value: string) => {
+    if (value.length <= maxLength) {
+      onChange(value)
 
       // 触发防抖搜索
-      debouncedSearch(newValue)
+      debouncedSearch(value)
     }
   }
 
@@ -85,12 +103,6 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
     setSuggestions([])
     setShowDropdown(false)
     textareaRef.current?.focus()
-
-    // 调整textarea高度
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`
-    }
   }
 
   // 键盘导航
@@ -129,10 +141,6 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
       onChange('')
       setSuggestions([])
       setShowDropdown(false)
-      // Reset textarea height
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'
-      }
     }
   }
 
@@ -166,144 +174,182 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   const isOverLimit = charactersRemaining < 0
 
   return (
-    <div className="space-y-2">
-      {/* Input area */}
+    <div className={cn(
+      "space-y-2",
+      mobileOptimized && "safe-area-padding",
+      isKeyboardOpen && isMobile && "pb-4"
+    )}>
+      {/* Input area with mobile optimization */}
       <div className="flex gap-2 items-end">
         <div className="flex-1 relative">
-          <textarea
+          {/* Enhanced Textarea with auto-resize */}
+          <Textarea
             ref={textareaRef}
             value={value}
-            onChange={handleInputChange}
+            onChange={(e) => handleInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={disabled}
-            className="input resize-none min-h-[44px] max-h-[200px] overflow-y-auto"
+            loading={isSearching}
+            error={isOverLimit ? "超出字符限制" : undefined}
+            helperText={isOverLimit ? `已超出 ${Math.abs(charactersRemaining)} 个字符` : undefined}
+            className={cn(
+              "min-h-[44px] md:min-h-[48px]",
+              mobileOptimized && "mobile-input",
+              "resize-none"
+            )}
+            autoResize={true}
+            maxHeight={isMobile ? 120 : 200}
             rows={1}
           />
 
-          {/* 下拉建议框 */}
+          {/* Enhanced dropdown for mobile */}
           {showDropdown && suggestions.length > 0 && (
             <div
               ref={dropdownRef}
-              className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto z-50"
+              className={cn(
+                "absolute bottom-full left-0 right-0 mb-2 bg-card border border-border rounded-lg shadow-lg z-50",
+                "max-h-64 overflow-y-auto",
+                // Mobile optimization
+                isMobile && "max-h-48",
+                // Smooth animations
+                "animate-slide-down animate-fade-in"
+              )}
+              style={{ animationDuration: '200ms' }}
             >
-              {suggestions.map((item, index) => (
-                <button
-                  key={item.coingecko_id}
-                  onClick={() => selectSuggestion(item)}
-                  className={`w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 flex items-center gap-3 transition-colors ${
-                    index === selectedIndex ? 'bg-blue-50' : ''
-                  }`}
-                >
-                  {/* 图标 */}
-                  {item.thumb && (
-                    <img
-                      src={item.thumb}
-                      alt={item.symbol}
-                      className="w-6 h-6 rounded-full"
-                    />
-                  )}
+              <div className="p-2">
+                <div className="flex items-center justify-between px-2 py-1 mb-2 border-b">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    搜索建议
+                  </span>
+                  <button
+                    onClick={() => {
+                      setShowDropdown(false)
+                      setSuggestions([])
+                    }}
+                    className="p-1 rounded hover:bg-muted touch-manipulation"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
 
-                  {/* 信息 */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-900">
-                        {item.symbol.toUpperCase()}
-                      </span>
-                      {item.market_cap_rank && (
-                        <span className="text-xs text-gray-500">
-                          #{item.market_cap_rank}
-                        </span>
+                <div className={cn(
+                  "space-y-1",
+                  isMobile && "touch-button-group"
+                )}>
+                  {suggestions.map((item, index) => (
+                    <button
+                      key={item.coingecko_id}
+                      onClick={() => selectSuggestion(item)}
+                      className={cn(
+                        "w-full text-left hover:bg-muted border border-transparent rounded-lg transition-all duration-150",
+                        "flex items-center gap-3 p-3",
+                        isMobile ? "mobile-list-item touch-feedback" : "min-h-[48px]",
+                        index === selectedIndex && "bg-primary/10 border-primary/20"
                       )}
-                    </div>
-                    <div className="text-sm text-gray-600 truncate">
-                      {item.name}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+                    >
+                      {/* 图标 */}
+                      {item.thumb && (
+                        <img
+                          src={item.thumb}
+                          alt={item.symbol}
+                          className="w-8 h-8 md:w-6 md:h-6 rounded-full flex-shrink-0"
+                        />
+                      )}
 
-          {/* 加载指示器 */}
-          {isSearching && (
-            <div className="absolute right-3 top-3">
-              <svg
-                className="animate-spin h-4 w-4 text-gray-400"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
+                      {/* 信息 */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-foreground text-sm md:text-sm">
+                            {item.symbol.toUpperCase()}
+                          </span>
+                          {item.market_cap_rank && (
+                            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                              #{item.market_cap_rank}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground truncate">
+                          {item.name}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
 
-        <button
+        {/* Enhanced send button with mobile optimization */}
+        <Button
           onClick={handleSend}
           disabled={disabled || !value.trim() || isOverLimit}
-          className="btn-primary px-6 py-3 flex-shrink-0"
+          className={cn(
+            "flex-shrink-0 transition-all duration-200",
+            mobileOptimized ? "h-12 w-12 md:w-auto md:px-6" : "h-12 px-6",
+            "hover:scale-105 active:scale-95 disabled:scale-100 touch-feedback"
+          )}
+          size={mobileOptimized && isMobile ? "icon" : "sm"}
         >
           {disabled ? (
-            <span className="flex items-center gap-2">
-              <svg
-                className="animate-spin h-4 w-4"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              <span>发送中</span>
-            </span>
+            <Loader size={16} className="animate-spin" />
           ) : (
-            '发送'
+            <>
+              <Send className="h-4 w-4" />
+              {!isMobile && <span className="ml-2">发送</span>}
+            </>
           )}
-        </button>
+        </Button>
       </div>
 
-      {/* Character count and hints */}
+      {/* Enhanced character count and hints with mobile optimization */}
       <div className="flex justify-between items-center text-xs">
-        <p className="text-gray-500">
-          提示：按 Enter 发送，Shift + Enter 换行{showDropdown && '，↑↓ 选择，Esc 关闭'}
-        </p>
+        <div className="text-muted-foreground">
+          {isMobile ? (
+            <p className="flex items-center gap-2">
+              {showDropdown ? (
+                <>
+                  <span>↑↓ 选择</span>
+                  <span>•</span>
+                  <span>Esc 关闭</span>
+                </>
+              ) : (
+                <>
+                  <span>Enter 发送</span>
+                  <span>•</span>
+                  <span>Shift+Enter 换行</span>
+                </>
+              )}
+            </p>
+          ) : (
+            <p>
+              提示：按 Enter 发送，Shift + Enter 换行
+              {showDropdown && '，↑↓ 选择，Esc 关闭'}
+            </p>
+          )}
+        </div>
+
         <p
-          className={`font-medium ${
+          className={cn(
+            "font-medium transition-colors",
             isOverLimit
-              ? 'text-danger'
+              ? "text-destructive"
               : charactersRemaining < 100
-              ? 'text-warning'
-              : 'text-gray-500'
-          }`}
+              ? "text-warning"
+              : "text-muted-foreground"
+          )}
         >
           {charactersRemaining} 字符剩余
         </p>
       </div>
+
+      {/* Mobile keyboard padding indicator */}
+      {isKeyboardOpen && isMobile && (
+        <div className="text-center text-xs text-muted-foreground animate-pulse">
+          虚拟键盘已打开 ({Math.round(keyboardHeight)}px)
+        </div>
+      )}
     </div>
   )
 }

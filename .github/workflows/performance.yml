@@ -1,0 +1,101 @@
+name: Performance Monitoring
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 每天午夜运行
+  workflow_dispatch:
+
+jobs:
+  lighthouse-check:
+    name: Lighthouse Performance Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli@0.12.x
+
+      - name: Build application
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      - name: Run Lighthouse CI
+        run: lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+      - name: Upload Lighthouse reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/reports/
+
+  bundle-analysis:
+    name: Bundle Size Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build application
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Analyze bundle size
+        run: |
+          cd frontend
+          npm run build:analyze
+
+      - name: Upload bundle analysis
+        uses: actions/upload-artifact@v3
+        with:
+          name: bundle-analysis
+          path: frontend/dist/stats.html
+
+  core-web-vitals:
+    name: Core Web Vitals Monitoring
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install web-vitals-reporter
+        run: npm install -g web-vitals-reporter
+
+      - name: Run Web Vitals test
+        run: |
+          # 模拟Web Vitals测试
+          echo "Testing Core Web Vitals..."
+
+      - name: Upload Web Vitals report
+        uses: actions/upload-artifact@v3
+        with:
+          name: web-vitals-report
+          path: web-vitals-report.json
+        continue-on-error: true

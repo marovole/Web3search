@@ -3,12 +3,62 @@
 @tailwind utilities;
 
 @layer base {
-  body {
-    @apply bg-gray-50 text-gray-900 font-sans;
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 207.8 74% 42%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 207.8 74% 42%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 207.8 74% 42%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 207.8 74% 42%;
   }
 
   * {
-    @apply scroll-smooth;
+    @apply border-border;
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    transition: background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+                color 300ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 
@@ -67,6 +117,129 @@
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
     @apply bg-gray-300 rounded-full hover:bg-gray-400;
+  }
+
+  /* 触摸优化样式 */
+  @media (max-width: 768px) {
+    /* 触摸目标最小尺寸 */
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+      padding: 8px;
+    }
+
+    /* 安全区域适配 */
+    .safe-area-padding {
+      padding-top: env(safe-area-inset-top, 0);
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      padding-left: env(safe-area-inset-left, 0);
+      padding-right: env(safe-area-inset-right, 0);
+    }
+
+    .safe-area-margin {
+      margin-top: env(safe-area-inset-top, 0);
+      margin-bottom: env(safe-area-inset-bottom, 0);
+      margin-left: env(safe-area-inset-left, 0);
+      margin-right: env(safe-area-inset-right, 0);
+    }
+
+    /* 触摸友好的交互反馈 */
+    .touch-manipulation {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* 防止误触的按钮间距 */
+    .touch-button-group > * + * {
+      margin-top: 8px;
+    }
+
+    /* 移动端输入框优化 */
+    .mobile-input {
+      font-size: 16px; /* 防止iOS缩放 */
+      padding: 12px 16px;
+      border-radius: 12px;
+    }
+
+    /* 移动端卡片优化 */
+    .mobile-card {
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin: 8px;
+    }
+
+    /* 移动端列表项优化 */
+    .mobile-list-item {
+      min-height: 56px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      transition: background-color 0.2s ease;
+    }
+
+    .mobile-list-item:active {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    /* 手势友好的滑动区域 */
+    .swipe-area {
+      touch-action: pan-y;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* 防止长按选择 */
+    .no-long-press {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    /* 优化键盘弹出时的布局 */
+    .keyboard-aware {
+      transition: padding-bottom 0.3s ease;
+    }
+
+    .keyboard-open {
+      padding-bottom: 200px; /* 为虚拟键盘留出空间 */
+    }
+  }
+
+  /* 触摸反馈动画 */
+  @keyframes touch-feedback {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(0.95);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .touch-feedback:active {
+    animation: touch-feedback 0.1s ease-out;
+  }
+
+  /* 长按手势效果 */
+  @keyframes long-press {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(0.98);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .long-press-active {
+    animation: long-press 0.3s ease-in-out;
   }
 
   /* 打印友好样式 */

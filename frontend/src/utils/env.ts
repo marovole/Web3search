@@ -16,9 +16,17 @@ interface EnvConfig {
   ENABLE_SENTRY: boolean
   ENABLE_ANALYTICS: boolean
   ENABLE_EXPERIMENTAL_FEATURES: boolean
+  ENABLE_PERFORMANCE_MONITORING: boolean
 
   // 调试模式
   DEBUG_MODE: boolean
+
+  // Sentry配置
+  SENTRY_DSN: string
+  SENTRY_ENVIRONMENT: string
+
+  // Google Analytics配置
+  GA_MEASUREMENT_ID: string
 
   // 默认设置
   DEFAULT_CHAT_MODE: 'quick' | 'deep'
@@ -32,7 +40,11 @@ const DEFAULT_CONFIG: Partial<EnvConfig> = {
   ENABLE_SENTRY: false,
   ENABLE_ANALYTICS: false,
   ENABLE_EXPERIMENTAL_FEATURES: false,
+  ENABLE_PERFORMANCE_MONITORING: true,
   DEBUG_MODE: false,
+  SENTRY_DSN: '',
+  SENTRY_ENVIRONMENT: 'development',
+  GA_MEASUREMENT_ID: '',
   DEFAULT_CHAT_MODE: 'quick',
 }
 
@@ -101,7 +113,11 @@ export function loadEnvConfig(): EnvConfig {
       ENABLE_SENTRY: parseBool(getEnvVar('VITE_ENABLE_SENTRY', String(DEFAULT_CONFIG.ENABLE_SENTRY))),
       ENABLE_ANALYTICS: parseBool(getEnvVar('VITE_ENABLE_ANALYTICS', String(DEFAULT_CONFIG.ENABLE_ANALYTICS))),
       ENABLE_EXPERIMENTAL_FEATURES: parseBool(getEnvVar('VITE_ENABLE_EXPERIMENTAL_FEATURES', String(DEFAULT_CONFIG.ENABLE_EXPERIMENTAL_FEATURES))),
+      ENABLE_PERFORMANCE_MONITORING: parseBool(getEnvVar('VITE_ENABLE_PERFORMANCE_MONITORING', String(DEFAULT_CONFIG.ENABLE_PERFORMANCE_MONITORING))),
       DEBUG_MODE: parseBool(getEnvVar('VITE_DEBUG_MODE', String(DEFAULT_CONFIG.DEBUG_MODE))),
+      SENTRY_DSN: getEnvVar('VITE_SENTRY_DSN', DEFAULT_CONFIG.SENTRY_DSN),
+      SENTRY_ENVIRONMENT: getEnvVar('VITE_SENTRY_ENVIRONMENT', DEFAULT_CONFIG.SENTRY_ENVIRONMENT),
+      GA_MEASUREMENT_ID: getEnvVar('VITE_GA_MEASUREMENT_ID', DEFAULT_CONFIG.GA_MEASUREMENT_ID),
       DEFAULT_CHAT_MODE: getEnvVar('VITE_DEFAULT_CHAT_MODE', DEFAULT_CONFIG.DEFAULT_CHAT_MODE) as EnvConfig['DEFAULT_CHAT_MODE'],
     }
 
@@ -121,7 +137,10 @@ export function loadEnvConfig(): EnvConfig {
         enableSentry: config.ENABLE_SENTRY,
         enableAnalytics: config.ENABLE_ANALYTICS,
         enableExperimentalFeatures: config.ENABLE_EXPERIMENTAL_FEATURES,
+        enablePerformanceMonitoring: config.ENABLE_PERFORMANCE_MONITORING,
         debugMode: config.DEBUG_MODE,
+        sentryDsn: config.SENTRY_DSN ? '***configured***' : 'not set',
+        sentryEnvironment: config.SENTRY_ENVIRONMENT,
         defaultChatMode: config.DEFAULT_CHAT_MODE,
       })
     }
@@ -148,7 +167,7 @@ export function getEnvConfig(): EnvConfig {
 /**
  * 检查特定功能是否启用
  */
-export function isFeatureEnabled(feature: keyof Pick<EnvConfig, 'ENABLE_SENTRY' | 'ENABLE_ANALYTICS' | 'ENABLE_EXPERIMENTAL_FEATURES'>): boolean {
+export function isFeatureEnabled(feature: keyof Pick<EnvConfig, 'ENABLE_SENTRY' | 'ENABLE_ANALYTICS' | 'ENABLE_EXPERIMENTAL_FEATURES' | 'ENABLE_PERFORMANCE_MONITORING'>): boolean {
   return getEnvConfig()[feature]
 }
 

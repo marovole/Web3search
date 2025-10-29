@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>离线 - Web3search</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 400px;
+            padding: 2rem;
+        }
+
+        .icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon svg {
+            width: 40px;
+            height: 40px;
+            stroke: white;
+            fill: none;
+            stroke-width: 2;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin: 0 0 1rem;
+            font-weight: 600;
+        }
+
+        p {
+            margin: 0 0 2rem;
+            opacity: 0.8;
+            line-height: 1.6;
+        }
+
+        .retry-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .retry-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .status {
+            margin-top: 2rem;
+            font-size: 0.875rem;
+            opacity: 0.7;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">
+            <svg viewBox="0 0 24 24">
+                <path d="M1 1l22 22M9 9v6h4l5-5-5-5H9v6z M16 8l-4 4h4v4"/>
+            </svg>
+        </div>
+        <h1>离线模式</h1>
+        <p>您当前处于离线状态。请检查您的网络连接，然后重试。</p>
+        <button class="retry-button" onclick="window.location.reload()">
+            重新连接
+        </button>
+        <div class="status pulse" id="status">
+            正在检查网络状态...
+        </div>
+    </div>
+
+    <script>
+        // 定期检查网络状态
+        function checkNetworkStatus() {
+            const statusElement = document.getElementById('status')
+
+            if (navigator.onLine) {
+                statusElement.textContent = '网络已恢复，正在重新加载...'
+                setTimeout(() => {
+                    window.location.reload()
+                }, 1000)
+            } else {
+                statusElement.textContent = '网络连接已断开'
+            }
+        }
+
+        // 监听网络状态变化
+        window.addEventListener('online', () => {
+            document.getElementById('status').textContent = '网络已恢复，正在重新加载...'
+            setTimeout(() => {
+                window.location.reload()
+            }, 1000)
+        })
+
+        window.addEventListener('offline', () => {
+            document.getElementById('status').textContent = '网络连接已断开'
+        })
+
+        // 初始检查
+        checkNetworkStatus()
+
+        // 每5秒检查一次网络状态
+        setInterval(checkNetworkStatus, 5000)
+
+        // 尝试重新连接功能
+        window.retryConnection = function() {
+            const button = document.querySelector('.retry-button')
+            const originalText = button.textContent
+            button.textContent = '正在连接...'
+            button.disabled = true
+
+            // 模拟连接尝试
+            setTimeout(() => {
+                if (navigator.onLine) {
+                    window.location.reload()
+                } else {
+                    button.textContent = originalText
+                    button.disabled = false
+                    document.getElementById('status').textContent = '连接失败，请稍后重试'
+                }
+            }, 2000)
+        }
+
+        // Service Worker消息处理
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(registration => {
+                console.log('Service Worker ready on offline page')
+            })
+        }
+    </script>
+</body>
+</html>
