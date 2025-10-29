@@ -107,6 +107,11 @@ export function loadEnvConfig(): EnvConfig {
 
     validateConfig(config)
 
+    // 生产环境优化：使用相对路径配合API代理
+    if (config.ENVIRONMENT === 'production') {
+      config.API_BASE_URL = '/api'  // 使用相对路径，通过Vercel代理转发
+    }
+
     // 在开发环境显示配置信息
     if (config.DEBUG_MODE) {
       console.log('🔧 Environment Configuration:', {

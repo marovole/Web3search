@@ -4,7 +4,11 @@
   "framework": "vite",
   "installCommand": "npm install",
   "devCommand": "npm run dev",
-    "rewrites": [
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://web3search-api.onrender.com/api/v1"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
@@ -43,6 +47,18 @@
         {
           "key": "Referrer-Policy",
           "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
         }
       ]
     }
