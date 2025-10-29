@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { ResponsiveChart, SimpleLineChart, SimpleBarChart, ChartLegend } from '@/components/Charts/ResponsiveChart'
 import { useUserPreferences } from '@/contexts/UserPreferencesContext'
-import analytics from '@/services/analytics'
+import { analytics } from '@/services/analytics'
 import performanceMonitor from '@/services/performance'
 import { cn } from '@/lib/utils'
 
@@ -175,9 +175,9 @@ export default function MonitoringDashboard() {
 
   // 图例配置
   const deviceLegend = [
-    { label: 'Desktop', color: '#3b82f6', value: '65%' },
-    { label: 'Mobile', color: '#10b981', value: '30%' },
-    { label: 'Tablet', color: '#f59e0b', value: '5%' }
+    { label: 'Desktop', color: '#3b82f6', value: '65%', device: 'Desktop' },
+    { label: 'Mobile', color: '#10b981', value: '30%', device: 'Mobile' },
+    { label: 'Tablet', color: '#f59e0b', value: '5%', device: 'Tablet' }
   ]
 
   return (

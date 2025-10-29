@@ -3,7 +3,7 @@
  * 提供输入验证、输出编码和内容清理功能
  */
 
-import DOMPurify from 'dompurify'
+// import DOMPurify from 'dompurify'
 
 interface XSSRule {
   id: string
@@ -205,21 +205,22 @@ export class XSSProtectionManager {
    * 配置DOMPurify
    */
   private configureDOMPurify(): void {
-    if (typeof DOMPurify !== 'undefined') {
-      DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
-        // 自定义属性清理逻辑
-        if (data.attrName.startsWith('on')) {
-          node.removeAttribute(data.attrName)
-        }
-      })
+    // 暂时禁用，避免依赖问题
+    // if (typeof DOMPurify !== 'undefined') {
+    //   DOMPurify.addHook('uponSanitizeAttribute', (node: any, data: any) => {
+    //     // 自定义属性清理逻辑
+    //     if (data.attrName.startsWith('on')) {
+    //       node.removeAttribute(data.attrName)
+    //     }
+    //   })
 
-      DOMPurify.addHook('uponSanitizeElement', (node, data) => {
-        // 自定义元素清理逻辑
-        if (data.tagName === 'script') {
-          node.parentNode?.removeChild(node)
-        }
-      })
-    }
+    //   DOMPurify.addHook('uponSanitizeElement', (node: any, data: any) => {
+    //     // 自定义元素清理逻辑
+    //     if (data.tagName === 'script') {
+    //       node.parentNode?.removeChild(node)
+    //     }
+    //   })
+    // }
   }
 
   /**
@@ -358,19 +359,7 @@ export class XSSProtectionManager {
   sanitizeHTML(dirty: string, config?: Partial<SanitizationConfig>): string {
     const finalConfig = { ...this.config, ...config }
 
-    if (typeof DOMPurify !== 'undefined') {
-      return DOMPurify.sanitize(dirty, {
-        ALLOWED_TAGS: finalConfig.allowedTags,
-        ALLOWED_ATTR: finalConfig.allowedAttributes,
-        KEEP_CONTENT: true,
-        RETURN_DOM: false,
-        RETURN_DOM_FRAGMENT: false,
-        SANITIZE_DOM: true,
-        WHOLE_DOCUMENT: false
-      })
-    }
-
-    // 如果DOMPurify不可用，使用基本的清理
+    // 暂时禁用DOMPurify，使用基本清理
     return this.basicSanitize(dirty)
   }
 
