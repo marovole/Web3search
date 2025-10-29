@@ -416,12 +416,13 @@ export class XSSProtectionManager {
 
     // 类型特定验证
     switch (input.type) {
-      case 'email':
+      case 'email': {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(input.value)) {
           errors.push(`${input.field} 必须是有效的邮箱地址`)
         }
         break
+      }
 
       case 'url':
         try {
@@ -437,13 +438,14 @@ export class XSSProtectionManager {
         }
         break
 
-      case 'html':
+      case 'html': {
         // HTML内容需要清理
         const sanitized = this.sanitizeHTML(input.value)
         if (sanitized !== input.value) {
           warnings.push(`${input.field} 包含不安全的HTML内容，已被清理`)
         }
         break
+      }
 
       case 'css':
         // CSS内容检查

@@ -101,7 +101,7 @@ export class GoogleAnalytics {
     // 创建gtag函数
     window.dataLayer = window.dataLayer || []
     window.gtag = function(...args: any[]) {
-      window.dataLayer.push(arguments)
+      window.dataLayer.push(...args)
     }
 
     // 设置初始配置

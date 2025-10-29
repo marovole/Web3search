@@ -293,9 +293,10 @@ export class CSPManager {
         return value === pattern
       case 'regex':
         return new RegExp(pattern).test(value)
-      case 'wildcard':
+      case 'wildcard': {
         const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$')
         return regex.test(value)
+      }
       default:
         return false
     }

@@ -78,7 +78,7 @@ function App() {
   useSmartPreload()
 
   // Service Worker管理
-  const { updateAvailable, offline, activateUpdate } = useServiceWorker()
+  const { updateAvailable: _updateAvailable, offline: _offline, activateUpdate: _activateUpdate } = useServiceWorker()
 
   // 初始化监控服务
   React.useEffect(() => {
