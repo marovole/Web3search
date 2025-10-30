@@ -263,6 +263,9 @@ class ReportGenerator:
         generation_time = research_result.get("generation_time", 0)
         models_used = research_result.get("models_used", {})
         data_sources = research_result.get("data_sources", [])
+        
+        # 获取analyzer_outputs用于生成表格和图表
+        analyzer_outputs = research_result.get("analyzer_outputs", {})
 
         # 构建analyses数据结构
         analyses_data = {
@@ -280,7 +283,8 @@ class ReportGenerator:
             "conclusion": self._parse_section_text(conclusion) if conclusion else None,
             "data_sources": data_sources,
             "models_used": models_used,
-            "generation_time": generation_time
+            "generation_time": generation_time,
+            "analyzer_outputs": analyzer_outputs  # 传递analyzer_outputs供组件使用
         }
 
         return analyses_data
