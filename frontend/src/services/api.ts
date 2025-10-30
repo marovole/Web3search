@@ -18,6 +18,9 @@ import * as mockApi from './api.mock'
 // Load environment configuration
 import { getApiConfig, isDevelopment } from '../utils/env'
 
+// 缓存性能监控
+import cachePerformanceMonitor from '../utils/cachePerformanceMonitor'
+
 const apiConfig = getApiConfig()
 
 if (apiConfig.useMock) {
@@ -52,9 +55,25 @@ api.interceptors.request.use(
 
 // Response interceptor
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // 检查是否来自缓存（Service Worker会在响应头中添加标识）
+    const cached = response.headers['x-cache'] === 'HIT'
+    const startTime = performance.now()
+    const responseTime = performance.now() - startTime
+
+    if (cached) {
+      cachePerformanceMonitor.recordCacheHit(responseTime)
+    } else {
+      cachePerformanceMonitor.recordCacheMiss(responseTime)
+    }
+
+    return response
+  },
   (error) => {
     // 统一错误处理
+    const startTime = performance.now()
+    const responseTime = performance.now() - startTime
+    cachePerformanceMonitor.recordCacheMiss(responseTime)
     const message = error.response?.data?.detail || error.message || '请求失败'
     console.error('API Error:', message)
     return Promise.reject(new Error(message))
@@ -71,7 +90,7 @@ api.interceptors.response.use(
 const quickChatReal = async (
   request: QuickChatRequest
 ): Promise<QuickChatResponse> => {
-  const response = await api.post<QuickChatResponse>('/api/v1/chat/quick-chat', request)
+  const response = await api.post<QuickChatResponse>('/api/v1/quick-chat', request)
   return response.data
 }
 
@@ -90,7 +109,7 @@ const deepResearchStreamReal = (request: DeepResearchRequest): EventSource => {
     ...(request.conversation_id && { conversation_id: request.conversation_id }),
   })
 
-  const url = `${api.defaults.baseURL}/api/v1/chat/deep-research/stream?${queryParams}`
+  const url = `${api.defaults.baseURL}/api/v1/quick-chat/stream?${queryParams}`
   return new EventSource(url)
 }
 
@@ -108,7 +127,7 @@ const deepResearchReal = async (
   request: DeepResearchRequest
 ): Promise<DeepResearchResponse> => {
   const response = await api.post<DeepResearchResponse>(
-    '/api/v1/chat/deep-research',
+    '/api/v1/deep-research',
     request
   )
   return response.data
@@ -128,7 +147,7 @@ export const deepResearch = apiConfig.useMock ? mockApi.deepResearch : deepResea
  * 获取报告详情 - Real API版本
  */
 const getReportReal = async (reportId: number): Promise<Report> => {
-  const response = await api.get<Report>(`/api/v1/reports/reports/${reportId}`)
+  const response = await api.get<Report>(`/api/v1/reports/${reportId}`)
   return response.data
 }
 
@@ -147,7 +166,7 @@ const getReportsReal = async (params?: {
   page?: number
   page_size?: number
 }) => {
-  const response = await api.get('/api/v1/reports/reports', { params })
+  const response = await api.get('/api/v1/reports', { params })
   return response.data
 }
 
@@ -165,7 +184,7 @@ const createShareLinkReal = async (
   request?: ShareReportRequest
 ): Promise<ShareReportResponse> => {
   const response = await api.post<ShareReportResponse>(
-    `/api/v1/reports/reports/${reportId}/share`,
+    `/api/v1/reports/${reportId}/share`,
     request || {}
   )
   return response.data
@@ -184,7 +203,7 @@ const getSharedReportReal = async (
   shareToken: string
 ): Promise<SharedReportResponse> => {
   const response = await api.get<SharedReportResponse>(
-    `/api/v1/reports/reports/shared/${shareToken}`
+    `/api/v1/reports/shared/${shareToken}`
   )
   return response.data
 }
@@ -199,7 +218,7 @@ export const getSharedReport = apiConfig.useMock ? mockApi.getSharedReport : get
  * 禁用分享链接 - Real API版本
  */
 const disableShareLinkReal = async (reportId: number): Promise<void> => {
-  await api.delete(`/api/v1/reports/reports/${reportId}/share`)
+  await api.delete(`/api/v1/reports/${reportId}/share`)
 }
 
 /**

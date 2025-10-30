@@ -1,7 +1,8 @@
 // Service Worker for Web3search Frontend
-const CACHE_NAME = 'web3search-v1.0.0'
-const STATIC_CACHE = 'web3search-static-v1.0.0'
-const API_CACHE = 'web3search-api-v1.0.0'
+const CACHE_VERSION = '1.0.0'
+const CACHE_NAME = `web3search-v${CACHE_VERSION}`
+const STATIC_CACHE = `web3search-static-v${CACHE_VERSION}`
+const API_CACHE = `web3search-api-v${CACHE_VERSION}`
 
 // 需要缓存的静态资源
 const STATIC_ASSETS = [
@@ -45,15 +46,21 @@ self.addEventListener('activate', (event) => {
       .then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
-            if (cacheName !== STATIC_CACHE && cacheName !== API_CACHE) {
+            // 删除所有旧版本的缓存
+            if (!cacheName.startsWith(`web3search-v${CACHE_VERSION.split('.')[0]}`)) {
               console.log('Deleting old cache:', cacheName)
+              return caches.delete(cacheName)
+            }
+            // 如果版本号不匹配，也删除
+            if (cacheName !== STATIC_CACHE && cacheName !== API_CACHE && cacheName !== CACHE_NAME) {
+              console.log('Deleting mismatched cache:', cacheName)
               return caches.delete(cacheName)
             }
           })
         )
       })
       .then(() => {
-        console.log('Service Worker activated')
+        console.log('Service Worker activated with version:', CACHE_VERSION)
         return self.clients.claim()
       })
   )
@@ -100,7 +107,15 @@ async function handleApiRequest(request) {
       // 检查缓存是否过期
       const cachedTime = cachedResponse.headers.get('sw-cached-time')
       if (cachedTime && (Date.now() - parseInt(cachedTime)) < API_CACHE_CONFIG.cacheTime) {
-        return cachedResponse
+        // 添加缓存标识头
+        const headers = new Headers(cachedResponse.headers)
+        headers.set('x-cache', 'HIT')
+        headers.set('x-cache-age', String(Math.floor((Date.now() - parseInt(cachedTime)) / 1000)))
+        return new Response(cachedResponse.body, {
+          status: cachedResponse.status,
+          statusText: cachedResponse.statusText,
+          headers: headers,
+        })
       }
     }
 
@@ -126,7 +141,14 @@ async function handleApiRequest(request) {
       cache.put(request, cachedResponse)
     }
 
-    return networkResponse
+    // 为网络响应添加缓存标识
+    const responseHeaders = new Headers(networkResponse.headers)
+    responseHeaders.set('x-cache', 'MISS')
+    return new Response(networkResponse.body, {
+      status: networkResponse.status,
+      statusText: networkResponse.statusText,
+      headers: responseHeaders,
+    })
   } catch (error) {
     console.log('API request failed, trying cache:', error)
 

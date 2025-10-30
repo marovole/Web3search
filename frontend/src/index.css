@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 字体加载优化 - 使用font-display: swap避免阻塞渲染 */
+@font-face {
+  font-family: 'Inter';
+  font-display: swap; /* 立即显示fallback字体，字体加载完成后再替换 */
+  src: local('Inter'), local('Inter-Regular');
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

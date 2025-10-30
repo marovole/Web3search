@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: 对话界面响应式设计
 聊天界面 SHALL 提供现代化的响应式设计，适配桌面、平板和移动设备。

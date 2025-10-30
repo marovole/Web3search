@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Performance Specification
+
+## Purpose
+前端应用性能优化规范，涵盖代码分割、资源优化、缓存策略和性能监控，以提升用户体验和Core Web Vitals评分。
+
+## Requirements
 
 ### Requirement: 动态代码分割和懒加载
 前端应用 SHALL 实现基于路由和组件的动态代码分割，以减少初始加载时间并提升用户体验。
@@ -24,8 +29,6 @@
 - **AND** 优化库的加载顺序和优先级
 - **AND** 缓存已加载的库文件
 
-## ADDED Requirements
-
 ### Requirement: 智能资源加载和优化
 前端应用 SHALL 实现智能的资源加载策略，包括图片优化、字体管理和关键资源预加载。
 
@@ -49,8 +52,6 @@
 - **AND** 使用preload和prefetch优化资源加载
 - **AND** 建立DNS预连接和预获取
 - **AND** 优化资源加载的优先级
-
-## MODIFIED Requirements
 
 ### Requirement: 构建和打包优化
 前端构建系统 SHALL 实施现代的打包优化策略，减少bundle体积并优化加载性能。
@@ -76,34 +77,6 @@
 - **AND** 生成source map用于调试
 - **AND** 提供构建性能统计
 
-## ADDED Requirements
-
-### Requirement: 缓存策略和离线支持
-前端应用 SHALL 实施多层次的缓存策略，提供离线功能和更快的加载体验。
-
-#### Scenario: Service Worker缓存
-- **WHEN** 用户访问应用
-- **THEN** Service Worker自动缓存静态资源
-- **AND** 实现智能缓存更新策略
-- **AND** 提供离线页面访问能力
-- **AND** 在网络恢复时同步数据
-
-#### Scenario: API响应缓存
-- **WHEN** 应用发起API请求
-- **THEN** 缓存GET请求的响应数据
-- **AND** 实现基于时间的缓存失效
-- **AND** 支持离线时的请求队列
-- **AND** 提供缓存管理界面
-
-#### Scenario: 浏览器缓存优化
-- **WHEN** 服务器提供静态资源
-- **THEN** 设置合适的Cache-Control头部
-- **AND** 使用ETag进行内容验证
-- **AND** 实现增量更新机制
-- **AND** 优化缓存命中率
-
-## ADDED Requirements
-
 ### Requirement: 性能监控和分析
 前端应用 SHALL 集成全面的性能监控，持续追踪和优化性能指标。
 
@@ -127,3 +100,4 @@
 - **AND** 显示性能改进效果
 - **AND** 支持A/B测试优化方案
 - **AND** 生成性能评估报告
+

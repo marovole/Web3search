@@ -145,6 +145,36 @@ class MemoryCache:
             self._stats["hits"] += 1
             return entry.value
 
+    async def get_entry(self, key: str) -> Optional[CacheEntry]:
+        """
+        获取缓存项（包含元数据）
+
+        Args:
+            key: 缓存键
+
+        Returns:
+            CacheEntry对象，不存在或过期返回None
+        """
+        async with self._lock:
+            entry = self._cache.get(key)
+
+            if entry is None:
+                return None
+
+            # 检查是否过期
+            if entry.is_expired():
+                del self._cache[key]
+                self._stats["expirations"] += 1
+                return None
+
+            # 更新访问信息
+            entry.update_access()
+
+            # LRU: 移动到末尾（最近使用）
+            self._cache.move_to_end(key)
+
+            return entry
+
     async def set(
         self,
         key: str,

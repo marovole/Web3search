@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import cacheVersionManager from '../utils/cacheVersionManager'
 
 interface ServiceWorkerStatus {
   isSupported: boolean
@@ -54,11 +55,25 @@ export function useServiceWorker() {
 
   const registerServiceWorker = async () => {
     try {
+      // 检查缓存版本
+      const expectedVersion = '1.0.0'
+      if (cacheVersionManager.shouldUpdateCache(expectedVersion)) {
+        console.log('Cache version update needed, clearing old caches...')
+        await cacheVersionManager.cleanupOldCaches()
+      }
+
       const registration = await navigator.serviceWorker.register('/sw.js', {
         scope: '/'
       })
 
       console.log('Service Worker registered:', registration)
+
+      // 更新缓存版本信息
+      cacheVersionManager.updateVersion(
+        expectedVersion,
+        'web3search-static-v1.0.0',
+        'web3search-api-v1.0.0'
+      )
 
       setStatus(prev => ({
         ...prev,

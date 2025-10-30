@@ -36,9 +36,10 @@ export default defineConfig({
     cssCodeSplit: true,
     // 设置chunk大小警告限制
     chunkSizeWarningLimit: 1000,
+    // 性能预算配置
     rollupOptions: {
       output: {
-        // 手动chunk分离策略 - 首屏优化
+        // 性能预算警告
         manualChunks(id) {
           // 将Node_modules分离到单独的chunk
           if (id.includes('node_modules')) {
@@ -50,9 +51,13 @@ export default defineConfig({
             if (id.includes('@radix-ui') || id.includes('@shadcn')) {
               return 'ui-vendor'
             }
-            // 动画库分离
+            // 动画库分离（大型库，按需加载）
             if (id.includes('framer-motion') || id.includes('motion')) {
               return 'animation-vendor'
+            }
+            // 图表库分离（大型库，按需加载）
+            if (id.includes('recharts')) {
+              return 'chart-vendor'
             }
             // 工具库分离
             if (id.includes('lucide-react') || id.includes('axios') || id.includes('clsx') || id.includes('tailwind-merge')) {

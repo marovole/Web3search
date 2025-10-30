@@ -19,6 +19,8 @@
 
 import logging
 from typing import Any, Optional, Dict
+from dataclasses import dataclass
+from datetime import datetime
 import time
 
 from app.core.memory_cache import get_memory_cache, MemoryCache
@@ -31,6 +33,34 @@ from app.core.query_cache import (
 from app.core.metrics import metrics_collector
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class CacheResult:
+    """
+    缓存结果包装类
+    
+    包含缓存数据和元数据，用于生成响应头
+    """
+    data: Dict[str, Any]
+    cache_status: str  # "HIT-L1" | "HIT-L2" | "MISS"
+    cache_age: Optional[int] = None  # 缓存年龄（秒）
+    data_source: str = "live"  # "cached" | "live" | "fallback"
+    
+    def to_headers(self) -> Dict[str, str]:
+        """
+        转换为HTTP响应头
+        
+        Returns:
+            包含X-Cache, X-Cache-Age, X-Data-Source的字典
+        """
+        headers = {
+            "X-Cache": self.cache_status,
+            "X-Data-Source": self.data_source,
+        }
+        if self.cache_age is not None:
+            headers["X-Cache-Age"] = str(self.cache_age)
+        return headers
 
 
 class CacheManager:
@@ -66,9 +96,9 @@ class CacheManager:
         symbol: Optional[str] = None,
         data_type: Optional[DataType] = None,
         additional_params: Optional[Dict[str, Any]] = None
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[CacheResult]:
         """
-        获取缓存数据（L1 → L2 → None）
+        获取缓存数据（L1 → L2 → None），返回包含元数据的CacheResult
 
         查询流程：
         1. 尝试从L1内存缓存获取
@@ -83,17 +113,17 @@ class CacheManager:
             additional_params: 额外参数
 
         Returns:
-            缓存数据或None
+            CacheResult对象（包含数据和元数据）或None
         """
         # 生成缓存键
         cache_key = generate_query_hash(query, symbol, data_type, additional_params)
 
         # 1. 尝试L1缓存
         start_time = time.time()
-        l1_result = await self._l1_cache.get(cache_key)
+        l1_entry = await self._l1_cache.get_entry(cache_key)
         l1_latency = (time.time() - start_time) * 1000  # 转换为毫秒
 
-        if l1_result is not None:
+        if l1_entry is not None:
             logger.debug(
                 f"L1 cache hit: {cache_key}, latency: {l1_latency:.2f}ms"
             )
@@ -101,7 +131,16 @@ class CacheManager:
             metrics_collector.record_cache_hit(
                 cache_key=f"L1:{data_type.value if data_type else 'other'}"
             )
-            return l1_result
+            
+            # 计算缓存年龄
+            cache_age = int(time.time() - l1_entry.created_at)
+            
+            return CacheResult(
+                data=l1_entry.value if isinstance(l1_entry.value, dict) else {"content": l1_entry.value},
+                cache_status="HIT-L1",
+                cache_age=cache_age,
+                data_source="cached"
+            )
 
         logger.debug(f"L1 cache miss: {cache_key}")
 
@@ -121,11 +160,25 @@ class CacheManager:
                 cache_key=f"L2:{data_type.value if data_type else 'other'}"
             )
 
+            # 提取实际数据和元数据
+            actual_data = l2_result.get("data", l2_result)
+            metadata = l2_result.get("metadata", {})
+            
+            # 计算缓存年龄
+            cache_age = None
+            if "cached_at" in metadata:
+                try:
+                    cached_at_str = metadata["cached_at"]
+                    # 处理ISO格式时间戳
+                    if cached_at_str.endswith("Z"):
+                        cached_at_str = cached_at_str[:-1] + "+00:00"
+                    cached_at = datetime.fromisoformat(cached_at_str)
+                    cache_age = int((datetime.utcnow() - cached_at.replace(tzinfo=None)).total_seconds())
+                except Exception as e:
+                    logger.warning(f"Failed to parse cached_at: {e}")
+
             # 3. L2命中，回填L1缓存
             try:
-                # 提取实际数据（L2缓存包含metadata）
-                actual_data = l2_result.get("data", l2_result)
-
                 # 获取TTL
                 ttl = TTL_CONFIG.get(
                     data_type or DataType.OTHER,
@@ -139,7 +192,12 @@ class CacheManager:
             except Exception as e:
                 logger.warning(f"Failed to backfill L1 cache: {e}")
 
-            return l2_result
+            return CacheResult(
+                data=actual_data if isinstance(actual_data, dict) else {"content": actual_data},
+                cache_status="HIT-L2",
+                cache_age=cache_age,
+                data_source="cached"
+            )
 
         logger.debug(f"L2 cache miss: {cache_key}")
         # 记录L2未命中
@@ -148,6 +206,24 @@ class CacheManager:
         )
 
         return None
+
+    async def get_without_metadata(
+        self,
+        query: str,
+        symbol: Optional[str] = None,
+        data_type: Optional[DataType] = None,
+        additional_params: Optional[Dict[str, Any]] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        获取缓存数据（不返回元数据，向后兼容）
+        
+        这是一个便捷方法，向后兼容旧的代码
+        
+        Returns:
+            缓存数据或None
+        """
+        result = await self.get(query, symbol, data_type, additional_params)
+        return result.data if result else None
 
     async def set(
         self,

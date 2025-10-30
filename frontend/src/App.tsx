@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { cn } from './lib/utils'
 import ErrorBoundary from './components/Error/ErrorBoundary'
 import OfflineIndicator from './components/Network/OfflineIndicator'
+import PrivacyConsent from './components/Privacy/PrivacyConsent'
 import { ToastProvider } from './components/ui/toast'
 import { ThemeProvider } from './components/theme-provider'
 import { KeyboardShortcutsProvider } from './contexts/KeyboardShortcutsContext'
@@ -15,6 +16,8 @@ import { useServiceWorker } from './hooks/useServiceWorker'
 import { useKeyboardShortcutsContext } from './contexts/KeyboardShortcutsContext'
 import Sidebar from './components/Layout/Sidebar'
 import { initSentry, addBreadcrumb, setContext } from './services/sentry'
+import { analytics } from './services/analytics'
+import { monitoring } from './services/monitoring'
 import performanceMonitor from './services/performance'
 import { PageLoading, ChatLoading, ReportLoading } from './components/Loading/PageLoading'
 
@@ -120,6 +123,19 @@ function App() {
             <ThemeProvider defaultTheme="system" storageKey="web3search-theme">
               <ToastProvider>
                 <OfflineIndicator />
+                <PrivacyConsent
+                  onConsentChange={(analytics, errorReporting) => {
+                    // 更新Analytics同意状态
+                    if (analytics) {
+                      analytics.setConsent(true)
+                    } else {
+                      analytics.setConsent(false)
+                    }
+                    
+                    // 更新监控系统同意状态
+                    monitoring.setUserConsent(analytics, errorReporting)
+                  }}
+                />
                 <ErrorBoundary>
                   <Routes>
                     <Route path="/*" element={

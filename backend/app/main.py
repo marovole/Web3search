@@ -180,6 +180,10 @@ app = FastAPI(
 # 中间件配置
 # ================================
 
+# 安全头部中间件（最先添加，确保所有响应都有安全头部）
+from app.api.middleware.security_headers import SecurityHeadersMiddleware
+app.add_middleware(SecurityHeadersMiddleware)
+
 # GZip压缩中间件（任务 9.4）
 # 自动压缩响应大小 > 1KB 的响应
 app.add_middleware(

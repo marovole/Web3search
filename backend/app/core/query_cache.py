@@ -41,6 +41,8 @@ class DataType(str, Enum):
     NEWS = "news"                      # 新闻数据
     ANALYSIS = "analysis"              # AI 分析结果
     SEARCH_RESULT = "search_result"    # 搜索结果
+    QUICK_CHAT = "quick_chat"          # Quick Chat响应
+    DEEP_RESEARCH = "deep_research"    # Deep Research报告
     OTHER = "other"                    # 其他数据
 
 
@@ -53,6 +55,8 @@ TTL_CONFIG: Dict[DataType, int] = {
     DataType.NEWS: 15 * 60,           # 新闻数据: 15 分钟
     DataType.ANALYSIS: 10 * 60,       # AI 分析: 10 分钟
     DataType.SEARCH_RESULT: 10 * 60,  # 搜索结果: 10 分钟
+    DataType.QUICK_CHAT: 5 * 60,      # Quick Chat: 5 分钟
+    DataType.DEEP_RESEARCH: 60 * 60,  # Deep Research: 60 分钟
     DataType.OTHER: 10 * 60,          # 其他: 10 分钟（默认）
 }
 

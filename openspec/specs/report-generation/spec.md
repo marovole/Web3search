@@ -1,7 +1,7 @@
 # report-generation Specification
 
 ## Purpose
-TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose after archive.
+定义机构级研究报告生成系统的功能规范，包括Markdown格式报告生成、动态表格和图表嵌入、PDF导出功能、分享链接生成、以及报告质量验证机制，确保生成的报告符合专业研报标准，包含完整的结构化内容和数据可视化。
 ## Requirements
 ### Requirement: 机构级Markdown报告生成
 系统**SHALL**生成符合机构研报标准的Markdown格式报告，集成table_generator和chart_generator自动生成表格和图表，包含完整的结构化内容和数据可视化。

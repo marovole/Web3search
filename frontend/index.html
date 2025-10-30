@@ -6,6 +6,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Web3加密货币AI搜索引擎 - 免费、开源、专业级研究工具" />
     <title>Web3 AI Search Engine</title>
+    
+    <!-- DNS预连接 - 优化第三方资源加载 -->
+    <link rel="dns-prefetch" href="https://api.web3search.ai" />
+    <link rel="preconnect" href="https://api.web3search.ai" crossorigin />
+    
+    <!-- 关键资源预加载 -->
+    <link rel="preload" href="/src/main.tsx" as="script" />
+    <link rel="modulepreload" href="/src/main.tsx" />
+    
+    <!-- 关键CSS内联（通过构建工具处理） -->
+    <style>
+      /* 关键CSS：首屏必需的样式 */
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      #root {
+        min-height: 100vh;
+      }
+      /* 加载状态样式 */
+      .loading-skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s ease-in-out infinite;
+      }
+      @keyframes loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: 前端性能优化
 前端应用 SHALL 实现全面的性能优化策略，确保快速加载和流畅交互。

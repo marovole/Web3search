@@ -2,15 +2,18 @@
 聊天API端点
 提供Quick Chat和Deep Research功能
 """
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 import uuid
 import json
+import logging
 
 from app.core.database import get_db
 from app.core.monitoring import trace_operation, metrics
+from app.core.cache_manager import get_cache_manager, CacheResult
+from app.core.query_cache import DataType
 from app.schemas.chat import (
     QuickChatRequest,
     QuickChatResponse,
@@ -26,6 +29,7 @@ import time
 
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 # ================================
@@ -113,12 +117,51 @@ async def quick_chat(
     ```
     """
     start_time = time.time()
+    cache_result: Optional[CacheResult] = None
 
     try:
         # 生成或使用现有session_id
         session_id = request.session_id or str(uuid.uuid4())
 
-        # 调用Quick Chat引擎（非流式）- 添加性能追踪
+        # 检查缓存
+        cache_manager = get_cache_manager()
+        cache_result = await cache_manager.get(
+            query=request.query,
+            symbol=None,
+            data_type=DataType.QUICK_CHAT,
+            additional_params={"session_id": session_id}
+        )
+
+        # 如果缓存命中，直接返回缓存数据
+        if cache_result:
+            cached_data = cache_result.data
+            # 构建响应
+            response = QuickChatResponse(
+                content=cached_data.get("content", ""),
+                symbol=cached_data.get("symbol"),
+                query_type=cached_data.get("query_type", "general"),
+                response_time=cached_data.get("response_time", 0.0),
+                model=cached_data.get("model", "unknown"),
+                session_id=session_id,
+            )
+
+            # 记录API调用指标
+            metrics.record_api_call(
+                endpoint="/api/v1/chat/quick-chat",
+                method="POST",
+                status_code=200,
+                duration=time.time() - start_time
+            )
+
+            # 创建响应对象并设置缓存响应头
+            from fastapi.responses import JSONResponse
+            headers = cache_result.to_headers()
+            return JSONResponse(
+                content=response.model_dump(),
+                headers=headers
+            )
+
+        # 缓存未命中，调用Quick Chat引擎（非流式）- 添加性能追踪
         with trace_operation("quick_chat", {"query": request.query[:50], "session_id": session_id}):
             result = await quick_chat_engine.chat(
                 query=request.query,
@@ -135,6 +178,24 @@ async def quick_chat(
             session_id=session_id,
         )
 
+        # 缓存结果（异步，不阻塞响应）
+        try:
+            await cache_manager.set(
+                query=request.query,
+                data={
+                    "content": result["content"],
+                    "symbol": result.get("symbol"),
+                    "query_type": result["metadata"]["query_type"],
+                    "response_time": result["metadata"]["response_time"],
+                    "model": result["metadata"]["model"],
+                },
+                symbol=None,
+                data_type=DataType.QUICK_CHAT,
+                additional_params={"session_id": session_id}
+            )
+        except Exception as e:
+            logger.warning(f"Failed to cache Quick Chat result: {e}")
+
         # 记录API调用指标
         metrics.record_api_call(
             endpoint="/api/v1/chat/quick-chat",
@@ -146,7 +207,18 @@ async def quick_chat(
         # TODO: 保存到数据库（对话历史）
         # 这里可以保存Conversation和Message记录
 
-        return response
+        # 返回响应并设置缓存响应头（MISS）
+        cache_result = CacheResult(
+            data={},
+            cache_status="MISS",
+            data_source="live"
+        )
+        headers = cache_result.to_headers()
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            content=response.model_dump(),
+            headers=headers
+        )
 
     except Exception as e:
         # 记录错误指标
@@ -339,13 +411,59 @@ async def deep_research(
     - 50-69分: 一般（部分维度缺失）
     - <50分: 需改进（多个维度缺失）
     """
+    start_time = time.time()
+    cache_result: Optional[CacheResult] = None
+
     try:
         # 生成或使用现有session_id
         session_id = request.session_id or str(uuid.uuid4())
 
         print(f"🔍 开始Deep Research: {request.query}")
 
-        # 调用Deep Research引擎
+        # 检查缓存
+        cache_manager = get_cache_manager()
+        cache_key_params = {
+            "query": request.query,
+            "symbol": request.symbol or "",
+            "session_id": session_id
+        }
+        cache_result = await cache_manager.get(
+            query=request.query,
+            symbol=request.symbol,
+            data_type=DataType.DEEP_RESEARCH,
+            additional_params=cache_key_params
+        )
+
+        # 如果缓存命中，直接返回缓存数据
+        if cache_result:
+            cached_data = cache_result.data
+            # 从数据库获取报告（如果report_id存在）
+            if "report_id" in cached_data:
+                report = await db.get(Report, cached_data["report_id"])
+                if report:
+                    response = DeepResearchResponse(
+                        report_id=report.id,
+                        symbol=cached_data.get("symbol", ""),
+                        query=cached_data.get("query", request.query),
+                        tldr=report.tldr,
+                        sections=report.sections,
+                        conclusion=cached_data.get("conclusion", ""),
+                        markdown_content=report.content_markdown,
+                        data_sources=report.data_sources,
+                        models_used=report.models_used,
+                        generation_time=report.generation_time_seconds,
+                        quality_score=report.quality_score,
+                        timestamp=cached_data.get("timestamp", ""),
+                        session_id=session_id,
+                    )
+                    from fastapi.responses import JSONResponse
+                    headers = cache_result.to_headers()
+                    return JSONResponse(
+                        content=response.model_dump(),
+                        headers=headers
+                    )
+
+        # 缓存未命中，调用Deep Research引擎
         research_result = await deep_research_engine.research(
             query=request.query,
             symbol=request.symbol,
@@ -389,6 +507,24 @@ async def deep_research(
 
         print(f"✅ Deep Research完成，报告ID: {report.id}")
 
+        # 缓存结果（异步，不阻塞响应）
+        try:
+            await cache_manager.set(
+                query=request.query,
+                data={
+                    "report_id": report.id,
+                    "symbol": research_result["symbol"],
+                    "query": request.query,
+                    "conclusion": research_result.get("conclusion", ""),
+                    "timestamp": research_result.get("timestamp", ""),
+                },
+                symbol=request.symbol,
+                data_type=DataType.DEEP_RESEARCH,
+                additional_params=cache_key_params
+            )
+        except Exception as e:
+            logger.warning(f"Failed to cache Deep Research result: {e}")
+
         # 构建响应
         response = DeepResearchResponse(
             report_id=report.id,
@@ -406,7 +542,18 @@ async def deep_research(
             session_id=session_id,
         )
 
-        return response
+        # 返回响应并设置缓存响应头（MISS）
+        cache_result = CacheResult(
+            data={},
+            cache_status="MISS",
+            data_source="live"
+        )
+        headers = cache_result.to_headers()
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            content=response.model_dump(),
+            headers=headers
+        )
 
     except HTTPException:
         raise

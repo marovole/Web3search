@@ -380,7 +380,18 @@ export class CSPManager {
 
     for (const [directive, values] of Object.entries(this.config.directives)) {
       if (values.length > 0) {
-        directives.push(`${directive} ${values.join(' ')}`)
+        let directiveValue = values.join(' ')
+        
+        // 如果是指令需要nonce支持，添加nonce
+        if (directive === 'script-src' || directive === 'style-src') {
+          // 生成当前session的nonce并添加到指令中
+          const currentNonce = this.getCurrentNonce(directive)
+          if (currentNonce) {
+            directiveValue = `'nonce-${currentNonce}' ${directiveValue}`
+          }
+        }
+        
+        directives.push(`${directive} ${directiveValue}`)
       } else {
         directives.push(directive)
       }
@@ -393,6 +404,41 @@ export class CSPManager {
     }
 
     return directives.join('; ')
+  }
+
+  /**
+   * 获取当前session的nonce值
+   */
+  private getCurrentNonce(directive: string): string | null {
+    // 从sessionStorage获取或生成新的nonce
+    const storageKey = `csp_nonce_${directive}`
+    
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      let nonce = sessionStorage.getItem(storageKey)
+      if (!nonce) {
+        nonce = this.generateNonce(directive)
+        sessionStorage.setItem(storageKey, nonce)
+      }
+      return nonce
+    }
+    
+    return null
+  }
+  
+  /**
+   * 获取当前nonce值（供外部使用）
+   */
+  getCurrentNonceFor(directive: string = 'script-src'): string {
+    const storageKey = `csp_nonce_${directive}`
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      let nonce = sessionStorage.getItem(storageKey)
+      if (!nonce) {
+        nonce = this.generateNonce(directive)
+        sessionStorage.setItem(storageKey, nonce)
+      }
+      return nonce
+    }
+    return this.generateNonce(directive)
   }
 
   /**
@@ -586,6 +632,7 @@ export const {
   addDirectiveValue,
   removeDirectiveValue,
   generateNonce,
+  getCurrentNonceFor,
   getViolations,
   getStatistics,
   enforceMode,

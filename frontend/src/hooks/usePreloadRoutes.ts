@@ -72,6 +72,7 @@ export function usePreloadRoutes(config: PreloadConfig) {
 /**
  * 智能预加载策略
  * 根据用户行为预加载相关页面
+ * 优化：使用link rel=prefetch和动态import组合
  */
 export function useSmartPreload() {
   const location = useLocation()
@@ -83,33 +84,39 @@ export function useSmartPreload() {
     switch (location.pathname) {
       case '/':
         // 首页用户可能访问历史记录或监控列表
-        preloadTargets = ['/history', '/watchlist']
+        preloadTargets = ['/history', '/watchlist', '/settings']
         break
       case '/history':
         // 历史记录用户可能返回首页或查看监控列表
-        preloadTargets = ['/watchlist', '/']
+        preloadTargets = ['/watchlist', '/', '/settings']
         break
       case '/watchlist':
         // 监控列表用户可能访问历史记录或返回首页
-        preloadTargets = ['/history', '/']
+        preloadTargets = ['/history', '/', '/settings']
         break
       case '/shared':
         // 分享页面用户可能访问首页
         preloadTargets = ['/']
         break
+      case '/search':
+        // 搜索页面用户可能访问首页或历史记录
+        preloadTargets = ['/', '/history']
+        break
       default:
-        // 默认预加载首页
-        preloadTargets = ['/']
+        // 默认预加载首页和设置
+        preloadTargets = ['/', '/settings']
     }
 
-    // 延迟预加载，避免影响当前页面加载
-    const timer = setTimeout(() => {
+    // 使用requestIdleCallback延迟预加载，避免影响当前页面性能
+    const preloadRoutes = () => {
       preloadTargets.forEach(route => {
         const componentMap: Record<string, () => Promise<any>> = {
           '/': () => import('../pages/ChatPage'),
           '/shared': () => import('../pages/SharedReportPage'),
           '/history': () => import('../pages/HistoryPage'),
           '/watchlist': () => import('../pages/WatchlistPage'),
+          '/settings': () => import('../pages/SettingsPage'),
+          '/search': () => import('../pages/SearchPage'),
         }
 
         const preloadKey = Object.keys(componentMap).find(key =>
@@ -117,14 +124,28 @@ export function useSmartPreload() {
         )
 
         if (preloadKey) {
+          // 使用动态import预加载
           componentMap[preloadKey]().catch(error => {
             console.warn(`Failed to preload route ${route}:`, error)
           })
+
+          // 同时使用link prefetch作为备选方案
+          const link = document.createElement('link')
+          link.rel = 'prefetch'
+          link.href = route
+          document.head.appendChild(link)
         }
       })
-    }, 3000) // 3秒后开始预加载
+    }
 
-    return () => clearTimeout(timer)
+    // 延迟预加载，避免影响首屏加载
+    if ('requestIdleCallback' in window) {
+      const id = requestIdleCallback(preloadRoutes, { timeout: 5000 })
+      return () => cancelIdleCallback(id)
+    } else {
+      const timer = setTimeout(preloadRoutes, 3000)
+      return () => clearTimeout(timer)
+    }
   }, [location.pathname])
 }
 

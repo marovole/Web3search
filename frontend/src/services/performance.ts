@@ -4,6 +4,7 @@
  */
 
 import { getEnvConfig, isFeatureEnabled } from '../utils/env'
+import performanceBudgetMonitor from './performanceBudget'
 
 interface WebVitalMetrics {
   id: string
@@ -249,6 +250,17 @@ class PerformanceMonitor {
     // 限制存储的指标数量
     if (this.metrics.length > 100) {
       this.metrics = this.metrics.slice(-50)
+    }
+
+    // 检查性能预算
+    if (metric.name === 'LCP') {
+      performanceBudgetMonitor.checkWebVital('lcp', metric.value)
+    } else if (metric.name === 'FID') {
+      performanceBudgetMonitor.checkWebVital('fid', metric.value)
+    } else if (metric.name === 'CLS') {
+      performanceBudgetMonitor.checkWebVital('cls', metric.value)
+    } else if (metric.name === 'FCP') {
+      performanceBudgetMonitor.checkWebVital('fcp', metric.value)
     }
 
     // 在控制台输出性能信息

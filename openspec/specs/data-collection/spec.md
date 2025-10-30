@@ -1,7 +1,7 @@
 # data-collection Specification
 
 ## Purpose
-TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose after archive.
+定义多源加密货币数据采集系统的功能规范，包括从CoinGecko、Etherscan、Twitter、Reddit、CryptoPanic等数据源采集市场数据、链上数据、社交媒体情绪和新闻资讯，实现智能缓存预热、分层缓存策略（L1内存缓存+L2 Redis缓存）、定时数据更新、错误处理与降级机制，确保数据时效性和系统可靠性。
 ## Requirements
 ### Requirement: 多源加密货币数据采集
 系统**SHALL**能够从多个公开数据源采集加密货币相关信息，包括市场数据、链上数据、社交媒体和新闻资讯。

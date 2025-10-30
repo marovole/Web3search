@@ -1,7 +1,7 @@
 # ai-analysis Specification
 
 ## Purpose
-TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose after archive.
+定义基于OpenRouter API的AI分析引擎功能规范，包括多模型智能路由策略、六维深度分析能力（TL;DR、时间窗、情绪、技术面、链上、竞品、代币经济学、风险评估、结论综合）、Prompt模板管理、以及输出质量验证机制，确保AI生成内容符合机构级研究报告标准。
 ## Requirements
 ### Requirement: OpenRouter多模型路由
 系统**SHALL**根据任务类型智能路由到最合适的OpenRouter免费模型，实现成本优化和质量保证。
