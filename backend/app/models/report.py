@@ -46,6 +46,12 @@ class Report(Base):
         index=True,
         nullable=True
     )
+    user_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=True
+    )
 
     # 报告元数据
     report_type: Mapped[ReportType] = mapped_column(
@@ -126,6 +132,7 @@ class Report(Base):
         "Conversation",
         back_populates="reports"
     )
+    user: Mapped[Optional["User"]] = relationship("User", back_populates="reports")
 
     # 索引
     __table_args__ = (
@@ -139,6 +146,8 @@ class Report(Base):
         Index("ix_reports_status_created", "status", "created_at"),
         # 复合索引：按符号、类型和状态（用于精确筛选）
         Index("ix_reports_symbol_type_status", "symbol", "report_type", "status"),
+        # 复合索引：按用户和创建时间（用于获取用户报告列表）
+        Index("ix_reports_user_created", "user_id", "created_at"),
         # 注意：created_at已经通过 index=True 创建了索引，无需重复定义
     )
 

@@ -84,6 +84,14 @@ REDIS_URL=redis://localhost:6379/0
 OPENROUTER_API_KEY=your_openrouter_api_key_here
 COINGECKO_API_KEY=your_coingecko_api_key_here  # 可选
 
+# JWT认证配置（用户账号系统）
+# 生产环境必须更改此密钥，最小32字符
+# 生成方法: python -c "import secrets; print(secrets.token_urlsafe(32))"
+JWT_SECRET_KEY=your-secret-key-change-in-production-min-32-chars-please-use-secrets-token-urlsafe
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_HOURS=24
+REFRESH_TOKEN_EXPIRE_DAYS=30
+
 # Sentry（可选）
 SENTRY_DSN=https://your_sentry_dsn_here
 ```
@@ -464,6 +472,53 @@ REDIS_MAX_CONNECTIONS=50
 | `CORS_ORIGINS` | 允许的跨域来源 | `http://localhost:3000` |
 | `DATABASE_POOL_SIZE` | 数据库连接池大小 | `10` |
 | `REDIS_MAX_CONNECTIONS` | Redis最大连接数 | `10` |
+| `JWT_SECRET_KEY` | JWT签名密钥（**生产环境必须更改**） | - |
+| `JWT_ALGORITHM` | JWT算法 | `HS256` |
+| `ACCESS_TOKEN_EXPIRE_HOURS` | Access Token过期时间（小时） | `24` |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh Token过期时间（天） | `30` |
+
+### JWT认证配置（用户账号系统）
+
+**重要：** 用户账号系统需要以下JWT配置项：
+
+#### 1. JWT_SECRET_KEY（必需）
+
+生产环境**必须**设置一个强随机密钥，最小32字符。
+
+**生成方法：**
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+**安全要求：**
+- 最小长度：32字符
+- 必须是随机生成的强密钥
+- 不同环境使用不同密钥
+- 不要提交到代码仓库
+
+#### 2. Token过期时间配置
+
+- `ACCESS_TOKEN_EXPIRE_HOURS`: Access Token有效期（默认24小时）
+- `REFRESH_TOKEN_EXPIRE_DAYS`: Refresh Token有效期（默认30天）
+
+#### 3. 环境变量示例
+
+**开发环境：**
+```bash
+JWT_SECRET_KEY=dev-secret-key-min-32-chars-please-change-in-production
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_HOURS=24
+REFRESH_TOKEN_EXPIRE_DAYS=30
+```
+
+**生产环境：**
+```bash
+# 使用随机生成的强密钥
+JWT_SECRET_KEY=<生成的安全密钥，32+字符>
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_HOURS=24
+REFRESH_TOKEN_EXPIRE_DAYS=30
+```
 
 ---
 

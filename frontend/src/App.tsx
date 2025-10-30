@@ -8,6 +8,7 @@ import { ThemeProvider } from './components/theme-provider'
 import { KeyboardShortcutsProvider } from './contexts/KeyboardShortcutsContext'
 import { UserPreferencesProvider } from './contexts/UserPreferencesContext'
 import { SearchHistoryProvider } from './contexts/SearchHistoryContext'
+import { AuthProvider } from './contexts/AuthContext'
 import { GlobalSearchDialog } from './components/Search/GlobalSearchDialog'
 import { useSidebar } from './hooks/useSidebar'
 import { useSmartPreload } from './hooks/usePreloadRoutes'
@@ -25,6 +26,12 @@ const HistoryPage = React.lazy(() => import('./pages/HistoryPage'))
 const WatchlistPage = React.lazy(() => import('./pages/WatchlistPage'))
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'))
 const SearchPage = React.lazy(() => import('./pages/SearchPage'))
+
+// 懒加载认证页面组件
+const LoginPage = React.lazy(() => import('./pages/Auth/LoginPage'))
+const RegisterPage = React.lazy(() => import('./pages/Auth/RegisterPage'))
+const ForgotPasswordPage = React.lazy(() => import('./pages/Auth/ForgotPasswordPage'))
+const ResetPasswordPage = React.lazy(() => import('./pages/Auth/ResetPasswordPage'))
 
 // Layout component that includes sidebar
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -113,59 +120,83 @@ function App() {
   }, [])
 
   return (
-    <UserPreferencesProvider>
-      <SearchHistoryProvider>
-        <KeyboardShortcutsProvider>
-          <Router>
-            <ThemeProvider defaultTheme="system" storageKey="web3search-theme">
-              <ToastProvider>
-                <OfflineIndicator />
-                <ErrorBoundary>
-                  <Routes>
-                    <Route path="/*" element={
-                      <AppLayout>
-                        <Routes>
-                          <Route path="/" element={
-                            <Suspense fallback={<ChatLoading />}>
-                              <ChatPage />
-                            </Suspense>
-                          } />
-                          <Route path="/shared/:shareToken" element={
-                            <Suspense fallback={<ReportLoading />}>
-                              <SharedReportPage />
-                            </Suspense>
-                          } />
-                          <Route path="/history" element={
-                            <Suspense fallback={<PageLoading message="加载历史记录..." />}>
-                              <HistoryPage />
-                            </Suspense>
-                          } />
-                          <Route path="/watchlist" element={
-                            <Suspense fallback={<PageLoading message="加载监控列表..." />}>
-                              <WatchlistPage />
-                            </Suspense>
-                          } />
-                          <Route path="/search" element={
-                            <Suspense fallback={<PageLoading message="加载搜索..." />}>
-                              <SearchPage />
-                            </Suspense>
-                          } />
-                          <Route path="/settings" element={
-                            <Suspense fallback={<PageLoading message="加载设置..." />}>
-                              <SettingsPage />
-                            </Suspense>
-                          } />
-                        </Routes>
-                      </AppLayout>
-                    } />
-                  </Routes>
-                </ErrorBoundary>
-              </ToastProvider>
-            </ThemeProvider>
-          </Router>
-        </KeyboardShortcutsProvider>
-      </SearchHistoryProvider>
-    </UserPreferencesProvider>
+    <AuthProvider>
+      <UserPreferencesProvider>
+        <SearchHistoryProvider>
+          <KeyboardShortcutsProvider>
+            <Router>
+              <ThemeProvider defaultTheme="system" storageKey="web3search-theme">
+                <ToastProvider>
+                  <OfflineIndicator />
+                  <ErrorBoundary>
+                    <Routes>
+                      {/* 认证路由 - 不显示侧边栏 */}
+                      <Route path="/auth/login" element={
+                        <Suspense fallback={<PageLoading message="加载登录页面..." />}>
+                          <LoginPage />
+                        </Suspense>
+                      } />
+                      <Route path="/auth/register" element={
+                        <Suspense fallback={<PageLoading message="加载注册页面..." />}>
+                          <RegisterPage />
+                        </Suspense>
+                      } />
+                      <Route path="/auth/forgot-password" element={
+                        <Suspense fallback={<PageLoading message="加载忘记密码页面..." />}>
+                          <ForgotPasswordPage />
+                        </Suspense>
+                      } />
+                      <Route path="/auth/reset-password" element={
+                        <Suspense fallback={<PageLoading message="加载重置密码页面..." />}>
+                          <ResetPasswordPage />
+                        </Suspense>
+                      } />
+                      {/* 应用路由 - 显示侧边栏 */}
+                      <Route path="/*" element={
+                        <AppLayout>
+                          <Routes>
+                            <Route path="/" element={
+                              <Suspense fallback={<ChatLoading />}>
+                                <ChatPage />
+                              </Suspense>
+                            } />
+                            <Route path="/shared/:shareToken" element={
+                              <Suspense fallback={<ReportLoading />}>
+                                <SharedReportPage />
+                              </Suspense>
+                            } />
+                            <Route path="/history" element={
+                              <Suspense fallback={<PageLoading message="加载历史记录..." />}>
+                                <HistoryPage />
+                              </Suspense>
+                            } />
+                            <Route path="/watchlist" element={
+                              <Suspense fallback={<PageLoading message="加载监控列表..." />}>
+                                <WatchlistPage />
+                              </Suspense>
+                            } />
+                            <Route path="/search" element={
+                              <Suspense fallback={<PageLoading message="加载搜索..." />}>
+                                <SearchPage />
+                              </Suspense>
+                            } />
+                            <Route path="/settings" element={
+                              <Suspense fallback={<PageLoading message="加载设置..." />}>
+                                <SettingsPage />
+                              </Suspense>
+                            } />
+                          </Routes>
+                        </AppLayout>
+                      } />
+                    </Routes>
+                  </ErrorBoundary>
+                </ToastProvider>
+              </ThemeProvider>
+            </Router>
+          </KeyboardShortcutsProvider>
+        </SearchHistoryProvider>
+      </UserPreferencesProvider>
+    </AuthProvider>
   )
 }
 

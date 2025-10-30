@@ -2,12 +2,14 @@
 API v1 router
 """
 from fastapi import APIRouter
-from app.api.v1 import chat, reports, search, trending, health, metrics, cache
+from app.api.v1 import chat, reports, search, trending, health, metrics, cache, auth, users
 
 # Create v1 API router
 api_router = APIRouter()
 
 # Include routers
+api_router.include_router(auth.router, prefix="/auth", tags=["Auth"])
+api_router.include_router(users.router, prefix="/users", tags=["Users"])
 api_router.include_router(chat.router, prefix="/chat", tags=["Chat"])
 api_router.include_router(reports.router, prefix="/reports", tags=["Reports"])
 api_router.include_router(search.router, prefix="/search", tags=["Search"])

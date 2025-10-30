@@ -55,6 +55,32 @@ from app.schemas.research import (
     ComparativeAnalysis,
     FinalVerdict,
 )
+from app.schemas.auth import (
+    RegisterRequest,
+    RegisterResponse,
+    LoginRequest,
+    LoginResponse,
+    RefreshTokenRequest,
+    RefreshTokenResponse,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
+)
+from app.schemas.user import (
+    UserInfo,
+    UserUpdate,
+    UserDeleteRequest,
+    UserDeleteResponse,
+    PreferencesResponse,
+    PreferencesUpdate,
+    DataExportResponse,
+    MigrationRequest,
+    MigrationResponse,
+    MigrationResult,
+    ConversationMigrationData,
+    ReportMigrationData,
+)
 
 __all__ = [
     # Chat Schemas
@@ -107,4 +133,28 @@ __all__ = [
     "InvestmentRecommendation",
     "ComparativeAnalysis",
     "FinalVerdict",
+    # Auth Schemas
+    "RegisterRequest",
+    "RegisterResponse",
+    "LoginRequest",
+    "LoginResponse",
+    "RefreshTokenRequest",
+    "RefreshTokenResponse",
+    "ForgotPasswordRequest",
+    "ForgotPasswordResponse",
+    "ResetPasswordRequest",
+    "ResetPasswordResponse",
+    # User Schemas
+    "UserInfo",
+    "UserUpdate",
+    "UserDeleteRequest",
+    "UserDeleteResponse",
+    "PreferencesResponse",
+    "PreferencesUpdate",
+    "DataExportResponse",
+    "MigrationRequest",
+    "MigrationResponse",
+    "MigrationResult",
+    "ConversationMigrationData",
+    "ReportMigrationData",
 ]

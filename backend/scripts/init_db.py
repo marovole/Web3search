@@ -11,7 +11,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.core.database import engine, Base
-from app.models import project, snapshot, report, conversation  # noqa: F401
+from app.models import (  # noqa: F401
+    project,
+    snapshot,
+    report,
+    conversation,
+    user,
+)
 
 
 async def init_database():

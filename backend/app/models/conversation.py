@@ -34,8 +34,13 @@ class Conversation(Base):
     # 会话标题（从第一条消息自动生成）
     title: Mapped[Optional[str]] = mapped_column(String(500))
 
-    # 用户标识（可选，未来支持用户系统）
-    user_id: Mapped[Optional[str]] = mapped_column(String(100), index=True)
+    # 用户标识（可选，支持匿名用户）
+    user_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=True
+    )
 
     # 统计信息
     message_count: Mapped[int] = mapped_column(Integer, default=0)
@@ -58,6 +63,7 @@ class Conversation(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
 
     # 关系
+    user: Mapped[Optional["User"]] = relationship("User", back_populates="conversations")
     messages: Mapped[list["Message"]] = relationship(
         "Message",
         back_populates="conversation",

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { registerSW } from 'virtual:pwa-register'
 
 interface ServiceWorkerStatus {
   isSupported: boolean
@@ -11,7 +12,7 @@ interface ServiceWorkerStatus {
 
 /**
  * Service Worker管理Hook
- * 处理Service Worker的注册、更新和通信
+ * 使用vite-plugin-pwa的registerSW进行Service Worker管理
  */
 export function useServiceWorker() {
   const [status, setStatus] = useState<ServiceWorkerStatus>({
@@ -36,8 +37,61 @@ export function useServiceWorker() {
 
     setStatus(prev => ({ ...prev, isSupported: true }))
 
-    // 注册Service Worker
-    registerServiceWorker()
+    // 使用vite-plugin-pwa的registerSW注册Service Worker
+    const updateSW = registerSW({
+      immediate: true,
+      onRegistered(registration?: ServiceWorkerRegistration) {
+        console.log('Service Worker registered:', registration)
+        
+        setStatus(prev => ({
+          ...prev,
+          isRegistered: true,
+          registration: registration || null,
+        }))
+
+        // 检查激活状态
+        if (registration?.active) {
+          setStatus(prev => ({
+            ...prev,
+            isActivated: true,
+            version: registration.active?.scriptURL || null,
+          }))
+        }
+
+        // 监听Service Worker更新
+        if (registration) {
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  setUpdateAvailable(true)
+                  console.log('New Service Worker available')
+                }
+              })
+            }
+          })
+        }
+      },
+      onRegisterError(error: unknown) {
+        console.error('Service Worker registration failed:', error)
+        setStatus(prev => ({
+          ...prev,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }))
+      },
+      onNeedRefresh() {
+        setUpdateAvailable(true)
+        console.log('Service Worker update available')
+      },
+      onOfflineReady() {
+        console.log('Service Worker ready for offline use')
+        setStatus(prev => ({
+          ...prev,
+          isActivated: true,
+        }))
+      },
+    })
 
     // 监听网络状态
     const handleOnline = () => setOffline(false)
@@ -46,115 +100,35 @@ export function useServiceWorker() {
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
+    // 监听Service Worker控制变化
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      console.log('Service Worker controller changed')
+      window.location.reload()
+    })
+
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
+      // updateSW不需要清理，因为registerSW会处理
     }
   }, [])
-
-  const registerServiceWorker = async () => {
-    try {
-      const registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/'
-      })
-
-      console.log('Service Worker registered:', registration)
-
-      setStatus(prev => ({
-        ...prev,
-        isRegistered: true,
-        registration,
-      }))
-
-      // 检查激活状态
-      if (registration.active) {
-        setStatus(prev => ({
-          ...prev,
-          isActivated: true,
-        }))
-        getVersion(registration)
-      }
-
-      // 监听Service Worker更新
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing
-        if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              setUpdateAvailable(true)
-              console.log('New Service Worker available')
-            }
-          })
-        }
-      })
-
-      // 监听Service Worker控制变化
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log('Service Worker controller changed')
-        window.location.reload()
-      })
-
-    } catch (error) {
-      console.error('Service Worker registration failed:', error)
-      setStatus(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      }))
-    }
-  }
-
-  const getVersion = async (registration: ServiceWorkerRegistration) => {
-    try {
-      if (registration.active) {
-        const messageChannel = new MessageChannel()
-
-        const getVersionPromise = new Promise<string>((resolve) => {
-          messageChannel.port1.onmessage = (event) => {
-            resolve(event.data.version)
-          }
-        })
-
-        registration.active.postMessage(
-          { type: 'GET_VERSION' },
-          [messageChannel.port2]
-        )
-
-        const version = await getVersionPromise
-        setStatus(prev => ({ ...prev, version }))
-      }
-    } catch (error) {
-      console.error('Failed to get Service Worker version:', error)
-    }
-  }
 
   const activateUpdate = () => {
     if (status.registration?.waiting) {
       status.registration.waiting.postMessage({ type: 'SKIP_WAITING' })
     }
+    // 重新加载页面以应用更新
+    window.location.reload()
   }
 
   const clearCache = async () => {
     try {
-      if (status.registration?.active) {
-        const messageChannel = new MessageChannel()
-
-        const clearCachePromise = new Promise<boolean>((resolve, reject) => {
-          messageChannel.port1.onmessage = (event) => {
-            if (event.data.success) {
-              resolve(true)
-            } else {
-              reject(new Error(event.data.error))
-            }
-          }
-        })
-
-        status.registration.active.postMessage(
-          { type: 'CLEAR_CACHE' },
-          [messageChannel.port2]
-        )
-
-        await clearCachePromise
+      if ('caches' in window) {
+        const cacheNames = await caches.keys()
+        await Promise.all(cacheNames.map(name => caches.delete(name)))
         console.log('Cache cleared successfully')
+        // 重新加载页面
+        window.location.reload()
       }
     } catch (error) {
       console.error('Failed to clear cache:', error)

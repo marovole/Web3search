@@ -10,6 +10,8 @@ from typing import Optional
 import os
 
 from app.core.database import get_db
+from app.api.middleware.auth import optional_auth
+from app.models.user import User
 from app.schemas.report import (
     ReportResponse,
     ReportListResponse,
@@ -74,6 +76,7 @@ async def get_reports(
     order_by: str = Query("created_at", description="排序字段"),
     order_desc: bool = Query(True, description="是否降序"),
     db: AsyncSession = Depends(get_db),
+    current_user: User | None = Depends(optional_auth),
 ) -> ReportListResponse:
     """
     获取报告列表 - 分页查询所有研究报告
@@ -134,6 +137,13 @@ async def get_reports(
     try:
         # 构建查询
         query = select(Report)
+
+        # 如果用户已登录，只返回该用户的报告
+        if current_user:
+            query = query.where(Report.user_id == current_user.id)
+        else:
+            # 匿名用户只能看到没有关联用户的报告（公共报告）
+            query = query.where(Report.user_id.is_(None))
 
         # 应用筛选条件
         if symbol:

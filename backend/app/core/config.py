@@ -165,6 +165,31 @@ class Settings(BaseSettings):
     )
 
     # ================================
+    # JWT认证配置
+    # ================================
+    JWT_SECRET_KEY: str = Field(
+        default="your-secret-key-change-in-production-min-32-chars",
+        min_length=32,
+        description="JWT Secret Key（生产环境必须更改，最小32字符）"
+    )
+    JWT_ALGORITHM: str = Field(
+        default="HS256",
+        description="JWT算法"
+    )
+    ACCESS_TOKEN_EXPIRE_HOURS: int = Field(
+        default=24,
+        ge=1,
+        le=168,  # 最大7天
+        description="Access Token过期时间（小时）"
+    )
+    REFRESH_TOKEN_EXPIRE_DAYS: int = Field(
+        default=30,
+        ge=1,
+        le=90,  # 最大90天
+        description="Refresh Token过期时间（天）"
+    )
+
+    # ================================
     # OpenRouter API
     # ================================
     OPENROUTER_API_KEY: str = Field(

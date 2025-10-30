@@ -11,6 +11,8 @@ import json
 
 from app.core.database import get_db
 from app.core.monitoring import trace_operation, metrics
+from app.api.middleware.auth import optional_auth
+from app.models.user import User
 from app.schemas.chat import (
     QuickChatRequest,
     QuickChatResponse,
@@ -61,6 +63,7 @@ router = APIRouter()
 async def quick_chat(
     request: QuickChatRequest,
     db: AsyncSession = Depends(get_db),
+    current_user: User | None = Depends(optional_auth),
 ) -> QuickChatResponse:
     """
     快速对话接口 - 3秒内响应的AI问答
@@ -143,8 +146,51 @@ async def quick_chat(
             duration=time.time() - start_time
         )
 
-        # TODO: 保存到数据库（对话历史）
-        # 这里可以保存Conversation和Message记录
+        # 保存到数据库（对话历史）
+        try:
+            # 查找或创建对话
+            from sqlalchemy import select
+            stmt = select(Conversation).where(Conversation.session_id == session_id)
+            result = await db.execute(stmt)
+            conversation = result.scalar_one_or_none()
+
+            if not conversation:
+                conversation = Conversation(
+                    session_id=session_id,
+                    user_id=current_user.id if current_user else None,
+                    title=request.query[:50],  # 使用查询的前50字符作为标题
+                    message_count=0,
+                )
+                db.add(conversation)
+                await db.flush()
+
+            # 创建用户消息
+            user_message = Message(
+                conversation_id=conversation.id,
+                role=MessageRole.USER,
+                content=request.query,
+            )
+            db.add(user_message)
+
+            # 创建助手消息
+            assistant_message = Message(
+                conversation_id=conversation.id,
+                role=MessageRole.ASSISTANT,
+                content=result["content"],
+                model=result["metadata"]["model"],
+            )
+            db.add(assistant_message)
+
+            # 更新对话统计
+            from datetime import datetime
+            conversation.message_count += 2
+            conversation.last_activity = datetime.utcnow()
+
+            await db.commit()
+        except Exception as e:
+            # 保存失败不影响响应，只记录日志
+            print(f"⚠️ 保存对话历史失败: {e}")
+            await db.rollback()
 
         return response
 
@@ -259,6 +305,7 @@ async def quick_chat_stream(
 async def deep_research(
     request: DeepResearchRequest,
     db: AsyncSession = Depends(get_db),
+    current_user: User | None = Depends(optional_auth),
 ) -> DeepResearchResponse:
     """
     深度研究接口 - 生成全面的加密货币研究报告
@@ -381,6 +428,7 @@ async def deep_research(
             models_used=research_result["models_used"],
             generation_time_seconds=research_result["generation_time"],
             quality_score=quality_score,
+            user_id=current_user.id if current_user else None,
         )
 
         db.add(report)
