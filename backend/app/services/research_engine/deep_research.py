@@ -221,7 +221,6 @@ class DeepResearchEngine:
         # 调用TldrGenerator
         tldr_output = await self.tldr_generator.generate_tldr(
             query=query,
-            symbol=symbol,
             aggregated_data=aggregated_data,
         )
 
