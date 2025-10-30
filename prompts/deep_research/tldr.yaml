@@ -1,3 +1,94 @@
+version: 1.0
+description: Template for generating TL;DR executive summary with core judgment and confidence level for cryptocurrency projects.
+category:
+  dimension: tldr
+  complexity: advanced
+variables:
+  - name: symbol
+    type: string
+    description: The cryptocurrency symbol (e.g., BTC, ETH)
+    required: true
+  - name: query
+    type: string
+    description: User's research query
+    required: true
+  - name: current_price
+    type: number
+    description: Current price in USD
+    required: true
+  - name: market_cap
+    type: number
+    description: Market capitalization in USD
+    required: true
+  - name: market_rank
+    type: number
+    description: Market cap ranking
+    required: true
+  - name: price_change_24h
+    type: string
+    description: 24h price change percentage (e.g., +5.2%)
+    required: true
+  - name: price_change_7d
+    type: string
+    description: 7d price change percentage
+    required: true
+  - name: price_change_30d
+    type: string
+    description: 30d price change percentage
+    required: true
+  - name: volume_24h
+    type: string
+    description: 24h trading volume
+    required: true
+  - name: circulating_supply
+    type: string
+    description: Circulating supply
+    required: true
+  - name: total_supply
+    type: string
+    description: Total supply
+    required: true
+  - name: project_name
+    type: string
+    description: Full project name
+    required: true
+  - name: categories
+    type: string
+    description: Project categories
+    required: true
+  - name: description
+    type: string
+    description: Project description
+    required: true
+  - name: twitter_followers
+    type: number
+    description: Twitter followers count
+    required: true
+  - name: reddit_subscribers
+    type: number
+    description: Reddit subscribers count
+    required: true
+  - name: social_sentiment
+    type: string
+    description: Social sentiment label
+    required: true
+  - name: discussion_heat
+    type: string
+    description: Discussion heat level
+    required: true
+  - name: active_addresses
+    type: number
+    description: Active addresses
+    required: true
+  - name: holder_count
+    type: number
+    description: Holder count
+    required: true
+  - name: whale_activity
+    type: string
+    description: Whale activity description
+    required: true
+
 # ================================
 # TL;DR 生成专用提示词模板
 # 参考：openspec/changes/add-crypto-ai-search-platform/specs/ai-analysis/spec.md
@@ -44,27 +135,27 @@ user_prompt_template: |
 
   ### 格式要求：
   1. **核心判断**（必须是以下之一）：
-     - 🟢 BULL (看多)
-     - 🟡 NEUTRAL (中性)
-     - 🔴 BEAR (看空)
+      - 🟢 BULL (看多)
+      - 🟡 NEUTRAL (中性)
+      - 🔴 BEAR (看空)
 
   2. **置信度**（0-100的整数）：
-     - 90-100：极高
-     - 70-89：高
-     - 50-69：中等
-     - 30-49：低
-     - 0-29：极低
+      - 90-100：极高
+      - 70-89：高
+      - 50-69：中等
+      - 30-49：低
+      - 0-29：极低
 
-     置信度计算考虑因素：
-     - 数据完整性（市场数据、社交数据、链上数据是否齐全）
-     - 趋势一致性（价格、交易量、社区热度是否方向一致）
-     - 信号强度（涨跌幅度、交易量变化、情绪强弱）
+      置信度计算考虑因素：
+      - 数据完整性（市场数据、社交数据、链上数据是否齐全）
+      - 趋势一致性（价格、交易量、社区热度是否方向一致）
+      - 信号强度（涨跌幅度、交易量变化、情绪强弱）
 
   3. **一句话总结**（50-150字）：
-     - 突出最关键的事实（价格、市值、排名、热度）
-     - 说明核心趋势（上涨/下跌/横盘）
-     - 指出主要驱动因素（技术突破、社区增长、市场情绪等）
-     - 使用精确数据支撑观点
+      - 突出最关键的事实（价格、市值、排名、热度）
+      - 说明核心趋势（上涨/下跌/横盘）
+      - 指出主要驱动因素（技术突破、社区增长、市场情绪等）
+      - 使用精确数据支撑观点
 
   ### 输出格式（JSON）：
   ```json
