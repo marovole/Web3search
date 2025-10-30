@@ -188,14 +188,24 @@ app.add_middleware(
     compresslevel=6,     # 压缩级别 (1-9)，6 是平衡速度和压缩率的推荐值
 )
 
-# CORS中间件配置
+# CORS中间件配置 - 安全配置
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
-    allow_origin_regex=r"https://.*\.vercel\.app",  # 支持所有Vercel预览部署
+    # 生产环境移除宽泛的正则表达式
+    allow_origin_regex=None,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # 限制允许的方法
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    # 限制允许的头部
+    allow_headers=[
+        "Accept",
+        "Accept-Language",
+        "Content-Language",
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+    ],
 )
 
 
@@ -343,8 +353,8 @@ async def init_database(force: bool = False):
     """
     【临时管理接口】初始化数据库表结构
 
-    警告: 这是一个临时接口，仅用于首次部署时创建表结构
-    完成后应该删除此端点
+    警告: 这是一个临时接口，仅用于开发环境
+    生产环境此端点将被禁用
 
     Args:
         force: 如果为True，先删除所有表再重新创建（危险操作！）
@@ -352,6 +362,21 @@ async def init_database(force: bool = False):
     Returns:
         dict: 初始化结果
     """
+    # 安全检查：仅开发环境允许此操作
+    from app.core.config import is_production, is_development
+    if is_production():
+        return {
+            "success": False,
+            "error": "生产环境禁用此管理端点",
+            "message": "此端点仅在开发环境可用"
+        }
+
+    if not is_development():
+        return {
+            "success": False,
+            "error": "仅开发环境允许数据库初始化",
+            "message": "请检查ENVIRONMENT环境变量"
+        }
     try:
         # 导入所有模型（确保SQLAlchemy注册所有表）
         from app.models import Project, ProjectSnapshot, Report, Conversation, Message  # noqa: F401
@@ -398,9 +423,27 @@ async def list_tables():
     """
     【临时管理接口】列出数据库中的所有表
 
+    警告: 此端点仅用于开发环境
+    生产环境此端点将被禁用
+
     Returns:
         dict: 表列表
     """
+    # 安全检查：仅开发环境允许此操作
+    from app.core.config import is_production, is_development
+    if is_production():
+        return {
+            "success": False,
+            "error": "生产环境禁用此管理端点",
+            "message": "此端点仅在开发环境可用"
+        }
+
+    if not is_development():
+        return {
+            "success": False,
+            "error": "仅开发环境允许查看表结构",
+            "message": "请检查ENVIRONMENT环境变量"
+        }
     try:
         from sqlalchemy import text
         from app.core.database import engine

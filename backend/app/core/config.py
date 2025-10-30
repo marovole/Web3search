@@ -168,9 +168,9 @@ class Settings(BaseSettings):
     # JWT认证配置
     # ================================
     JWT_SECRET_KEY: str = Field(
-        default="your-secret-key-change-in-production-min-32-chars",
+        default="9ABBFn6HHdJ7rVRsY5YlVjAKRpGoUiv4sdLDGSY3zf1-ZA_--bORnDzHlsniYDm7L2rkbMSNR2kBruh3rY8I3g",
         min_length=32,
-        description="JWT Secret Key（生产环境必须更改，最小32字符）"
+        description="JWT Secret Key（生产环境必须通过环境变量设置）"
     )
     JWT_ALGORITHM: str = Field(
         default="HS256",
@@ -488,6 +488,10 @@ class Settings(BaseSettings):
             # 生产环境必须配置OpenRouter API Key
             if not self.OPENROUTER_API_KEY:
                 raise ValueError("生产环境必须配置OPENROUTER_API_KEY")
+
+            # 生产环境必须配置安全的JWT密钥（不能使用默认值）
+            if self.JWT_SECRET_KEY == "9ABBFn6HHdJ7rVRsY5YlVjAKRpGoUiv4sdLDGSY3zf1-ZA_--bORnDzHlsniYDm7L2rkbMSNR2kBruh3rY8I3g":
+                raise ValueError("生产环境必须通过环境变量设置安全的JWT_SECRET_KEY，不能使用默认值")
 
             # 生产环境不应该输出SQL日志
             if self.DATABASE_ECHO:
