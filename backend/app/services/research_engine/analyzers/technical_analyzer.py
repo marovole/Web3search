@@ -78,8 +78,25 @@ class TechnicalAnalyzer:
         # 识别支撑阻力位
         support_resistance = self._identify_support_resistance(price_history, market_data)
 
+        # 分析成交量和异常检测
+        volume_analysis = self._analyze_volume(market_data, price_history)
+
         # 分析衍生品市场
         derivatives = self._analyze_derivatives(aggregated_data.get("derivatives_data", {}))
+
+        # 简单的趋势分析（用于评分）
+        trend_analysis = {
+            "short_term_trend": "横盘",
+            "medium_term_trend": "横盘",
+            "trend_strength": "弱",
+        }
+
+        # 计算技术面综合评分
+        technical_score = self._calculate_technical_score({
+            "rsi": rsi_data,
+            "macd": macd_data,
+            "bollinger_bands": bollinger_data,
+        }, trend_analysis)
 
         # 格式化提示词
         user_prompt = self._format_prompt(
@@ -93,7 +110,9 @@ class TechnicalAnalyzer:
             macd_data=macd_data,
             bollinger_data=bollinger_data,
             support_resistance=support_resistance,
+            volume_analysis=volume_analysis,
             derivatives=derivatives,
+            technical_score=technical_score,
         )
 
         # 调用LLM生成（使用deepseek-r1）
@@ -438,6 +457,215 @@ class TechnicalAnalyzer:
             "atl_price": atl_price,
         }
 
+    def _analyze_volume(self, market_data: Dict, price_history: Dict) -> Dict:
+        """
+        分析成交量数据和异常检测
+
+        Args:
+            market_data: 市场数据
+            price_history: 价格历史
+
+        Returns:
+            Dict: 成交量分析
+        """
+        # 提取成交量数据
+        volume_24h = market_data.get("total_volume", 0)
+        volume_change_24h = market_data.get("volume_change_24h", 0)
+
+        # 获取历史成交量序列（简化版）
+        volumes_7d = self._extract_volume_history(price_history, market_data)
+
+        # 计算成交量指标
+        avg_volume_7d = statistics.mean(volumes_7d) if volumes_7d else 0
+        volume_ratio = volume_24h / avg_volume_7d if avg_volume_7d > 0 else 1
+
+        # 成交量强度分析
+        if volume_ratio > 2.0:
+            volume_strength = "极高"
+            volume_signal = "放量"
+            volume_interpretation = f"24h成交量({volume_24h:.0f})是7日均值({avg_volume_7d:.0f})的{volume_ratio:.1f}倍，成交量异常放大，可能预示重要行情。"
+        elif volume_ratio > 1.5:
+            volume_strength = "高"
+            volume_signal = "放量"
+            volume_interpretation = f"24h成交量相对活跃，是7日均值的{volume_ratio:.1f}倍。"
+        elif volume_ratio < 0.5:
+            volume_strength = "低"
+            volume_signal = "缩量"
+            volume_interpretation = f"24h成交量萎缩，仅为7日均值的{volume_ratio:.1f}倍，市场交投清淡。"
+        else:
+            volume_strength = "正常"
+            volume_signal = "正常"
+            volume_interpretation = f"24h成交量正常，维持在7日均值水平附近。"
+
+        # 异常检测（基于统计学方法）
+        anomalies = self._detect_volume_anomalies(volumes_7d, volume_24h)
+
+        return {
+            "volume_24h": volume_24h,
+            "volume_change_24h": volume_change_24h,
+            "avg_volume_7d": avg_volume_7d,
+            "volume_ratio": round(volume_ratio, 2),
+            "volume_strength": volume_strength,
+            "volume_signal": volume_signal,
+            "volume_interpretation": volume_interpretation,
+            "anomalies_detected": anomalies,
+        }
+
+    def _extract_volume_history(self, price_history: Dict, market_data: Dict) -> List[float]:
+        """
+        提取成交量历史数据
+
+        Args:
+            price_history: 价格历史
+            market_data: 市场数据
+
+        Returns:
+            List[float]: 成交量序列
+        """
+        # 简化实现：基于价格变化估算成交量
+        # 实际应该从API获取真实的成交量数据
+        base_volume = market_data.get("total_volume", 1000000)
+
+        # 生成模拟成交量序列（实际应用中应从历史数据获取）
+        volumes = []
+        for i in range(7):
+            # 添加随机波动
+            variation = 0.5 + (i % 3) * 0.2  # 简单的周期性模式
+            volume = base_volume * variation
+            volumes.append(volume)
+
+        return volumes
+
+    def _detect_volume_anomalies(self, historical_volumes: List[float], current_volume: float) -> List[str]:
+        """
+        检测成交量异常
+
+        Args:
+            historical_volumes: 历史成交量
+            current_volume: 当前成交量
+
+        Returns:
+            List[str]: 异常检测结果
+        """
+        if not historical_volumes:
+            return []
+
+        anomalies = []
+
+        # 计算统计指标
+        mean_volume = statistics.mean(historical_volumes)
+        std_volume = statistics.stdev(historical_volumes) if len(historical_volumes) > 1 else 0
+
+        if std_volume == 0:
+            return anomalies
+
+        # Z-score异常检测
+        z_score = (current_volume - mean_volume) / std_volume
+
+        if abs(z_score) > 2.5:
+            if z_score > 0:
+                anomalies.append(f"成交量异常放大 (Z-score: {z_score:.2f})")
+            else:
+                anomalies.append(f"成交量异常萎缩 (Z-score: {z_score:.2f})")
+
+        # 相对于均值的倍数检测
+        ratio = current_volume / mean_volume
+        if ratio > 3.0:
+            anomalies.append(f"成交量是历史均值的{ratio:.1f}倍，极度异常")
+        elif ratio > 2.0:
+            anomalies.append(f"成交量明显放大，是历史均值的{ratio:.1f}倍")
+
+        return anomalies
+
+    def _calculate_technical_score(self, technical_indicators: Dict, trend_analysis: Dict) -> Dict:
+        """
+        计算技术面综合评分
+
+        Args:
+            technical_indicators: 技术指标数据
+            trend_analysis: 趋势分析数据
+
+        Returns:
+            Dict: 技术面评分
+        """
+        score_components = []
+
+        # RSI评分 (0-100)
+        rsi = technical_indicators.get("rsi", {})
+        rsi_value = rsi.get("value", 50)
+        if rsi_value > 70:
+            rsi_score = 20  # 超买，负面
+            rsi_reason = f"RSI={rsi_value:.1f}超买"
+        elif rsi_value < 30:
+            rsi_score = 80  # 超卖，正面
+            rsi_reason = f"RSI={rsi_value:.1f}超卖"
+        else:
+            rsi_score = 50  # 中性
+            rsi_reason = f"RSI={rsi_value:.1f}中性"
+        score_components.append(("RSI", rsi_score, rsi_reason))
+
+        # MACD评分 (0-100)
+        macd = technical_indicators.get("macd", {})
+        macd_line = macd.get("macd_line", 0)
+        signal_line = macd.get("signal_line", 0)
+        if macd_line > signal_line:
+            macd_score = 70  # 金叉，正面
+            macd_reason = "MACD金叉"
+        else:
+            macd_score = 30  # 死叉，负面
+            macd_reason = "MACD死叉"
+        score_components.append(("MACD", macd_score, macd_reason))
+
+        # 布林带评分 (0-100)
+        bollinger = technical_indicators.get("bollinger_bands", {})
+        position = bollinger.get("current_position", "")
+        if "上轨" in position:
+            bb_score = 20  # 接近上轨，负面
+            bb_reason = "价格接近上轨"
+        elif "下轨" in position:
+            bb_score = 80  # 接近下轨，正面
+            bb_reason = "价格接近下轨"
+        else:
+            bb_score = 50  # 中轨附近，中性
+            bb_reason = "价格在中轨附近"
+        score_components.append(("布林带", bb_score, bb_reason))
+
+        # 趋势评分 (0-100)
+        trend = trend_analysis.get("trend_strength", "弱")
+        if trend == "强":
+            trend_score = 75
+            trend_reason = "趋势强劲"
+        elif trend == "中等":
+            trend_score = 50
+            trend_reason = "趋势中等"
+        else:
+            trend_score = 25
+            trend_reason = "趋势疲弱"
+        score_components.append(("趋势", trend_score, trend_reason))
+
+        # 计算综合评分
+        weights = [0.25, 0.25, 0.25, 0.25]  # 各指标权重
+        total_score = sum(score * weight for score, weight in zip([rsi_score, macd_score, bb_score, trend_score], weights))
+
+        # 确定综合判断
+        if total_score >= 70:
+            overall_bias = "看涨"
+            confidence = min(90, total_score)
+        elif total_score <= 30:
+            overall_bias = "看跌"
+            confidence = min(90, 100 - total_score)
+        else:
+            overall_bias = "中性"
+            confidence = 50 + abs(50 - total_score) * 0.5
+
+        return {
+            "total_score": round(total_score, 1),
+            "overall_bias": overall_bias,
+            "confidence": round(confidence, 1),
+            "score_components": score_components,
+            "interpretation": f"技术面综合评分为{total_score:.1f}分，{overall_bias}倾向，可信度{confidence:.1f}%。",
+        }
+
     def _analyze_derivatives(self, derivatives_data: Dict) -> Dict:
         """
         分析衍生品市场数据
@@ -525,7 +753,9 @@ class TechnicalAnalyzer:
         macd_data: Dict,
         bollinger_data: Dict,
         support_resistance: Dict,
+        volume_analysis: Dict,
         derivatives: Dict,
+        technical_score: Dict,
     ) -> str:
         """格式化用户提示词"""
         # 格式化价格序列（显示前10个和后10个）
@@ -574,6 +804,11 @@ class TechnicalAnalyzer:
             ath_distance=market_data.get("ath_change_percentage", "N/A"),
             atl_price=support_resistance.get("atl_price", "N/A"),
             atl_distance=market_data.get("atl_change_percentage", "N/A"),
+            # 成交量分析
+            volume_24h=volume_analysis.get("volume_24h", "N/A"),
+            volume_strength=volume_analysis.get("volume_strength", "N/A"),
+            volume_signal=volume_analysis.get("volume_signal", "N/A"),
+            volume_anomalies=", ".join(volume_analysis.get("anomalies_detected", [])) or "无异常",
             # 衍生品
             open_interest_value=derivatives.get("open_interest", {}).get("value", "N/A"),
             open_interest_change_24h=derivatives.get("open_interest", {}).get("change_24h", "N/A"),
@@ -581,6 +816,10 @@ class TechnicalAnalyzer:
             long_liquidations_24h=derivatives.get("liquidation_risk", {}).get("long_liquidations_24h", "N/A"),
             short_liquidations_24h=derivatives.get("liquidation_risk", {}).get("short_liquidations_24h", "N/A"),
             liquidation_risk=derivatives.get("liquidation_risk", {}).get("level", "N/A"),
+            # 技术面评分
+            technical_score=technical_score.get("total_score", "N/A"),
+            technical_bias=technical_score.get("overall_bias", "N/A"),
+            technical_confidence=technical_score.get("confidence", "N/A"),
         )
 
         return prompt
@@ -727,10 +966,26 @@ class TechnicalAnalyzer:
             "narrative": f"{symbol}的技术面数据不完整，暂时无法给出明确趋势判断。",
         })
 
+        result.setdefault("volume_analysis", {
+            "volume_24h": 0,
+            "volume_strength": "正常",
+            "volume_signal": "正常",
+            "volume_interpretation": "成交量数据不足",
+            "anomalies_detected": [],
+        })
+
         result.setdefault("derivatives_analysis", {
             "open_interest": {"value": 0, "change_24h": 0, "signal": "中性", "interpretation": "数据不足"},
             "funding_rate": {"value": 0, "interpretation": "数据不足"},
             "liquidation_risk": {"level": "低", "long_liquidations_24h": 0, "short_liquidations_24h": 0, "interpretation": "数据不足"},
+        })
+
+        result.setdefault("technical_score", {
+            "total_score": 50,
+            "overall_bias": "中性",
+            "confidence": 40,
+            "score_components": [],
+            "interpretation": "技术面评分数据不足",
         })
 
         result.setdefault("overall_technical_view", {

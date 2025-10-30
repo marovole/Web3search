@@ -93,6 +93,16 @@ class SentimentAnalyzer:
         reddit_data = self._extract_reddit_data(aggregated_data)
         news_data = self._extract_news_data(aggregated_data)
 
+        # 增强分析各个数据源
+        twitter_analysis = self._analyze_twitter_sentiment(twitter_data, symbol)
+        reddit_analysis = self._analyze_reddit_sentiment(reddit_data, symbol)
+        news_analysis = self._analyze_news_sentiment(news_data, symbol)
+
+        # 综合情绪评分
+        comprehensive_sentiment = self._calculate_comprehensive_sentiment(
+            twitter_analysis, reddit_analysis, news_analysis, market_data
+        )
+
         # 格式化提示词
         user_prompt = self._format_prompt(
             symbol=symbol,
@@ -102,6 +112,10 @@ class SentimentAnalyzer:
             twitter_data=twitter_data,
             reddit_data=reddit_data,
             news_data=news_data,
+            twitter_analysis=twitter_analysis,
+            reddit_analysis=reddit_analysis,
+            news_analysis=news_analysis,
+            comprehensive_sentiment=comprehensive_sentiment,
         )
 
         # 调用LLM生成
@@ -315,6 +329,326 @@ class SentimentAnalyzer:
             "sample_headlines": formatted_headlines,
         }
 
+    def _analyze_twitter_sentiment(self, twitter_data: Dict, symbol: str) -> Dict:
+        """
+        深入分析Twitter情绪数据
+
+        Args:
+            twitter_data: Twitter原始数据
+            symbol: 代币符号
+
+        Returns:
+            Dict: Twitter情绪分析结果
+        """
+        # 基础情绪统计
+        positive_count = twitter_data.get("positive_count", 0)
+        neutral_count = twitter_data.get("neutral_count", 0)
+        negative_count = twitter_data.get("negative_count", 0)
+        total_tweets = positive_count + neutral_count + negative_count
+
+        if total_tweets == 0:
+            return {
+                "sentiment_score": 50,
+                "sentiment_label": "中性",
+                "engagement_level": "低",
+                "influencer_mentions": 0,
+                "trend_direction": "稳定",
+                "key_topics": [],
+                "risk_signals": [],
+                "assessment": "Twitter数据不足"
+            }
+
+        # 计算情绪得分 (0-100, 100为最积极)
+        positive_ratio = positive_count / total_tweets
+        negative_ratio = negative_count / total_tweets
+        sentiment_score = 50 + (positive_ratio - negative_ratio) * 50
+
+        # 确定情绪标签
+        if sentiment_score >= 70:
+            sentiment_label = "积极"
+        elif sentiment_score <= 30:
+            sentiment_label = "消极"
+        else:
+            sentiment_label = "中性"
+
+        # 分析参与度
+        tweet_count_24h = twitter_data.get("count_24h", 0)
+        if tweet_count_24h > 1000:
+            engagement_level = "高"
+        elif tweet_count_24h > 100:
+            engagement_level = "中等"
+        else:
+            engagement_level = "低"
+
+        # 趋势分析（简化版）
+        trend_direction = "稳定"  # 可以基于历史数据计算
+
+        # 风险信号检测
+        risk_signals = []
+        if negative_ratio > 0.3:
+            risk_signals.append("负面情绪过高")
+        if tweet_count_24h < 10:
+            risk_signals.append("讨论热度不足")
+
+        return {
+            "sentiment_score": round(sentiment_score, 1),
+            "sentiment_label": sentiment_label,
+            "engagement_level": engagement_level,
+            "total_tweets": total_tweets,
+            "trend_direction": trend_direction,
+            "key_topics": twitter_data.get("top_hashtags", [])[:5],
+            "risk_signals": risk_signals,
+            "assessment": f"Twitter情绪{sentiment_label}，参与度{engagement_level}",
+        }
+
+    def _analyze_reddit_sentiment(self, reddit_data: Dict, symbol: str) -> Dict:
+        """
+        深入分析Reddit情绪数据
+
+        Args:
+            reddit_data: Reddit原始数据
+            symbol: 代币符号
+
+        Returns:
+            Dict: Reddit情绪分析结果
+        """
+        # 基础情绪统计
+        positive_count = reddit_data.get("positive_count", 0)
+        neutral_count = reddit_data.get("neutral_count", 0)
+        negative_count = reddit_data.get("negative_count", 0)
+        total_posts = positive_count + neutral_count + negative_count
+
+        if total_posts == 0:
+            return {
+                "sentiment_score": 50,
+                "sentiment_label": "中性",
+                "community_size": "小",
+                "discussion_quality": "一般",
+                "trend_direction": "稳定",
+                "subreddits": [],
+                "risk_signals": [],
+                "assessment": "Reddit数据不足"
+            }
+
+        # 计算情绪得分
+        positive_ratio = positive_count / total_posts
+        negative_ratio = negative_count / total_posts
+        sentiment_score = 50 + (positive_ratio - negative_ratio) * 50
+
+        # 确定情绪标签
+        if sentiment_score >= 70:
+            sentiment_label = "积极"
+        elif sentiment_score <= 30:
+            sentiment_label = "消极"
+        else:
+            sentiment_label = "中性"
+
+        # 社区规模分析
+        subscribers = reddit_data.get("total_subscribers", 0)
+        if subscribers > 100000:
+            community_size = "大"
+        elif subscribers > 10000:
+            community_size = "中等"
+        else:
+            community_size = "小"
+
+        # 讨论质量分析（基于帖子数量和参与度）
+        posts_24h = reddit_data.get("posts_24h", 0)
+        comments_avg = reddit_data.get("avg_comments_per_post", 0)
+
+        if posts_24h > 50 and comments_avg > 10:
+            discussion_quality = "高"
+        elif posts_24h > 10 and comments_avg > 3:
+            discussion_quality = "中等"
+        else:
+            discussion_quality = "低"
+
+        # 风险信号检测
+        risk_signals = []
+        if negative_ratio > 0.4:
+            risk_signals.append("社区情绪过于负面")
+        if posts_24h < 5:
+            risk_signals.append("社区活跃度不足")
+
+        return {
+            "sentiment_score": round(sentiment_score, 1),
+            "sentiment_label": sentiment_label,
+            "community_size": community_size,
+            "discussion_quality": discussion_quality,
+            "total_posts": total_posts,
+            "trend_direction": "稳定",
+            "subreddits": reddit_data.get("active_subreddits", [])[:3],
+            "risk_signals": risk_signals,
+            "assessment": f"Reddit情绪{sentiment_label}，社区{community_size}，讨论质量{discussion_quality}",
+        }
+
+    def _analyze_news_sentiment(self, news_data: Dict, symbol: str) -> Dict:
+        """
+        深入分析新闻情绪数据
+
+        Args:
+            news_data: 新闻原始数据
+            symbol: 代币符号
+
+        Returns:
+            Dict: 新闻情绪分析结果
+        """
+        positive_count = news_data.get("positive_count", 0)
+        neutral_count = news_data.get("neutral_count", 0)
+        negative_count = news_data.get("negative_count", 0)
+        total_news = positive_count + neutral_count + negative_count
+
+        if total_news == 0:
+            return {
+                "sentiment_score": 50,
+                "sentiment_label": "中性",
+                "media_coverage": "低",
+                "credibility_weight": "中",
+                "trend_direction": "稳定",
+                "key_publications": [],
+                "risk_signals": [],
+                "assessment": "新闻数据不足"
+            }
+
+        # 计算情绪得分
+        positive_ratio = positive_count / total_news
+        negative_ratio = negative_count / total_news
+        sentiment_score = 50 + (positive_ratio - negative_ratio) * 50
+
+        # 确定情绪标签
+        if sentiment_score >= 70:
+            sentiment_label = "积极"
+        elif sentiment_score <= 30:
+            sentiment_label = "消极"
+        else:
+            sentiment_label = "中性"
+
+        # 媒体覆盖度分析
+        news_count_7d = news_data.get("count_7d", 0)
+        if news_count_7d > 20:
+            media_coverage = "高"
+        elif news_count_7d > 5:
+            media_coverage = "中等"
+        else:
+            media_coverage = "低"
+
+        # 可信度权重分析
+        mainstream_coverage = news_data.get("mainstream_media_coverage", "低")
+        if mainstream_coverage == "高":
+            credibility_weight = "高"
+        elif mainstream_coverage == "中等":
+            credibility_weight = "中"
+        else:
+            credibility_weight = "低"
+
+        # 风险信号检测
+        risk_signals = []
+        if negative_ratio > 0.5:
+            risk_signals.append("负面新闻过多")
+        if news_count_7d == 0:
+            risk_signals.append("缺乏媒体关注")
+
+        return {
+            "sentiment_score": round(sentiment_score, 1),
+            "sentiment_label": sentiment_label,
+            "media_coverage": media_coverage,
+            "credibility_weight": credibility_weight,
+            "total_news": total_news,
+            "trend_direction": "稳定",
+            "key_publications": news_data.get("top_sources", [])[:3],
+            "risk_signals": risk_signals,
+            "assessment": f"新闻情绪{sentiment_label}，媒体覆盖度{media_coverage}，可信度{credibility_weight}",
+        }
+
+    def _calculate_comprehensive_sentiment(
+        self,
+        twitter_analysis: Dict,
+        reddit_analysis: Dict,
+        news_analysis: Dict,
+        market_data: Dict
+    ) -> Dict:
+        """
+        计算综合情绪评分
+
+        Args:
+            twitter_analysis: Twitter分析结果
+            reddit_analysis: Reddit分析结果
+            news_analysis: 新闻分析结果
+            market_data: 市场数据
+
+        Returns:
+            Dict: 综合情绪评分
+        """
+        # 为不同数据源设置权重
+        weights = {
+            "twitter": 0.3,  # Twitter较实时，但噪声大
+            "reddit": 0.4,   # Reddit社区深入，但偏技术用户
+            "news": 0.3,     # 新闻权威，但更新慢
+        }
+
+        # 获取各数据源情绪得分
+        twitter_score = twitter_analysis.get("sentiment_score", 50)
+        reddit_score = reddit_analysis.get("sentiment_score", 50)
+        news_score = news_analysis.get("sentiment_score", 50)
+
+        # 计算加权综合得分
+        comprehensive_score = (
+            twitter_score * weights["twitter"] +
+            reddit_score * weights["reddit"] +
+            news_score * weights["news"]
+        )
+
+        # 确定综合情绪标签
+        if comprehensive_score >= 70:
+            overall_sentiment = "积极"
+            confidence = min(90, comprehensive_score)
+        elif comprehensive_score <= 30:
+            overall_sentiment = "消极"
+            confidence = min(90, 100 - comprehensive_score)
+        else:
+            overall_sentiment = "中性"
+            confidence = 60
+
+        # 收集所有风险信号
+        all_risk_signals = []
+        all_risk_signals.extend(twitter_analysis.get("risk_signals", []))
+        all_risk_signals.extend(reddit_analysis.get("risk_signals", []))
+        all_risk_signals.extend(news_analysis.get("risk_signals", []))
+
+        # 确定风险等级
+        if len(all_risk_signals) >= 3:
+            risk_level = "高"
+        elif len(all_risk_signals) >= 1:
+            risk_level = "中"
+        else:
+            risk_level = "低"
+
+        # 与市场表现的相关性分析
+        price_change_24h = market_data.get("price_change_percentage_24h", 0)
+        sentiment_market_alignment = "未知"
+
+        if abs(price_change_24h) > 1:  # 价格有显著变化
+            if (comprehensive_score > 50 and price_change_24h > 0) or (comprehensive_score < 50 and price_change_24h < 0):
+                sentiment_market_alignment = "一致"
+            else:
+                sentiment_market_alignment = "背离"
+
+        return {
+            "comprehensive_score": round(comprehensive_score, 1),
+            "overall_sentiment": overall_sentiment,
+            "confidence": round(confidence, 1),
+            "data_sources": {
+                "twitter": twitter_analysis,
+                "reddit": reddit_analysis,
+                "news": news_analysis,
+            },
+            "weights": weights,
+            "risk_signals": list(set(all_risk_signals)),  # 去重
+            "risk_level": risk_level,
+            "sentiment_market_alignment": sentiment_market_alignment,
+            "assessment": f"综合情绪{overall_sentiment}（{comprehensive_score:.1f}分），可信度{confidence:.1f}%，风险等级{risk_level}",
+        }
+
     def _format_sample_content(self, samples: List, content_type: str) -> str:
         """
         格式化示例内容（推文/帖子/新闻）
@@ -354,6 +688,10 @@ class SentimentAnalyzer:
         twitter_data: Dict,
         reddit_data: Dict,
         news_data: Dict,
+        twitter_analysis: Dict,
+        reddit_analysis: Dict,
+        news_analysis: Dict,
+        comprehensive_sentiment: Dict,
     ) -> str:
         """格式化用户提示词"""
         # 替换模板占位符
@@ -394,6 +732,30 @@ class SentimentAnalyzer:
             news_negative_count=news_data.get("negative_count", 0),
             news_negative_percent=news_data.get("negative_percent", 0),
             news_sample_headlines=news_data.get("sample_headlines", "暂无新闻标题"),
+            # Twitter增强分析
+            twitter_sentiment_score=twitter_analysis.get("sentiment_score", 50),
+            twitter_sentiment_label=twitter_analysis.get("sentiment_label", "中性"),
+            twitter_engagement_level=twitter_analysis.get("engagement_level", "低"),
+            twitter_risk_signals=", ".join(twitter_analysis.get("risk_signals", [])) or "无风险信号",
+            # Reddit增强分析
+            reddit_sentiment_score=reddit_analysis.get("sentiment_score", 50),
+            reddit_sentiment_label=reddit_analysis.get("sentiment_label", "中性"),
+            reddit_community_size=reddit_analysis.get("community_size", "小"),
+            reddit_discussion_quality=reddit_analysis.get("discussion_quality", "一般"),
+            reddit_risk_signals=", ".join(reddit_analysis.get("risk_signals", [])) or "无风险信号",
+            # 新闻增强分析
+            news_sentiment_score=news_analysis.get("sentiment_score", 50),
+            news_sentiment_label=news_analysis.get("sentiment_label", "中性"),
+            news_media_coverage=news_analysis.get("media_coverage", "低"),
+            news_credibility_weight=news_analysis.get("credibility_weight", "中"),
+            news_risk_signals=", ".join(news_analysis.get("risk_signals", [])) or "无风险信号",
+            # 综合情绪评分
+            comprehensive_score=comprehensive_sentiment.get("comprehensive_score", 50),
+            overall_sentiment=comprehensive_sentiment.get("overall_sentiment", "中性"),
+            sentiment_confidence=comprehensive_sentiment.get("confidence", 60),
+            sentiment_risk_level=comprehensive_sentiment.get("risk_level", "低"),
+            all_risk_signals=", ".join(comprehensive_sentiment.get("risk_signals", [])) or "无风险信号",
+            sentiment_market_alignment=comprehensive_sentiment.get("sentiment_market_alignment", "未知"),
         )
 
         return prompt
@@ -602,6 +964,62 @@ class SentimentAnalyzer:
                 "narrative_strength": "弱",
                 "competing_narratives": [],
                 "narrative_shift": "无法判断",
+            }
+
+        # 补全新增强分析字段
+        if "twitter_analysis" not in result:
+            result["twitter_analysis"] = {
+                "sentiment_score": 50,
+                "sentiment_label": "中性",
+                "engagement_level": "低",
+                "total_tweets": 0,
+                "trend_direction": "稳定",
+                "key_topics": [],
+                "risk_signals": [],
+                "assessment": "Twitter数据不足"
+            }
+
+        if "reddit_analysis" not in result:
+            result["reddit_analysis"] = {
+                "sentiment_score": 50,
+                "sentiment_label": "中性",
+                "community_size": "小",
+                "discussion_quality": "一般",
+                "total_posts": 0,
+                "trend_direction": "稳定",
+                "subreddits": [],
+                "risk_signals": [],
+                "assessment": "Reddit数据不足"
+            }
+
+        if "news_analysis" not in result:
+            result["news_analysis"] = {
+                "sentiment_score": 50,
+                "sentiment_label": "中性",
+                "media_coverage": "低",
+                "credibility_weight": "中",
+                "total_news": 0,
+                "trend_direction": "稳定",
+                "key_publications": [],
+                "risk_signals": [],
+                "assessment": "新闻数据不足"
+            }
+
+        if "comprehensive_sentiment" not in result:
+            result["comprehensive_sentiment"] = {
+                "comprehensive_score": 50,
+                "overall_sentiment": "中性",
+                "confidence": 60,
+                "data_sources": {
+                    "twitter": result.get("twitter_analysis", {}),
+                    "reddit": result.get("reddit_analysis", {}),
+                    "news": result.get("news_analysis", {}),
+                },
+                "weights": {"twitter": 0.3, "reddit": 0.4, "news": 0.3},
+                "risk_signals": [],
+                "risk_level": "低",
+                "sentiment_market_alignment": "未知",
+                "assessment": "综合情绪数据不足"
             }
 
         # 补全其他字段

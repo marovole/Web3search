@@ -152,6 +152,273 @@ class TokenomicsAnalyzer:
             "pressure_rationale": pressure_rationale
         }
 
+    def _analyze_inflation_model(self, tokenomics_data: Dict, market_data: Dict) -> Dict:
+        """
+        分析通胀模型
+
+        Args:
+            tokenomics_data: 代币经济学数据
+            market_data: 市场数据
+
+        Returns:
+            通胀模型分析字典
+        """
+        total_supply = tokenomics_data.get("total_supply", 0)
+        max_supply = tokenomics_data.get("max_supply", total_supply)
+
+        # 新发行量（如果有）
+        new_issuance_annual = tokenomics_data.get("new_issuance_annual", 0)
+        staking_rewards_annual = tokenomics_data.get("staking_rewards_annual", 0)
+
+        # 计算年化通胀率
+        inflation_rate = 0
+        if total_supply > 0:
+            total_new_tokens = new_issuance_annual + staking_rewards_annual
+            inflation_rate = (total_new_tokens / total_supply) * 100
+
+        # 评估通胀压力
+        if inflation_rate >= 10:
+            inflation_pressure = "高"
+            inflation_assessment = f"年化通胀率{inflation_rate:.1f}%过高，可能导致币价承压"
+        elif inflation_rate >= 5:
+            inflation_pressure = "中"
+            inflation_assessment = f"年化通胀率{inflation_rate:.1f}%适中，需要持续监控"
+        elif inflation_rate > 0:
+            inflation_pressure = "低"
+            inflation_assessment = f"年化通胀率{inflation_rate:.1f}%较低，通胀压力可控"
+        else:
+            inflation_pressure = "无通胀"
+            inflation_assessment = "无新增发行，低通胀或通缩机制"
+
+        # 是否有上限
+        has_max_supply = max_supply and max_supply != total_supply
+        supply_limit = max_supply if has_max_supply else "无上限"
+
+        return {
+            "inflation_rate_annual": round(inflation_rate, 2),
+            "new_issuance_annual": new_issuance_annual,
+            "staking_rewards_annual": staking_rewards_annual,
+            "inflation_pressure": inflation_pressure,
+            "inflation_assessment": inflation_assessment,
+            "has_max_supply": has_max_supply,
+            "supply_limit": supply_limit,
+        }
+
+    def _analyze_team_and_investors(self, project_data: Dict) -> Dict:
+        """
+        分析项目团队和投资者
+
+        Args:
+            project_data: 项目数据
+
+        Returns:
+            团队和投资者分析字典
+        """
+        team = project_data.get("team", [])
+        investors = project_data.get("investors", [])
+        advisors = project_data.get("advisors", [])
+
+        # 团队分析
+        team_size = len(team)
+        team_experience_score = 0
+        notable_team_members = []
+
+        for member in team:
+            experience = member.get("experience_years", 0)
+            team_experience_score += experience
+
+            # 识别知名成员
+            if member.get("notable", False) or experience >= 10:
+                notable_team_members.append(member.get("name", "Unknown"))
+
+        avg_experience = team_experience_score / team_size if team_size > 0 else 0
+
+        # 团队质量评估
+        if team_size >= 10 and avg_experience >= 5:
+            team_quality = "优秀"
+            team_assessment = f"团队规模{team_size}人，平均经验{avg_experience:.1f}年，实力雄厚"
+        elif team_size >= 5 and avg_experience >= 3:
+            team_quality = "良好"
+            team_assessment = f"团队规模{team_size}人，平均经验{avg_experience:.1f}年，经验丰富"
+        elif team_size >= 3:
+            team_quality = "一般"
+            team_assessment = f"团队规模{team_size}人，经验相对有限"
+        else:
+            team_quality = "待观察"
+            team_assessment = "团队信息不足，建议进一步了解"
+
+        # 投资者分析
+        investor_count = len(investors)
+        notable_investors = []
+
+        for investor in investors:
+            if investor.get("notable", False) or investor.get("tier", "") in ["A", "A+", "顶级"]:
+                notable_investors.append(investor.get("name", "Unknown"))
+
+        # 投资者质量评估
+        if investor_count >= 20 or len(notable_investors) >= 5:
+            investor_quality = "优秀"
+            investor_assessment = f"获得{investor_count}家机构投资，其中{len(notable_investors)}家顶级机构"
+        elif investor_count >= 10 or len(notable_investors) >= 2:
+            investor_quality = "良好"
+            investor_assessment = f"获得{investor_count}家机构投资，有一定认可度"
+        elif investor_count >= 3:
+            investor_quality = "一般"
+            investor_assessment = f"获得{investor_count}家机构投资"
+        else:
+            investor_quality = "待观察"
+            investor_assessment = "投资者信息有限"
+
+        return {
+            "team_size": team_size,
+            "avg_team_experience": round(avg_experience, 1),
+            "notable_team_members": notable_team_members[:5],  # 最多显示5个
+            "team_quality": team_quality,
+            "team_assessment": team_assessment,
+            "investor_count": investor_count,
+            "notable_investors": notable_investors[:5],  # 最多显示5个
+            "investor_quality": investor_quality,
+            "investor_assessment": investor_assessment,
+            "advisor_count": len(advisors),
+        }
+
+    def _analyze_business_model(self, project_data: Dict, onchain_data: Dict) -> Dict:
+        """
+        分析业务模式和收入
+
+        Args:
+            project_data: 项目数据
+            onchain_data: 链上数据
+
+        Returns:
+            业务模式分析字典
+        """
+        business_model = project_data.get("business_model", {})
+        revenue_streams = business_model.get("revenue_streams", [])
+        protocol_revenue_30d = onchain_data.get("protocol_revenue_30d", 0)
+        tvl = onchain_data.get("tvl", 0)
+
+        # 收入多样性分析
+        revenue_diversity = len(revenue_streams)
+        if revenue_diversity >= 3:
+            revenue_stability = "高"
+            revenue_assessment = f"收入来源多样（{revenue_diversity}种），稳定性较高"
+        elif revenue_diversity >= 2:
+            revenue_stability = "中"
+            revenue_assessment = f"收入来源适中（{revenue_diversity}种）"
+        else:
+            revenue_stability = "低"
+            revenue_assessment = f"收入来源单一（{revenue_diversity}种），存在风险"
+
+        # 收入可持续性
+        if protocol_revenue_30d > 0 and tvl > 0:
+            yield_rate = (protocol_revenue_30d * 365) / tvl * 100  # 年化收益率
+            if yield_rate >= 20:
+                sustainability = "优秀"
+                sustainability_assessment = f"协议年化收益率{yield_rate:.1f}%很高，收入可持续性强"
+            elif yield_rate >= 10:
+                sustainability = "良好"
+                sustainability_assessment = f"协议年化收益率{yield_rate:.1f}%适中"
+            elif yield_rate >= 5:
+                sustainability = "一般"
+                sustainability_assessment = f"协议年化收益率{yield_rate:.1f}%较低"
+            else:
+                sustainability = "待观察"
+                sustainability_assessment = f"协议年化收益率{yield_rate:.1f}%很低，需关注收入来源"
+        else:
+            sustainability = "数据不足"
+            sustainability_assessment = "协议收入数据不足"
+            yield_rate = 0
+
+        # 用户获取成本分析
+        user_acquisition = business_model.get("user_acquisition_cost", 0)
+        ltv_cac_ratio = business_model.get("ltv_cac_ratio", 0)
+
+        if ltv_cac_ratio >= 3:
+            unit_economics = "优秀"
+            economics_assessment = f"LTV/CAC比率{ltv_cac_ratio:.1f}很高，单位经济性良好"
+        elif ltv_cac_ratio >= 1.5:
+            unit_economics = "良好"
+            economics_assessment = f"LTV/CAC比率{ltv_cac_ratio:.1f}适中"
+        else:
+            unit_economics = "待观察"
+            economics_assessment = "单位经济性数据不足或不理想"
+
+        return {
+            "revenue_streams": revenue_streams,
+            "revenue_diversity": revenue_diversity,
+            "revenue_stability": revenue_stability,
+            "revenue_assessment": revenue_assessment,
+            "protocol_revenue_30d": protocol_revenue_30d,
+            "yield_rate_annual": round(yield_rate, 2),
+            "sustainability": sustainability,
+            "sustainability_assessment": sustainability_assessment,
+            "unit_economics": unit_economics,
+            "economics_assessment": economics_assessment,
+            "ltv_cac_ratio": ltv_cac_ratio,
+        }
+
+    def _analyze_competitive_advantage(self, project_data: Dict, market_data: Dict) -> Dict:
+        """
+        分析竞争优势
+
+        Args:
+            project_data: 项目数据
+            market_data: 市场数据
+
+        Returns:
+            竞争优势分析字典
+        """
+        competitive_advantages = project_data.get("competitive_advantages", [])
+        market_position = project_data.get("market_position", {})
+        moat_strength = market_position.get("moat_strength", "弱")
+
+        # 技术优势分析
+        tech_advantages = [adv for adv in competitive_advantages if adv.get("type") == "技术"]
+        network_advantages = [adv for adv in competitive_advantages if adv.get("type") == "网络效应"]
+        brand_advantages = [adv for adv in competitive_advantages if adv.get("type") == "品牌"]
+
+        # 综合评分
+        advantage_score = len(competitive_advantages)
+        if advantage_score >= 5:
+            competitive_strength = "强"
+            competitive_assessment = f"拥有{advantage_score}项核心竞争优势，竞争力很强"
+        elif advantage_score >= 3:
+            competitive_strength = "中等"
+            competitive_assessment = f"拥有{advantage_score}项竞争优势，竞争力一般"
+        else:
+            competitive_strength = "弱"
+            competitive_assessment = "竞争优势不明显，需要加强差异化"
+
+        # 市场份额分析
+        market_share = market_position.get("market_share", 0)
+        market_rank = market_position.get("market_rank", 0)
+
+        if market_rank <= 3:
+            market_dominance = "领导者"
+            dominance_assessment = f"市场排名第{market_rank}位，具有市场主导地位"
+        elif market_rank <= 10:
+            market_dominance = "挑战者"
+            dominance_assessment = f"市场排名第{market_rank}位，是有力挑战者"
+        elif market_rank <= 50:
+            market_dominance = "跟随者"
+            dominance_assessment = f"市场排名第{market_rank}位，属于跟随者"
+        else:
+            market_dominance = "边缘参与者"
+            dominance_assessment = "市场地位较低"
+
+        return {
+            "competitive_advantages": competitive_advantages[:5],  # 最多显示5个
+            "advantage_count": advantage_score,
+            "competitive_strength": competitive_strength,
+            "competitive_assessment": competitive_assessment,
+            "market_share": market_share,
+            "market_rank": market_rank,
+            "market_dominance": market_dominance,
+            "dominance_assessment": dominance_assessment,
+            "moat_strength": moat_strength,
+        }
+
     def _analyze_value_capture(self, tokenomics_data: Dict) -> Dict:
         """
         分析价值捕获路径
@@ -245,12 +512,29 @@ class TokenomicsAnalyzer:
 
         return "\n".join(lines) if lines else "暂无价值捕获机制数据"
 
-    def _format_prompt(self, aggregated_data: Dict) -> str:
+    def _format_prompt(
+        self,
+        aggregated_data: Dict,
+        supply_structure: Dict,
+        unlock_schedule: Dict,
+        inflation_model: Dict,
+        team_investors: Dict,
+        business_model: Dict,
+        competitive_advantage: Dict,
+        value_capture: Dict
+    ) -> str:
         """
         格式化 prompt
 
         Args:
             aggregated_data: 聚合数据
+            supply_structure: 供应结构分析
+            unlock_schedule: 解锁时间表分析
+            inflation_model: 通胀模型分析
+            team_investors: 团队和投资者分析
+            business_model: 业务模式分析
+            competitive_advantage: 竞争优势分析
+            value_capture: 价值捕获分析
 
         Returns:
             格式化的 prompt
@@ -291,20 +575,39 @@ class TokenomicsAnalyzer:
         mechanisms = value_capture.get("mechanisms", [])
         value_capture_text = self._format_value_capture(mechanisms)
 
+        # 格式化新增分析数据
+        team_info = f"团队规模: {team_investors.get('team_size', 0)}人, 质量: {team_investors.get('team_quality', '未知')}"
+        investor_info = f"投资者: {team_investors.get('investor_count', 0)}家, 质量: {team_investors.get('investor_quality', '未知')}"
+
+        business_info = f"收入来源: {business_model.get('revenue_diversity', 0)}种, 稳定性: {business_model.get('revenue_stability', '未知')}"
+
+        competitive_info = f"竞争优势: {competitive_advantage.get('advantage_count', 0)}项, 强度: {competitive_advantage.get('competitive_strength', '未知')}"
+
+        inflation_info = f"通胀率: {inflation_model.get('inflation_rate_annual', 0)}%, 压力: {inflation_model.get('inflation_pressure', '未知')}"
+
         # 填充模板
         prompt = self.user_prompt_template.format(
             symbol=symbol,
-            total_supply=total_supply,
-            circulating_supply=circulating_supply,
-            circulation_rate=circulation_rate,
-            max_supply=max_supply if max_supply else "无上限",
-            allocation_data=allocation_data,
-            unlock_schedule=unlock_schedule_text,
-            value_capture_mechanisms=value_capture_text,
-            market_cap=market_cap,
-            fdv=fdv,
-            protocol_revenue_30d=protocol_revenue_30d,
-            buyback_burn_30d=buyback_burn_30d
+            total_supply=supply_structure.get("total_supply", 0),
+            circulating_supply=supply_structure.get("circulating_supply", 0),
+            circulation_rate=supply_structure.get("circulation_rate", 0),
+            max_supply=supply_structure.get("max_supply", "无上限"),
+            allocation_data=self._format_allocation_data(supply_structure.get("allocation", {})),
+            unlock_schedule=self._format_unlock_schedule(unlock_schedule.get("upcoming_unlocks", [])),
+            value_capture_mechanisms=self._format_value_capture(value_capture.get("mechanisms", [])),
+            market_cap=market_data.get("market_cap", 0),
+            fdv=market_data.get("fdv", market_data.get("market_cap", 0)),
+            protocol_revenue_30d=business_model.get("protocol_revenue_30d", 0),
+            buyback_burn_30d=0,  # 暂时设为0，需要从onchain_data获取
+            # 新增的分析维度
+            team_info=team_info,
+            investor_info=investor_info,
+            business_info=business_info,
+            competitive_info=competitive_info,
+            inflation_info=inflation_info,
+            unlock_pressure=unlock_schedule.get("unlock_pressure", "未知"),
+            revenue_sustainability=business_model.get("sustainability", "未知"),
+            market_dominance=competitive_advantage.get("market_dominance", "未知"),
         )
 
         return prompt
@@ -323,8 +626,32 @@ class TokenomicsAnalyzer:
         symbol = aggregated_data.get("symbol", "Unknown")
 
         try:
+            # 提取数据
+            tokenomics_data = aggregated_data.get("tokenomics", {})
+            market_data = aggregated_data.get("market_data", {})
+            project_data = aggregated_data.get("project_info", {})
+            onchain_data = aggregated_data.get("onchain_data", {})
+
+            # 执行各项分析
+            supply_structure = self._analyze_supply_structure(tokenomics_data)
+            unlock_schedule = self._analyze_unlock_schedule(tokenomics_data, supply_structure.get("circulating_supply", 0))
+            inflation_model = self._analyze_inflation_model(tokenomics_data, market_data)
+            team_investors = self._analyze_team_and_investors(project_data)
+            business_model = self._analyze_business_model(project_data, onchain_data)
+            competitive_advantage = self._analyze_competitive_advantage(project_data, market_data)
+            value_capture = self._analyze_value_capture(tokenomics_data)
+
             # 格式化 prompt
-            user_prompt = self._format_prompt(aggregated_data)
+            user_prompt = self._format_prompt(
+                aggregated_data,
+                supply_structure,
+                unlock_schedule,
+                inflation_model,
+                team_investors,
+                business_model,
+                competitive_advantage,
+                value_capture
+            )
 
             # 调用 LLM（返回 result, model_used, fallback_used 三元组）
             result, model_used, fallback_used = await self._call_llm(user_prompt)
@@ -562,6 +889,59 @@ class TokenomicsAnalyzer:
                 "death_spiral_risk": "中",
                 "risk_rationale": "数据不足",
                 "mitigation_factors": []
+            }
+
+        if "inflation_model" not in output:
+            output["inflation_model"] = {
+                "inflation_rate_annual": 0,
+                "new_issuance_annual": 0,
+                "staking_rewards_annual": 0,
+                "inflation_pressure": "低",
+                "inflation_assessment": "数据不足",
+                "has_max_supply": False,
+                "supply_limit": "无上限"
+            }
+
+        if "team_and_investors" not in output:
+            output["team_and_investors"] = {
+                "team_size": 0,
+                "avg_team_experience": 0,
+                "notable_team_members": [],
+                "team_quality": "待观察",
+                "team_assessment": "数据不足",
+                "investor_count": 0,
+                "notable_investors": [],
+                "investor_quality": "待观察",
+                "investor_assessment": "数据不足",
+                "advisor_count": 0
+            }
+
+        if "business_model" not in output:
+            output["business_model"] = {
+                "revenue_streams": [],
+                "revenue_diversity": 0,
+                "revenue_stability": "低",
+                "revenue_assessment": "数据不足",
+                "protocol_revenue_30d": 0,
+                "yield_rate_annual": 0,
+                "sustainability": "数据不足",
+                "sustainability_assessment": "数据不足",
+                "unit_economics": "待观察",
+                "economics_assessment": "数据不足",
+                "ltv_cac_ratio": 0
+            }
+
+        if "competitive_advantage" not in output:
+            output["competitive_advantage"] = {
+                "competitive_advantages": [],
+                "advantage_count": 0,
+                "competitive_strength": "弱",
+                "competitive_assessment": "数据不足",
+                "market_share": 0,
+                "market_rank": 0,
+                "market_dominance": "边缘参与者",
+                "dominance_assessment": "数据不足",
+                "moat_strength": "弱"
             }
 
         if "incentive_alignment" not in output:

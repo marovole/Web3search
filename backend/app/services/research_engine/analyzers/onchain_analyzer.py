@@ -71,6 +71,12 @@ class OnchainAnalyzer:
         protocol_fundamentals = self._analyze_protocol_fundamentals(onchain_data, market_data)
         token_distribution = self._analyze_token_distribution(onchain_data)
 
+        # 新增分析维度
+        tvl_analysis = self._analyze_tvl_and_locked_value(onchain_data, market_data)
+        volume_analysis = self._analyze_transaction_volume(onchain_data)
+        contract_interactions = self._analyze_contract_interactions(onchain_data)
+        anomaly_detection = self._detect_onchain_anomalies(onchain_data, user_activity, tvl_analysis)
+
         # 格式化提示词
         user_prompt = self._format_prompt(
             symbol=symbol,
@@ -81,6 +87,10 @@ class OnchainAnalyzer:
             user_activity=user_activity,
             protocol_fundamentals=protocol_fundamentals,
             token_distribution=token_distribution,
+            tvl_analysis=tvl_analysis,
+            volume_analysis=volume_analysis,
+            contract_interactions=contract_interactions,
+            anomaly_detection=anomaly_detection,
         )
 
         # 调用LLM生成（使用qwen3-235b）
@@ -312,6 +322,353 @@ class OnchainAnalyzer:
             "exchange_net_flow_30d": exchange_net_flow_30d,
         }
 
+    def _analyze_tvl_and_locked_value(self, onchain_data: Dict, market_data: Dict) -> Dict:
+        """
+        分析TVL和锁仓价值
+
+        Args:
+            onchain_data: 链上数据
+            market_data: 市场数据
+
+        Returns:
+            TVL和锁仓价值分析字典
+        """
+        # TVL数据
+        tvl_current = onchain_data.get("tvl", 0)
+        tvl_7d_change = onchain_data.get("tvl_change_7d", 0)
+        tvl_30d_change = onchain_data.get("tvl_change_30d", 0)
+
+        # 锁仓价值分析
+        locked_value = onchain_data.get("locked_value", tvl_current)  # 如果没有单独的锁仓价值，使用TVL作为近似
+        locked_ratio = onchain_data.get("locked_ratio", 0)  # 锁仓比例
+
+        # 市值比较
+        market_cap = market_data.get("market_cap", 0)
+        tvl_to_market_cap_ratio = tvl_current / market_cap if market_cap > 0 else 0
+
+        # TVL增长趋势分析
+        if tvl_30d_change > 20:
+            tvl_trend = "快速增长"
+            tvl_signal = "积极"
+        elif tvl_30d_change > 5:
+            tvl_trend = "稳步增长"
+            tvl_signal = "积极"
+        elif tvl_30d_change > -5:
+            tvl_trend = "相对稳定"
+            tvl_signal = "中性"
+        elif tvl_30d_change > -20:
+            tvl_trend = "小幅下降"
+            tvl_signal = "谨慎"
+        else:
+            tvl_trend = "显著下降"
+            tvl_signal = "负面"
+
+        # 锁仓价值评估
+        if locked_ratio > 0.8:
+            lock_quality = "优秀"
+            lock_assessment = "锁仓比例很高，用户信任度强"
+        elif locked_ratio > 0.6:
+            lock_quality = "良好"
+            lock_assessment = "锁仓比例适中"
+        elif locked_ratio > 0.3:
+            lock_quality = "一般"
+            lock_assessment = "锁仓比例偏低"
+        else:
+            lock_quality = "待观察"
+            lock_assessment = "锁仓比例很低，需要关注用户参与度"
+
+        return {
+            "tvl_current": tvl_current,
+            "tvl_7d_change": tvl_7d_change,
+            "tvl_30d_change": tvl_30d_change,
+            "tvl_trend": tvl_trend,
+            "tvl_signal": tvl_signal,
+            "locked_value": locked_value,
+            "locked_ratio": locked_ratio,
+            "lock_quality": lock_quality,
+            "lock_assessment": lock_assessment,
+            "tvl_to_market_cap_ratio": round(tvl_to_market_cap_ratio, 3),
+        }
+
+    def _analyze_transaction_volume(self, onchain_data: Dict) -> Dict:
+        """
+        分析交易量和活跃地址
+
+        Args:
+            onchain_data: 链上数据
+
+        Returns:
+            交易量和活跃地址分析字典
+        """
+        # 交易量数据
+        tx_volume_24h = onchain_data.get("transaction_volume_24h", 0)
+        tx_volume_7d_avg = onchain_data.get("transaction_volume_7d_avg", 0)
+        tx_volume_30d_avg = onchain_data.get("transaction_volume_30d_avg", 0)
+
+        # 活跃地址数据
+        active_addresses_24h = onchain_data.get("active_addresses_24h", 0)
+        active_addresses_7d_avg = onchain_data.get("active_addresses_7d_avg", 0)
+        active_addresses_30d_avg = onchain_data.get("active_addresses_30d_avg", 0)
+
+        # 新地址数据
+        new_addresses_24h = onchain_data.get("new_addresses_24h", 0)
+        new_addresses_7d_avg = onchain_data.get("new_addresses_7d_avg", 0)
+
+        # 交易量强度分析
+        if tx_volume_7d_avg > 0:
+            volume_ratio_24h = tx_volume_24h / tx_volume_7d_avg
+            if volume_ratio_24h > 2.0:
+                volume_intensity = "极高"
+                volume_signal = "交易异常活跃"
+            elif volume_ratio_24h > 1.5:
+                volume_intensity = "高"
+                volume_signal = "交易较为活跃"
+            elif volume_ratio_24h > 0.8:
+                volume_intensity = "正常"
+                volume_signal = "交易量正常"
+            else:
+                volume_intensity = "低"
+                volume_signal = "交易量偏低"
+        else:
+            volume_intensity = "数据不足"
+            volume_signal = "交易量数据不足"
+            volume_ratio_24h = 0
+
+        # 活跃地址增长分析
+        if active_addresses_7d_avg > 0:
+            address_growth_ratio = active_addresses_24h / active_addresses_7d_avg
+            if address_growth_ratio > 1.3:
+                address_trend = "快速增长"
+                address_signal = "用户参与度上升"
+            elif address_growth_ratio > 0.9:
+                address_trend = "稳定"
+                address_signal = "用户参与度稳定"
+            else:
+                address_trend = "下降"
+                address_signal = "用户参与度下降"
+        else:
+            address_trend = "数据不足"
+            address_signal = "活跃地址数据不足"
+            address_growth_ratio = 0
+
+        # 新用户获取分析
+        if new_addresses_7d_avg > 0:
+            new_user_ratio = new_addresses_24h / new_addresses_7d_avg
+            if new_user_ratio > 1.5:
+                user_acquisition = "强劲"
+                user_signal = "新用户增长迅速"
+            elif new_user_ratio > 0.8:
+                user_acquisition = "正常"
+                user_signal = "新用户增长正常"
+            else:
+                user_acquisition = "疲弱"
+                user_signal = "新用户获取放缓"
+        else:
+            user_acquisition = "数据不足"
+            user_signal = "新用户数据不足"
+            new_user_ratio = 0
+
+        return {
+            "tx_volume_24h": tx_volume_24h,
+            "tx_volume_7d_avg": tx_volume_7d_avg,
+            "tx_volume_30d_avg": tx_volume_30d_avg,
+            "volume_intensity": volume_intensity,
+            "volume_signal": volume_signal,
+            "volume_ratio_24h": round(volume_ratio_24h, 2),
+            "active_addresses_24h": active_addresses_24h,
+            "active_addresses_7d_avg": active_addresses_7d_avg,
+            "active_addresses_30d_avg": active_addresses_30d_avg,
+            "address_trend": address_trend,
+            "address_signal": address_signal,
+            "address_growth_ratio": round(address_growth_ratio, 2),
+            "new_addresses_24h": new_addresses_24h,
+            "new_addresses_7d_avg": new_addresses_7d_avg,
+            "user_acquisition": user_acquisition,
+            "user_signal": user_signal,
+            "new_user_ratio": round(new_user_ratio, 2),
+        }
+
+    def _analyze_contract_interactions(self, onchain_data: Dict) -> Dict:
+        """
+        分析智能合约交互
+
+        Args:
+            onchain_data: 链上数据
+
+        Returns:
+            智能合约交互分析字典
+        """
+        # 合约调用数据
+        contract_calls_24h = onchain_data.get("contract_calls_24h", 0)
+        unique_contracts_24h = onchain_data.get("unique_contracts_24h", 0)
+        avg_gas_used_24h = onchain_data.get("avg_gas_used_24h", 0)
+
+        # 主要合约分析
+        top_contracts = onchain_data.get("top_contracts", [])
+        contract_complexity = onchain_data.get("contract_complexity_score", 0)
+
+        # 合约交互活跃度分析
+        if contract_calls_24h > 10000:
+            interaction_level = "极高"
+            interaction_assessment = "合约交互非常频繁，生态活跃"
+        elif contract_calls_24h > 1000:
+            interaction_level = "高"
+            interaction_assessment = "合约交互较为频繁"
+        elif contract_calls_24h > 100:
+            interaction_level = "中等"
+            interaction_assessment = "合约交互适中"
+        else:
+            interaction_level = "低"
+            interaction_assessment = "合约交互较少"
+
+        # 合约多样性分析
+        if unique_contracts_24h > 50:
+            contract_diversity = "高"
+            diversity_assessment = "涉及合约众多，生态丰富"
+        elif unique_contracts_24h > 10:
+            contract_diversity = "中等"
+            diversity_assessment = "涉及合约数量适中"
+        else:
+            contract_diversity = "低"
+            diversity_assessment = "主要集中在少数合约"
+
+        # 合约复杂度评估
+        if contract_complexity > 80:
+            complexity_level = "复杂"
+            complexity_assessment = "合约逻辑复杂，功能丰富但风险较高"
+        elif contract_complexity > 50:
+            complexity_level = "中等"
+            complexity_assessment = "合约复杂度适中"
+        else:
+            complexity_level = "简单"
+            complexity_assessment = "合约相对简单"
+
+        # 主要合约类型分析
+        contract_types = onchain_data.get("contract_types", [])
+        if isinstance(contract_types, list):
+            contract_types_str = ", ".join(contract_types[:5])
+        else:
+            contract_types_str = str(contract_types)
+
+        return {
+            "contract_calls_24h": contract_calls_24h,
+            "unique_contracts_24h": unique_contracts_24h,
+            "avg_gas_used_24h": avg_gas_used_24h,
+            "interaction_level": interaction_level,
+            "interaction_assessment": interaction_assessment,
+            "contract_diversity": contract_diversity,
+            "diversity_assessment": diversity_assessment,
+            "contract_complexity": contract_complexity,
+            "complexity_level": complexity_level,
+            "complexity_assessment": complexity_assessment,
+            "contract_types": contract_types_str,
+            "top_contracts": top_contracts[:3] if isinstance(top_contracts, list) else [],
+        }
+
+    def _detect_onchain_anomalies(self, onchain_data: Dict, user_activity: Dict, tvl_analysis: Dict) -> Dict:
+        """
+        检测链上指标异常
+
+        Args:
+            onchain_data: 链上数据
+            user_activity: 用户活动分析
+            tvl_analysis: TVL分析
+
+        Returns:
+            异常检测结果字典
+        """
+        anomalies = []
+        anomaly_score = 0
+        risk_level = "低"
+
+        # 检查TVL异常
+        tvl_change_24h = onchain_data.get("tvl_change_24h", 0)
+        if abs(tvl_change_24h) > 30:  # 24h变化超过30%
+            anomalies.append(f"TVL异常波动: {tvl_change_24h:+.1f}%")
+            anomaly_score += 2
+
+        # 检查交易量异常
+        tx_volume_24h = onchain_data.get("transaction_volume_24h", 0)
+        tx_volume_7d_avg = onchain_data.get("transaction_volume_7d_avg", 0)
+
+        if tx_volume_7d_avg > 0:
+            volume_ratio = tx_volume_24h / tx_volume_7d_avg
+            if volume_ratio > 3:
+                anomalies.append(f"交易量异常放大: {volume_ratio:.1f}倍于7日均值")
+                anomaly_score += 1
+            elif volume_ratio < 0.3:
+                anomalies.append(f"交易量异常萎缩: 仅为7日均值的{volume_ratio:.1f}倍")
+                anomaly_score += 1
+
+        # 检查活跃地址异常
+        active_addresses_24h = onchain_data.get("active_addresses_24h", 0)
+        active_addresses_7d_avg = onchain_data.get("active_addresses_7d_avg", 0)
+
+        if active_addresses_7d_avg > 0:
+            address_ratio = active_addresses_24h / active_addresses_7d_avg
+            if address_ratio > 2:
+                anomalies.append(f"活跃地址异常增加: {address_ratio:.1f}倍于7日均值")
+                anomaly_score += 1
+            elif address_ratio < 0.5:
+                anomalies.append(f"活跃地址异常减少: 仅为7日均值的{address_ratio:.1f}倍")
+                anomaly_score += 1
+
+        # 检查大户资金流向异常
+        whale_flow = user_activity.get("whale_net_flow_30d", 0)
+        if abs(whale_flow) > 1000000:  # 100万美元以上
+            direction = "流入" if whale_flow > 0 else "流出"
+            anomalies.append(f"大户资金异常{direction}: ${abs(whale_flow)/1e6:.1f}M")
+            anomaly_score += 1
+
+        # 检查交易所资金流向异常
+        exchange_flow = user_activity.get("exchange_net_flow_30d", 0)
+        if abs(exchange_flow) > 5000000:  # 500万美元以上
+            direction = "流入" if exchange_flow > 0 else "流出"
+            anomalies.append(f"交易所资金异常{direction}: ${abs(exchange_flow)/1e6:.1f}M")
+            anomaly_score += 1
+
+        # 根据异常分数确定风险等级
+        if anomaly_score >= 4:
+            risk_level = "高"
+            risk_assessment = "检测到多个异常指标，建议高度关注"
+        elif anomaly_score >= 2:
+            risk_level = "中"
+            risk_assessment = "检测到部分异常指标，需要持续监控"
+        else:
+            risk_assessment = "链上指标相对正常"
+
+        return {
+            "anomalies_detected": anomalies,
+            "anomaly_count": len(anomalies),
+            "anomaly_score": anomaly_score,
+            "risk_level": risk_level,
+            "risk_assessment": risk_assessment,
+            "anomaly_types": list(set([self._classify_anomaly(anomaly) for anomaly in anomalies])),
+        }
+
+    def _classify_anomaly(self, anomaly_description: str) -> str:
+        """
+        分类异常类型
+
+        Args:
+            anomaly_description: 异常描述
+
+        Returns:
+            异常类型
+        """
+        if "TVL" in anomaly_description:
+            return "流动性异常"
+        elif "交易量" in anomaly_description:
+            return "交易异常"
+        elif "活跃地址" in anomaly_description:
+            return "用户活动异常"
+        elif "大户" in anomaly_description or "鲸鱼" in anomaly_description:
+            return "大户行为异常"
+        elif "交易所" in anomaly_description:
+            return "机构行为异常"
+        else:
+            return "其他异常"
+
     def _format_prompt(
         self,
         symbol: str,
@@ -322,6 +679,10 @@ class OnchainAnalyzer:
         user_activity: Dict,
         protocol_fundamentals: Dict,
         token_distribution: Dict,
+        tvl_analysis: Dict,
+        volume_analysis: Dict,
+        contract_interactions: Dict,
+        anomaly_detection: Dict,
     ) -> str:
         """格式化用户提示词"""
         # 替换模板占位符
@@ -375,6 +736,31 @@ class OnchainAnalyzer:
             exchange_balance=token_distribution.get("exchange_balance", "N/A"),
             exchange_balance_pct=token_distribution.get("exchange_balance_pct", "N/A"),
             exchange_net_flow_30d=token_distribution.get("exchange_net_flow_30d", "N/A"),
+            # TVL和锁仓价值
+            tvl_current=tvl_analysis.get("tvl_current", "N/A"),
+            tvl_trend=tvl_analysis.get("tvl_trend", "N/A"),
+            tvl_signal=tvl_analysis.get("tvl_signal", "N/A"),
+            locked_ratio=tvl_analysis.get("locked_ratio", "N/A"),
+            lock_quality=tvl_analysis.get("lock_quality", "N/A"),
+            tvl_to_market_cap_ratio=tvl_analysis.get("tvl_to_market_cap_ratio", "N/A"),
+            # 交易量和活跃地址
+            volume_intensity=volume_analysis.get("volume_intensity", "N/A"),
+            volume_signal=volume_analysis.get("volume_signal", "N/A"),
+            address_trend=volume_analysis.get("address_trend", "N/A"),
+            address_signal=volume_analysis.get("address_signal", "N/A"),
+            user_acquisition=volume_analysis.get("user_acquisition", "N/A"),
+            user_signal=volume_analysis.get("user_signal", "N/A"),
+            # 智能合约交互
+            interaction_level=contract_interactions.get("interaction_level", "N/A"),
+            interaction_assessment=contract_interactions.get("interaction_assessment", "N/A"),
+            contract_diversity=contract_interactions.get("contract_diversity", "N/A"),
+            complexity_level=contract_interactions.get("complexity_level", "N/A"),
+            contract_types=contract_interactions.get("contract_types", "N/A"),
+            # 异常检测
+            anomaly_count=anomaly_detection.get("anomaly_count", 0),
+            anomalies_detected=", ".join(anomaly_detection.get("anomalies_detected", [])) or "无异常",
+            risk_level=anomaly_detection.get("risk_level", "低"),
+            risk_assessment=anomaly_detection.get("risk_assessment", "链上指标正常"),
         )
 
         return prompt
@@ -509,6 +895,51 @@ class OnchainAnalyzer:
         td.setdefault("whale_activity", {"whale_count": 0, "whale_holdings_pct": 0, "net_flow_30d": "0", "trend": "稳定", "interpretation": "数据不足"})
         td.setdefault("exchange_balance", {"balance_pct": 0, "net_flow_30d": "0", "interpretation": "数据不足"})
         td.setdefault("overall_narrative", f"{symbol}的持币分布数据不完整。")
+
+        # 补全tvl_analysis
+        if "tvl_analysis" not in result:
+            result["tvl_analysis"] = {
+                "tvl_current": 0,
+                "tvl_trend": "数据不足",
+                "tvl_signal": "中性",
+                "locked_ratio": 0,
+                "lock_quality": "待观察",
+                "tvl_to_market_cap_ratio": 0,
+                "assessment": "TVL数据不足"
+            }
+
+        # 补全volume_analysis
+        if "volume_analysis" not in result:
+            result["volume_analysis"] = {
+                "volume_intensity": "数据不足",
+                "volume_signal": "数据不足",
+                "address_trend": "数据不足",
+                "address_signal": "数据不足",
+                "user_acquisition": "数据不足",
+                "user_signal": "数据不足",
+                "assessment": "交易量和活跃地址数据不足"
+            }
+
+        # 补全contract_interactions
+        if "contract_interactions" not in result:
+            result["contract_interactions"] = {
+                "interaction_level": "数据不足",
+                "interaction_assessment": "合约交互数据不足",
+                "contract_diversity": "数据不足",
+                "complexity_level": "数据不足",
+                "contract_types": "数据不足",
+                "assessment": "智能合约交互数据不足"
+            }
+
+        # 补全anomaly_detection
+        if "anomaly_detection" not in result:
+            result["anomaly_detection"] = {
+                "anomalies_detected": [],
+                "anomaly_count": 0,
+                "risk_level": "低",
+                "risk_assessment": "链上指标数据不足",
+                "anomaly_types": []
+            }
 
         # 补全onchain_health_score
         if "onchain_health_score" not in result:
