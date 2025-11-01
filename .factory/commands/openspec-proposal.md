@@ -1,8 +1,6 @@
 ---
-name: OpenSpec: Proposal
 description: Scaffold a new OpenSpec change and validate strictly.
-category: OpenSpec
-tags: [openspec, change]
+argument-hint: request or feature description
 ---
 <!-- OPENSPEC:START -->
 **Guardrails**
@@ -24,4 +22,6 @@ tags: [openspec, change]
 - Use `openspec show <id> --json --deltas-only` or `openspec show <spec> --type spec` to inspect details when validation fails.
 - Search existing requirements with `rg -n "Requirement:|Scenario:" openspec/specs` before writing new ones.
 - Explore the codebase with `rg <keyword>`, `ls`, or direct file reads so proposals align with current implementation realities.
+
+$ARGUMENTS
 <!-- OPENSPEC:END -->

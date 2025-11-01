@@ -6,6 +6,10 @@ from app.models.report import Report, ReportType, ReportStatus
 from app.models.conversation import Conversation, Message, MessageRole
 from app.models.data_quality import DataQualityReport
 from app.models.user import User, UserPreferences, Session
+from app.models.code_review import (
+    CodeReview, Vulnerability, CodeQualityMetric, AnalysisResult, ContractVerification,
+    CodeReviewStatus, VulnerabilitySeverity, BlockchainNetwork
+)
 
 __all__ = [
     "Project",
@@ -20,4 +24,12 @@ __all__ = [
     "User",
     "UserPreferences",
     "Session",
+    "CodeReview",
+    "Vulnerability",
+    "CodeQualityMetric",
+    "AnalysisResult",
+    "ContractVerification",
+    "CodeReviewStatus",
+    "VulnerabilitySeverity",
+    "BlockchainNetwork",
 ]
