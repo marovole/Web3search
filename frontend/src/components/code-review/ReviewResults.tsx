@@ -57,6 +57,16 @@ interface CodeReviewData {
     qualityGrade?: string;
     maintainabilityIndex?: number;
   };
+  qualityMetrics?: {
+    overallScore?: number;
+    securityScore?: number;
+    performanceScore?: number;
+    readabilityScore?: number;
+    maintainabilityScore?: number;
+    complexity?: number;
+    linesOfCode?: number;
+    testCoverage?: number;
+  };
   analysisSummary?: {
     analyzersRun: number;
     totalExecutionTime: number;
@@ -212,7 +222,7 @@ export const ReviewResults: React.FC<ReviewResultsProps> = ({
       </Card>
 
       {status === 'in_progress' && (
-        <AnalysisProgress progressData={progressData} />
+        <AnalysisProgress progress={progressData?.progress} status={status} />
       )}
 
       {status === 'completed' && reviewData && (
@@ -383,7 +393,7 @@ export const ReviewResults: React.FC<ReviewResultsProps> = ({
                 </TabsContent>
 
                 <TabsContent value="quality">
-                  <QualityMetrics reviewId={reviewId} />
+                  <QualityMetrics metrics={reviewData?.qualityMetrics} />
                 </TabsContent>
 
                 <TabsContent value="code">

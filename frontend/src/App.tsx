@@ -1,6 +1,6 @@
 import React, { Suspense, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
-import { cn } from './lib/utils'
+import { cn } from '@/lib/utils'
 import ErrorBoundary from './components/Error/ErrorBoundary'
 import OfflineIndicator from './components/Network/OfflineIndicator'
 import { ToastProvider } from './components/ui/toast'
