@@ -10,6 +10,7 @@ import yaml
 
 from app.services.llm import llm_client, ModelConfig
 from app.core.config import settings
+from app.services.social_sentiment_engine import social_sentiment_engine
 from app.services.research_engine.analyzers.analyzer_output import (
     AnalyzerOutput,
     create_analyzer_output,
@@ -93,6 +94,9 @@ class SentimentAnalyzer:
         reddit_data = self._extract_reddit_data(aggregated_data)
         news_data = self._extract_news_data(aggregated_data)
 
+        # 获取实时多平台情绪分析数据
+        comprehensive_sentiment_data = await self._get_comprehensive_sentiment_data(symbol, hours=24)
+
         # 增强分析各个数据源
         twitter_analysis = self._analyze_twitter_sentiment(twitter_data, symbol)
         reddit_analysis = self._analyze_reddit_sentiment(reddit_data, symbol)
@@ -168,7 +172,7 @@ class SentimentAnalyzer:
             fallback_used=fallback_used,
             generation_time_ms=generation_time_ms,
             confidence=result.get("overall_sentiment", {}).get("confidence"),
-            data_sources=["Twitter", "Reddit", "News"],
+            data_sources=["Twitter", "Reddit", "Telegram", "Discord", "News"],
             visualization_hints=visualization_hints,
             validation_passed=len(validation_warnings) == 0,
             validation_warnings=validation_warnings,
@@ -1046,6 +1050,53 @@ class SentimentAnalyzer:
             error_msg=f"{symbol}的社交媒体情绪分析失败: {error_msg}",
             model_used=model_used,
         )
+
+    async def _get_comprehensive_sentiment_data(self, symbol: str, hours: int = 24) -> Dict[str, Any]:
+        """
+        获取综合情绪分析数据
+
+        Args:
+            symbol: 币种符号
+            hours: 采集时间范围
+
+        Returns:
+            Dict[str, Any]: 综合情绪数据
+        """
+        try:
+            # 使用社交情绪分析引擎获取实时数据
+            sentiment_data = await social_sentiment_engine.get_comprehensive_sentiment(
+                symbol=symbol.upper(),
+                hours=hours
+            )
+
+            return {
+                "overall_sentiment": sentiment_data.get("sentiment_score", 0),
+                "confidence": sentiment_data.get("confidence", 0),
+                "volume": sentiment_data.get("volume", 0),
+                "engagement": sentiment_data.get("engagement", 0),
+                "platform_distribution": sentiment_data.get("platform_distribution", {}),
+                "sentiment_distribution": sentiment_data.get("sentiment_distribution", {}),
+                "trending_topics": sentiment_data.get("insights", {}).get("trending_topics", []),
+                "kol_sentiment": sentiment_data.get("insights", {}).get("kol_analysis", {}),
+                "updated_at": sentiment_data.get("created_at", ""),
+                "data_sources": list(sentiment_data.get("platform_distribution", {}).keys())
+            }
+
+        except Exception as e:
+            # 如果社交情绪引擎不可用，返回默认数据
+            return {
+                "overall_sentiment": 0,
+                "confidence": 0,
+                "volume": 0,
+                "engagement": 0,
+                "platform_distribution": {},
+                "sentiment_distribution": {"positive": 0, "negative": 0, "neutral": 100},
+                "trending_topics": [],
+                "kol_sentiment": {},
+                "updated_at": "",
+                "data_sources": [],
+                "error": str(e)
+            }
 
 
 # 全局单例

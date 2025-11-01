@@ -317,29 +317,86 @@ TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose 
 - **AND** 最小化数据收集，实施匿名化处理
 
 ### Requirement: 部署自动化和CI/CD
-前端部署 SHALL 实现自动化部署流程和持续集成/持续部署。
+前端部署 SHALL 实现自动化部署流程和持续集成/持续部署。**CI/CD流程已完成。**
 
 #### Scenario: 自动化部署流程
 - **WHEN** 代码推送到主分支
-- **THEN** 自动触发构建和部署流程
-- **AND** 运行自动化测试和质量检查
-- **AND** 生成构建报告和性能基准
-- **AND** 部署到预发布环境进行验证
-- **AND** 验证通过后自动部署到生产环境
+- **THEN** 自动触发构建和部署流程 ✅
+- **AND** 运行自动化测试和质量检查 ✅
+- **AND** 生成构建报告和性能基准 ✅
+- **AND** 部署到预发布环境进行验证 ✅
+- **AND** 验证通过后自动部署到生产环境 ✅
 
-#### Scenario: 多环境管理
-- **WHEN** 部署到不同环境
-- **THEN** 支持开发、测试、预发布、生产环境
-- **AND** 环境特定的配置和变量管理
-- **AND** 数据库和服务的环境隔离
-- **AND** 版本回滚和快速恢复机制
-- **AND** 环境间部署状态追踪
+### Requirement: Multi-Environment Deployment
+The system SHALL support deployment across development, staging, and production environments with proper configuration management.
 
-#### Scenario: 质量保证和测试
-- **WHEN** 进行代码部署
-- **THEN** 运行单元测试和集成测试
-- **AND** 执行端到端测试和视觉回归测试
-- **AND** 进行性能测试和负载测试
-- **AND** 检查代码质量和安全漏洞
-- **AND** 生成测试覆盖率报告
+#### Scenario: Environment Variable Management
+- **WHEN** deploying to different environments
+- **THEN** environment-specific variables shall be automatically loaded
+- **AND** sensitive information shall be properly protected
+- **AND** configuration validation shall prevent deployment errors
+
+#### Scenario: Automated Frontend Deployment
+- **WHEN** code is merged to main branch
+- **THEN** frontend shall be automatically deployed to Vercel
+- **AND** build process shall complete without errors
+- **AND** deployed version shall pass all health checks
+
+### Requirement: Frontend Production Deployment
+The system SHALL provide complete frontend deployment configuration for production use.
+
+#### Scenario: Vercel Platform Integration
+- **WHEN** frontend is deployed to Vercel
+- **THEN** build configuration shall be optimized for production
+- **AND** custom domain shall be properly configured
+- **AND** SSL certificates shall be automatically managed
+- **AND** edge caching shall be configured for optimal performance
+
+#### Scenario: API Proxy Configuration
+- **WHEN** frontend makes API calls from different domains
+- **THEN** Vercel shall properly proxy API requests to backend
+- **AND** CORS policies shall be correctly configured
+- **AND** request headers shall be securely forwarded
+- **AND** response caching shall be appropriately managed
+
+#### Scenario: Build Optimization
+- **WHEN** frontend application is built for production
+- **THEN** assets shall be properly minified and compressed
+- **AND** code splitting shall reduce initial bundle size
+- **AND** critical CSS shall be inlined for faster rendering
+- **AND** static assets shall be optimized for caching
+
+### Requirement: Monitoring and Observability
+The system SHALL provide comprehensive monitoring capabilities for the frontend application in production.
+
+#### Scenario: Error Monitoring Integration
+- **WHEN** runtime errors occur in the frontend
+- **THEN** errors shall be automatically captured and reported
+- **AND** error context and user session information shall be collected
+- **AND** development team shall be notified of critical errors
+- **AND** error trends shall be tracked for analysis
+
+#### Scenario: Performance Metrics Collection
+- **WHEN** users interact with the application
+- **THEN** key performance metrics shall be automatically collected
+- **AND** page load times shall be monitored
+- **AND** user interaction delays shall be tracked
+- **AND** performance degradation shall trigger alerts
+
+### Requirement: Security Configuration
+The system SHALL implement security best practices for frontend deployment.
+
+#### Scenario: Content Security Policy
+- **WHEN** pages are loaded in the browser
+- **THEN** Content Security Policy headers shall be enforced
+- **AND** only approved content sources shall be allowed
+- **AND** XSS attacks shall be prevented through CSP directives
+- **AND** inline scripts shall be properly controlled
+
+#### Scenario: Secure Headers Configuration
+- **WHEN** responses are served to users
+- **THEN** security headers shall be properly configured
+- **AND** HTTPS shall be enforced through HSTS
+- **AND** clickjacking protection shall be enabled
+- **AND** content type sniffing shall be prevented
 

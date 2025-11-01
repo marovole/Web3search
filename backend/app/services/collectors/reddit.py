@@ -348,9 +348,8 @@ class RedditCollector:
         total_comments = sum(p["num_comments"] for p in filtered_posts)
         avg_upvote_ratio = sum(p["upvote_ratio"] for p in filtered_posts) / len(filtered_posts)
 
-        # 简单情感分析（基于upvote ratio）
-        # upvote_ratio: 0.5表示中性，>0.5正面，<0.5负面
-        sentiment_score = (avg_upvote_ratio - 0.5) * 2  # 映射到[-1, 1]
+        # 增强的情感分析
+        sentiment_data = self._analyze_reddit_sentiment(filtered_posts)
 
         # 找出最热门的帖子
         top_post = max(filtered_posts, key=lambda p: p["score"])
@@ -364,15 +363,269 @@ class RedditCollector:
             "total_comments": total_comments,
             "avg_comments": round(total_comments / len(filtered_posts), 2),
             "avg_upvote_ratio": round(avg_upvote_ratio, 2),
-            "sentiment_score": round(sentiment_score, 2),
             "top_post": {
                 "title": top_post["title"],
                 "url": top_post["url"],
                 "score": top_post["score"],
                 "comments": top_post["num_comments"],
             },
+            **sentiment_data,
             "timestamp": datetime.utcnow().isoformat(),
         }
+
+    async def get_multi_subreddit_sentiment(
+        self,
+        symbol: str,
+        subreddits: List[str] = None,
+        hours: int = 24,
+    ) -> Dict[str, Any]:
+        """
+        从多个subreddit并行获取加密货币情感数据
+
+        Args:
+            symbol: 币种符号或名称
+            subreddits: 子版块列表，如果为None则使用默认列表
+            hours: 时间范围（小时）
+
+        Returns:
+            Dict: 多subreddit综合情感数据
+        """
+        # 默认加密货币相关subreddit列表
+        if subreddits is None:
+            subreddits = [
+                "cryptocurrency", "CryptoCurrency", "Bitcoin", "ethereum", 
+                "CryptoMarkets", "binance", "CoinBase", "Cardano", "solana",
+                "dogecoin", "Crypto", "altcoin", "Defi", "NFT"
+            ]
+
+        # 并行获取各个subreddit的数据
+        tasks = [
+            self.get_crypto_sentiment(symbol, subreddit, hours)
+            for subreddit in subreddits
+        ]
+        
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # 处理结果
+        subreddit_data = []
+        total_posts = 0
+        total_score = 0
+        total_comments = 0
+        all_sentiment_scores = []
+
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                print(f"⚠️ 获取 {subreddits[i]} 数据失败: {result}")
+                continue
+
+            if result.get("post_count", 0) > 0:
+                subreddit_data.append({
+                    "subreddit": result["subreddit"],
+                    "post_count": result["post_count"],
+                    "avg_score": result["avg_score"],
+                    "sentiment_score": result.get("sentiment_score", 0),
+                    "total_engagement": result["total_comments"] + result["total_score"]
+                })
+                
+                total_posts += result["post_count"]
+                total_score += result["total_score"]
+                total_comments += result["total_comments"]
+                
+                if "sentiment_score" in result:
+                    all_sentiment_scores.append(result["sentiment_score"])
+
+        # 计算综合指标
+        if total_posts > 0:
+            avg_score = total_score / total_posts
+            avg_comments = total_comments / total_posts
+            weighted_sentiment = sum(
+                data["sentiment_score"] * data["total_engagement"] 
+                for data in subreddit_data
+            ) / sum(data["total_engagement"] for data in subreddit_data)
+        else:
+            avg_score = 0
+            avg_comments = 0
+            weighted_sentiment = 0
+
+        # 按活跃度排序subreddit
+        subreddit_data.sort(key=lambda x: x["total_engagement"], reverse=True)
+
+        return {
+            "symbol": symbol,
+            "total_posts": total_posts,
+            "total_score": total_score,
+            "avg_score": round(avg_score, 2),
+            "total_comments": total_comments,
+            "avg_comments": round(avg_comments, 2),
+            "weighted_sentiment_score": round(weighted_sentiment, 3),
+            "active_subreddits": len(subreddit_data),
+            "subreddit_details": subreddit_data,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+    def _analyze_reddit_sentiment(self, posts: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        分析Reddit帖子的情感
+
+        Args:
+            posts: Reddit帖子列表
+
+        Returns:
+            Dict: 情感分析结果
+        """
+        if not posts:
+            return {
+                "sentiment_score": 0,
+                "positive_posts": 0,
+                "negative_posts": 0,
+                "neutral_posts": 0,
+                "sentiment_distribution": {"positive": 0, "negative": 0, "neutral": 0}
+            }
+
+        # Reddit情感关键词
+        crypto_keywords = self._get_crypto_sentiment_keywords()
+        
+        positive_posts = 0
+        negative_posts = 0
+        neutral_posts = 0
+        sentiment_scores = []
+
+        for post in posts:
+            title_lower = post["title"].lower()
+            text_lower = post.get("text", "").lower()
+            combined_text = f"{title_lower} {text_lower}"
+            
+            # 计算情感得分
+            pos_score = sum(1 for kw in crypto_keywords["positive"] if kw in combined_text)
+            neg_score = sum(1 for kw in crypto_keywords["negative"] if kw in combined_text)
+            
+            # 基于upvote ratio和关键词的综合情感分析
+            upvote_ratio = post.get("upvote_ratio", 0.5)
+            
+            if pos_score > neg_score and upvote_ratio > 0.6:
+                positive_posts += 1
+                score = min(1.0, (pos_score - neg_score) / max(pos_score + neg_score, 1) + (upvote_ratio - 0.5))
+            elif neg_score > pos_score and upvote_ratio < 0.4:
+                negative_posts += 1
+                score = max(-1.0, -(neg_score - pos_score) / max(pos_score + neg_score, 1) - (0.5 - upvote_ratio))
+            else:
+                neutral_posts += 1
+                score = (upvote_ratio - 0.5) * 2  # 基于upvote ratio的情感得分
+            
+            sentiment_scores.append(score)
+
+        # 计算整体情感得分
+        avg_sentiment = sum(sentiment_scores) / len(sentiment_scores) if sentiment_scores else 0
+
+        return {
+            "sentiment_score": round(avg_sentiment, 3),
+            "positive_posts": positive_posts,
+            "negative_posts": negative_posts,
+            "neutral_posts": neutral_posts,
+            "sentiment_distribution": {
+                "positive": round(positive_posts / len(posts) * 100, 1),
+                "negative": round(negative_posts / len(posts) * 100, 1),
+                "neutral": round(neutral_posts / len(posts) * 100, 1)
+            }
+        }
+
+    def _get_crypto_sentiment_keywords(self) -> Dict[str, List[str]]:
+        """
+        获取加密货币相关的Reddit情感关键词
+
+        Returns:
+            Dict: 包含正面、负面、中性关键词的字典
+        """
+        return {
+            "positive": [
+                # 价格相关正面词汇
+                "bullish", "moon", "pump", "buy", "long", "up", "gain", "profit", "surge",
+                "rally", "breakout", "ath", "all time high", "rocket", "dip", "accumulate",
+                # 技术和基本面正面词汇
+                "adoption", "mainnet", "launch", "partnership", "upgrade", "scaling", "innovation",
+                "defi", "yield", "staking", "airdrop", "burn", "halving", "whale", "bullish",
+                # 社区正面词汇
+                "hodl", "diamond hands", "to the moon", "lambo", "gm", "wen", "ser"
+            ],
+            "negative": [
+                # 价格相关负面词汇
+                "bearish", "dump", "sell", "short", "down", "loss", "crash", "fall", "drop",
+                "plunge", "collapse", "bear", "recession", "panic", "fear", "fud", "scam",
+                # 技术和基本面负面词汇
+                "hack", "exploit", "vulnerability", "delist", "ban", "regulation", "delay",
+                "bug", "glitch", "downtime", "maintenance", "fork", "controversy", "sec",
+                # 社区负面词汇
+                "rugpull", "shitcoin", "pump and dump", "ponzi", "exit scam", "paper hands"
+            ],
+            "neutral": [
+                # 中性分析词汇
+                "analysis", "prediction", "forecast", "technical", "fundamental", "market",
+                "price", "chart", "volume", "resistance", "support", "trend", "correction",
+                "consolidation", "accumulation", "distribution", "volatility", "macd", "rsi"
+            ]
+        }
+
+    async def get_trending_crypto_topics(
+        self,
+        subreddit: str = "cryptocurrency",
+        limit: int = 20,
+        hours: int = 24,
+    ) -> List[Dict[str, Any]]:
+        """
+        获取热门加密货币话题
+
+        Args:
+            subreddit: 子版块名称
+            limit: 最大结果数
+            hours: 时间范围（小时）
+
+        Returns:
+            List[Dict]: 热门话题列表
+        """
+        posts = await self.get_subreddit_posts(
+            subreddit=subreddit,
+            sort="hot",
+            limit=limit,
+        )
+
+        # 过滤时间范围
+        cutoff_time = datetime.utcnow().timestamp() - (hours * 3600)
+        recent_posts = [
+            p for p in posts
+            if p.get("created_utc", 0) >= cutoff_time
+        ]
+
+        # 分析帖子内容，提取加密货币相关话题
+        crypto_keywords = self._get_crypto_sentiment_keywords()
+        trending_topics = []
+
+        for post in recent_posts:
+            title = post["title"].lower()
+            text = post.get("text", "").lower()
+            combined = f"{title} {text}"
+            
+            # 计算加密货币关键词匹配度
+            crypto_mentions = []
+            for keyword_list in crypto_keywords.values():
+                for keyword in keyword_list:
+                    if keyword in combined:
+                        crypto_mentions.append(keyword)
+            
+            if crypto_mentions:
+                trending_topics.append({
+                    "title": post["title"],
+                    "url": post["url"],
+                    "score": post["score"],
+                    "comments": post["num_comments"],
+                    "crypto_mentions": list(set(crypto_mentions)),
+                    "mention_count": len(crypto_mentions),
+                    "engagement_score": post["score"] + post["num_comments"]
+                })
+
+        # 按参与度排序
+        trending_topics.sort(key=lambda x: x["engagement_score"], reverse=True)
+
+        return trending_topics[:limit]
 
     async def get_trending_topics(
         self,
