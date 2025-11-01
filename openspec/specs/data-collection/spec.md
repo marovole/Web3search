@@ -30,24 +30,35 @@ TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose 
 - **AND** 提取最热门的3个讨论帖子标题
 - **AND** 计算讨论热度得分（0-100）
 
-#### Scenario: 新闻资讯采集（CryptoPanic）
-- **WHEN** 系统采集某项目的新闻数据
-- **THEN** 返回7天内的新闻标题、来源、发布时间
-- **AND** 新闻按时间倒序排列
-- **AND** 标注新闻情绪（正面/中性/负面）
+#### Scenario: Telegram和Discord数据采集
+- **WHEN** 系统采集Telegram和Discord社群数据
+- **THEN** 获取群组成员数量、活跃度指标
+- **AND** 分析消息情绪和讨论热点
+- **AND** 计算社群热度指标
 
-#### Scenario: API限流处理
-- **WHEN** 遇到数据源API限流（如CoinGecko返回429状态码）
-- **THEN** 自动使用Redis缓存数据（如果存在）
-- **AND** 如缓存不存在，降级到备用数据源（如CoinMarketCap）
-- **AND** 记录限流事件到日志系统
-- **AND** 返回响应时标注数据来源为"cached"或"fallback"
+### Requirement: 社交媒体数据采集
+系统 SHALL采集Web3项目相关的社交媒体数据，包括Twitter、Reddit、Telegram、Discord等平台的讨论内容。**Discord采集器已完成。**
 
-#### Scenario: 数据源不可用降级
-- **WHEN** 主数据源完全不可用（连接超时或服务宕机）
-- **THEN** 自动切换到备用数据源
-- **AND** 在响应中添加警告信息"Using fallback data source"
-- **AND** 触发监控告警通知运维人员
+#### Scenario: 多平台数据同步采集
+- **WHEN** 系统进行数据采集时
+- **THEN** 并行采集Twitter、Reddit、Telegram、Discord四平台数据 ✅
+- **AND** 实时处理和过滤相关内容 ✅
+- **AND** 支持自定义采集规则和关键词 ✅
+- **AND** 提供数据质量监控和异常处理 ✅
+
+#### Scenario: Discord数据采集
+- **WHEN** 系统需要Discord社区数据时
+- **THEN** 通过Discord Bot API采集公开频道消息 ✅
+- **AND** 实时监控项目官方社区动态 ✅
+- **AND** 支持多语言和表情符号处理 ✅
+- **AND** 提供社区活跃度和参与度分析 ✅
+
+#### Scenario: 数据标准化和聚合
+- **WHEN** 处理多平台数据时
+- **THEN** 标准化不同平台的数据格式 ✅
+- **AND** 聚合重复内容和跨平台讨论 ✅
+- **AND** 计算统一的参与度和影响力指标 ✅
+- **AND** 提供数据溯源和质量评分 ✅
 
 ### Requirement: 定时数据更新
 系统**SHALL**使用Celery定时任务自动更新数据，确保信息时效性。**集成智能预热调度。**

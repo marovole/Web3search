@@ -2,9 +2,7 @@
 
 ## Purpose
 提供全面的Web3项目社交情绪分析功能，通过采集Twitter、Reddit、Telegram等平台的社交数据，结合AI情感分析技术，为投资者提供社区情绪洞察和市场趋势预测。
-
 ## Requirements
-
 ### Requirement: 多平台社交数据采集
 社交情绪分析引擎 SHALL支持从Twitter、Reddit、Telegram、Discord等平台采集Web3项目相关的社交数据。
 
@@ -125,4 +123,20 @@
 - **AND** 提供预警内容的个性化定制
 - **AND** 支持预警订阅和偏好设置
 
+### Requirement: Deep Research集成
+系统 SHALL将社交情绪分析深度集成到Deep Research流程，增强AI分析报告的深度和准确性。**集成已完成。**
+
+#### Scenario: 实时情绪数据集成
+- **WHEN** Deep Research分析进行时
+- **THEN** 自动获取24小时内的综合情绪数据 ✅
+- **AND** 整合多平台情绪分析结果 ✅
+- **AND** 提供情绪趋势和热点话题洞察 ✅
+- **AND** 增强投资决策建议的质量 ✅
+
+#### Scenario: 情绪洞察报告增强
+- **WHEN** 生成Deep Research报告时
+- **THEN** 包含详细的社区情绪分析章节 ✅
+- **AND** 提供KOL情绪影响评估 ✅
+- **AND** 包含情绪-价格相关性分析 ✅
+- **AND** 生成基于情绪的投资建议 ✅
 
