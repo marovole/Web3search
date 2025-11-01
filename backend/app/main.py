@@ -70,12 +70,28 @@ async def lifespan(app: FastAPI):
     # 创建后台任务（不等待完成）
     asyncio.create_task(preload_in_background())
 
+    # 启动WebSocket广播器
+    from app.api.v1.websocket import sentiment_broadcaster
+    try:
+        await sentiment_broadcaster.start()
+        print("📡 WebSocket sentiment broadcaster started")
+    except Exception as e:
+        print(f"⚠️ WebSocket broadcaster warning: {e}")
+
     print("✅ API is ready!")
 
     yield  # 应用运行中
 
     # 关闭
     print("🛑 Shutting down Web3 Search API...")
+
+    # 停止WebSocket广播器
+    try:
+        await sentiment_broadcaster.stop()
+        print("📡 WebSocket sentiment broadcaster stopped")
+    except Exception as e:
+        print(f"⚠️ WebSocket broadcaster shutdown warning: {e}")
+
     await close_db()
     await close_redis()
     print("✅ Cleanup completed")
