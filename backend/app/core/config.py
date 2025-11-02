@@ -100,8 +100,8 @@ class Settings(BaseSettings):
     # 数据库配置
     # ================================
     DATABASE_URL: str = Field(
-        default="postgresql://postgres:postgres@localhost:5432/web3search",
-        description="PostgreSQL数据库连接字符串"
+        default="",
+        description="PostgreSQL数据库连接字符串（必须通过环境变量设置）"
     )
 
     # 连接池配置
@@ -168,9 +168,9 @@ class Settings(BaseSettings):
     # JWT认证配置
     # ================================
     JWT_SECRET_KEY: str = Field(
-        default="9ABBFn6HHdJ7rVRsY5YlVjAKRpGoUiv4sdLDGSY3zf1-ZA_--bORnDzHlsniYDm7L2rkbMSNR2kBruh3rY8I3g",
+        default="",
         min_length=32,
-        description="JWT Secret Key（生产环境必须通过环境变量设置）"
+        description="JWT Secret Key（必须通过环境变量设置，不允许默认值）"
     )
     JWT_ALGORITHM: str = Field(
         default="HS256",
@@ -489,9 +489,13 @@ class Settings(BaseSettings):
             if not self.OPENROUTER_API_KEY:
                 raise ValueError("生产环境必须配置OPENROUTER_API_KEY")
 
-            # 生产环境必须配置安全的JWT密钥（不能使用默认值）
-            if self.JWT_SECRET_KEY == "9ABBFn6HHdJ7rVRsY5YlVjAKRpGoUiv4sdLDGSY3zf1-ZA_--bORnDzHlsniYDm7L2rkbMSNR2kBruh3rY8I3g":
-                raise ValueError("生产环境必须通过环境变量设置安全的JWT_SECRET_KEY，不能使用默认值")
+            # 生产环境必须配置安全的JWT密钥
+            if not self.JWT_SECRET_KEY or len(self.JWT_SECRET_KEY) < 32:
+                raise ValueError("生产环境必须通过环境变量设置安全的JWT_SECRET_KEY，长度至少32位")
+
+            # 生产环境必须配置数据库连接
+            if not self.DATABASE_URL:
+                raise ValueError("生产环境必须通过环境变量设置DATABASE_URL")
 
             # 生产环境不应该输出SQL日志
             if self.DATABASE_ECHO:

@@ -1,14 +1,14 @@
 # ================================
 # Core Framework
 # ================================
-fastapi==0.111.0
+fastapi==0.115.6
 uvicorn[standard]==0.29.0
 python-multipart==0.0.6
 
 # ================================
 # Database & ORM
 # ================================
-sqlalchemy==2.0.23
+sqlalchemy==2.0.36
 asyncpg==0.29.0
 alembic==1.12.1
 psycopg2-binary==2.9.9
@@ -146,4 +146,3 @@ psutil==5.9.6
 # ================================
 # Additional Monitoring Dependencies
 # ================================
-aiohttp==3.9.4  # For alert notifications

@@ -7,8 +7,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 from typing import Dict, Tuple
 import re
+import logging
 
 from app.core.redis_client import rate_limit_check
+
+logger = logging.getLogger(__name__)
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -146,8 +149,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 return response
 
             except Exception as e:
-                # 速率限制检查失败，允许请求通过（降级处理）
-                print(f"⚠️ 速率限制检查失败: {e}")
+                # 速率限制检查失败，记录错误并允许请求通过（降级处理）
+                logger.error(f"速率限制检查失败: {e}", exc_info=True)
+
+                # 在生产环境中，可以考虑记录监控指标
+                if logger.isEnabledFor(logging.INFO):
+                    logger.info(f"速率限制降级 - IP: {client_ip}, 路径: {request.url.path}")
+
                 return await call_next(request)
 
         else:

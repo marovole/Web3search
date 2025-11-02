@@ -4,7 +4,11 @@
 """
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, field_validator
+import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ================================
@@ -168,10 +172,77 @@ class ReportMigrationData(BaseModel):
 
 class MigrationRequest(BaseModel):
     """数据迁移请求"""
-    conversations: List[ConversationMigrationData] = Field(default_factory=list, description="对话历史")
-    reports: List[ReportMigrationData] = Field(default_factory=list, description="报告列表")
+    conversations: List[ConversationMigrationData] = Field(default_factory=list, description="对话历史", max_items=100)
+    reports: List[ReportMigrationData] = Field(default_factory=list, description="报告列表", max_items=50)
     preferences: Optional[Dict[str, Any]] = Field(None, description="偏好设置")
-    watchlist: Optional[List[Dict[str, Any]]] = Field(None, description="监控列表（可选）")
+    watchlist: Optional[List[Dict[str, Any]]] = Field(None, description="监控列表（可选）", max_items=20)
+
+    @field_validator('conversations')
+    @classmethod
+    def validate_conversations(cls, v):
+        """验证对话历史数据"""
+        if not v:
+            return v
+
+        for conv in v:
+            # 验证session_id格式
+            if not conv.session_id or len(conv.session_id) > 100:
+                raise ValueError('对话session_id无效')
+
+            # 验证标题长度
+            if conv.title and len(conv.title) > 200:
+                raise ValueError('对话标题过长')
+
+            # 验证消息数量
+            if conv.messages and len(conv.messages) > 1000:
+                raise ValueError('对话消息数量过多')
+
+        return v
+
+    @field_validator('reports')
+    @classmethod
+    def validate_reports(cls, v):
+        """验证报告数据"""
+        if not v:
+            return v
+
+        for report in v:
+            # 验证symbol格式
+            if report.symbol and not re.match(r'^[A-Z0-9]{1,10}$', report.symbol):
+                raise ValueError(f'报告symbol格式无效: {report.symbol}')
+
+            # 验证标题长度
+            if report.title and len(report.title) > 300:
+                raise ValueError('报告标题过长')
+
+            # 验证内容长度
+            if report.content and len(report.content) > 100000:
+                raise ValueError('报告内容过长')
+
+        return v
+
+    @field_validator('preferences')
+    @classmethod
+    def validate_preferences(cls, v):
+        """验证偏好设置数据"""
+        if not v:
+            return v
+
+        # 限制偏好设置数据大小
+        if len(str(v)) > 10000:
+            raise ValueError('偏好设置数据过大')
+
+        # 验证已知的偏好设置键
+        allowed_keys = {
+            'theme', 'language', 'chatMode', 'notifications',
+            'privacy', 'display', 'advanced', 'custom'
+        }
+
+        for key in v.keys():
+            if key not in allowed_keys:
+                logger.warning(f"未知的偏好设置键: {key}")
+
+        return v
 
     class Config:
         json_schema_extra = {

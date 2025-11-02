@@ -1,3 +1,5 @@
+# DEPRECATED: This root render.yaml is deprecated. Use backend/render.yaml as the authoritative deployment config.
+# 废弃说明：根目录 render.yaml 已弃用，请使用 backend/render.yaml 作为权威部署配置。
 services:
   # Web API服务
   - type: web
@@ -23,7 +25,7 @@ services:
           name: web3search-db
           property: connectionString
       - key: CORS_ORIGINS
-        value: "*"
+        value: "https://web3search.vercel.app"
       # 注意：Redis 配置已禁用，因为 Render 免费计划不支持 Redis
       # 应用将在没有缓存层的情况下运行（对 Staging 验证足够）
       # 后续升级时可以：

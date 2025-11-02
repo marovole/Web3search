@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import type { Message, ChatMode } from '../../types'
 import { quickChat, deepResearchStream } from '../../services/api'
 import useNetworkRetry from '../../hooks/useNetworkRetry'
-import * as Sentry from '../../services/sentry'
+import * as Sentry from '../../services/sentry-lite'
 import { Card } from '@/components/ui/card'
 import ModeSwitch from './ModeSwitch'
 import MessageList from './MessageList'
@@ -304,14 +304,15 @@ const ChatInterface: React.FC = () => {
     }
   }
 
-  // Cleanup on unmount
+  // Cleanup on unmount and mode change
   useEffect(() => {
     return () => {
       if (eventSourceRef.current) {
         eventSourceRef.current.close()
+        eventSourceRef.current = null
       }
     }
-  }, [])
+  }, [mode])
 
   return (
     <div className="flex flex-col h-full bg-card rounded-xl shadow-sm border animate-fade-in">

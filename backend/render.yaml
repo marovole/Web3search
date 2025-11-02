@@ -41,6 +41,11 @@ services:
       - key: LOG_LEVEL
         value: INFO
 
+      # Security Configuration
+      - key: JWT_SECRET_KEY
+        value: "REPLACE_WITH_SECURE_32_CHARACTER_KEY"
+        description: "JWT Secret Key - Must be replaced with a secure 32+ character key in production"
+
       # Database Configuration
       - key: DATABASE_URL
         fromDatabase:
