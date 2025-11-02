@@ -1,0 +1,10 @@
+{
+  "name": "Web3 AI Search Engine",
+  "short_name": "Web3search",
+  "description": "Web3加密货币AI搜索引擎 - 免费、开源、专业级研究工具",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#667eea"
+}

@@ -16,10 +16,9 @@ import { useSmartPreload } from './hooks/usePreloadRoutes'
 import { useServiceWorker } from './hooks/useServiceWorker'
 import { useKeyboardShortcutsContext } from './contexts/KeyboardShortcutsContext'
 import Sidebar from './components/Layout/Sidebar'
-import { initSentry, addBreadcrumb, setContext, trackCoreWebVitals, trackPageLoad, trackResourceLoading } from './services/sentry'
+import { initSentry, addBreadcrumb, setContext, trackCoreWebVitals, trackPageLoad, trackResourceLoading } from './services/sentry-lite'
 import performanceMonitor from './services/performance'
 import { PageLoading, ChatLoading, ReportLoading } from './components/Loading/PageLoading'
-import { UXEnhancementProvider, useUXEnhancement } from './components/ui/ux-enhancement-provider'
 
 // 懒加载页面组件
 const ChatPage = React.lazy(() => import('./pages/ChatPage'))
@@ -89,8 +88,8 @@ function App() {
   // Service Worker管理
   const { updateAvailable: _updateAvailable, offline: _offline, activateUpdate: _activateUpdate } = useServiceWorker()
 
-  // UX增强配置
-  const { config: uxConfig } = useUXEnhancement()
+  // UX增强配置（轻量占位，避免引入复杂 Provider）
+  const uxConfig = { features: {} as Record<string, boolean> }
 
   // 初始化监控服务
   React.useEffect(() => {
@@ -132,21 +131,7 @@ function App() {
   }, [uxConfig])
 
   return (
-    <UXEnhancementProvider 
-      config={{
-        // 根据环境变量配置部署阶段
-        phase: process.env.NODE_ENV === 'production' ? 'production' : 'development',
-        // 开发环境显示UX控制面板
-        showUXControls: process.env.NODE_ENV !== 'production',
-        // 启用所有功能阶段
-        features: {
-          phase1: true, // 性能和加载优化
-          phase2: true, // 错误处理和用户支持
-          phase3: true, // 用户引导和帮助系统
-          phase4: true  // 可访问性和交互优化
-        }
-      }}
-    >
+    <>
       <AuthProvider>
         <LoadingProvider>
           <UserPreferencesProvider>
@@ -226,7 +211,7 @@ function App() {
           </UserPreferencesProvider>
         </LoadingProvider>
       </AuthProvider>
-    </UXEnhancementProvider>
+    </>
   )
 }
 

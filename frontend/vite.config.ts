@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { visualizer } from 'rollup-plugin-visualizer'
-import { VitePWA } from 'vite-plugin-pwa'
+import fs from 'fs'
 import path from 'path'
 
 // https://vitejs.dev/config/
@@ -15,140 +15,6 @@ export default defineConfig({
       gzipSize: true,
       brotliSize: true,
       template: 'treemap', // 使用treemap视图更清晰地显示
-    }),
-    // PWA插件
-    VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
-      manifest: {
-        name: 'Web3 AI Search Engine',
-        short_name: 'Web3search',
-        description: 'Web3加密货币AI搜索引擎 - 免费、开源、专业级研究工具',
-        theme_color: '#667eea',
-        background_color: '#ffffff',
-        display: 'standalone',
-        orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
-        icons: [
-          {
-            src: 'icon-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any maskable'
-          },
-          {
-            src: 'icon-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ],
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        // 预缓存重要资源
-        additionalManifestEntries: [
-          { url: '/', revision: null },
-          { url: '/manifest.webmanifest', revision: null },
-        ],
-        runtimeCaching: [
-          // API缓存策略
-          {
-            urlPattern: /^https:\/\/.*\.onrender\.com\/api\/v1\//,
-            handler: 'NetworkFirst',
-            method: 'GET',
-            options: {
-              cacheName: 'api-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 10 * 60, // 10分钟
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-              // 添加网络错误时的回退
-              networkTimeoutSeconds: 3,
-            },
-          },
-          // 健康检查 - 频繁更新
-          {
-            urlPattern: /^https:\/\/.*\.onrender\.com\/api\/v1\/health/,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'health-cache',
-              expiration: {
-                maxEntries: 5,
-                maxAgeSeconds: 30, // 30秒
-              },
-            },
-          },
-          // 报告数据 - 较长缓存
-          {
-            urlPattern: /^https:\/\/.*\.onrender\.com\/api\/v1\/reports/,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'reports-cache',
-              expiration: {
-                maxEntries: 200,
-                maxAgeSeconds: 24 * 60 * 60, // 24小时
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          // 用户数据 - 中等缓存
-          {
-            urlPattern: /^https:\/\/.*\.onrender\.com\/api\/v1\/users/,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'user-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60, // 1小时
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          // 静态资源优化
-          {
-            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'images-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 7 * 24 * 60 * 60, // 7天
-              },
-            },
-          },
-          // 字体文件
-          {
-            urlPattern: /\.(?:woff2?|ttf|eot)$/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'fonts-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 365 * 24 * 60 * 60, // 1年
-              },
-            },
-          },
-        ],
-        cleanupOutdatedCaches: true,
-        skipWaiting: true,
-        clientsClaim: true,
-        // 导航预加载
-        navigateFallback: '/',
-        navigateFallbackDenylist: [/^\/api\//],
-      },
-      devOptions: {
-        enabled: false, // 开发环境禁用，避免干扰
-        type: 'module',
-      },
     }),
     // 性能预算插件（自定义）
     {
@@ -230,8 +96,6 @@ export default defineConfig({
 
         // 保存报告到文件（可选）
         if (process.env.GENERATE_BUNDLE_REPORT === 'true') {
-          const fs = require('fs')
-          const path = require('path')
           const reportPath = path.join(__dirname, 'dist', 'bundle-report.json')
           fs.writeFileSync(reportPath, JSON.stringify(report, null, 2))
           console.log(`📄 Bundle report saved to: ${reportPath}`)
@@ -255,7 +119,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    sourcemap: process.env.VITE_ENVIRONMENT !== 'production',
     // 启用CSS代码分割
     cssCodeSplit: true,
     // 设置chunk大小警告限制

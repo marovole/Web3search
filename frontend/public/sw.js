@@ -15,7 +15,6 @@ const STATIC_ASSETS = [
 const API_CACHE_CONFIG = {
   // 需要缓存的API端点
   cacheableEndpoints: [
-    '/api/health',
     '/api/config',
   ],
   // 缓存时间（毫秒）

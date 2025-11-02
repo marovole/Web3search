@@ -54,11 +54,18 @@ jobs:
           cd frontend
           npm run test:coverage-check
 
-      - name: Run E2E tests
+      - name: Run E2E tests (non-main, non-blocking)
+        if: github.ref != 'refs/heads/main'
         run: |
           cd frontend
           npm run test:e2e
         continue-on-error: true
+
+      - name: Run E2E tests (main branch, blocking)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cd frontend
+          npm run test:e2e
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3

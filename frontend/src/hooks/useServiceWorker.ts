@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { registerSW } from 'virtual:pwa-register'
 
 interface ServiceWorkerStatus {
   isSupported: boolean
@@ -36,21 +35,23 @@ export function useServiceWorker() {
     }
 
     setStatus(prev => ({ ...prev, isSupported: true }))
+    // 原生注册/获取现有 Service Worker
+    const ensureRegistration = async () => {
+      try {
+        // 如果已经注册，直接使用现有 registration
+        const existing = await navigator.serviceWorker.getRegistration()
+        let registration = existing || null
+        if (!registration) {
+          registration = await navigator.serviceWorker.register('/sw.js')
+        }
 
-    // 使用vite-plugin-pwa的registerSW注册Service Worker
-    const updateSW = registerSW({
-      immediate: true,
-      onRegistered(registration?: ServiceWorkerRegistration) {
-        console.log('Service Worker registered:', registration)
-        
         setStatus(prev => ({
           ...prev,
           isRegistered: true,
-          registration: registration || null,
+          registration,
         }))
 
-        // 检查激活状态
-        if (registration?.active) {
+        if (registration.active) {
           setStatus(prev => ({
             ...prev,
             isActivated: true,
@@ -58,40 +59,27 @@ export function useServiceWorker() {
           }))
         }
 
-        // 监听Service Worker更新
-        if (registration) {
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  setUpdateAvailable(true)
-                  console.log('New Service Worker available')
-                }
-              })
-            }
-          })
-        }
-      },
-      onRegisterError(error: unknown) {
+        // 监听更新
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration!.installing
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                setUpdateAvailable(true)
+                console.log('New Service Worker available')
+              }
+            })
+          }
+        })
+      } catch (error) {
         console.error('Service Worker registration failed:', error)
         setStatus(prev => ({
           ...prev,
           error: error instanceof Error ? error.message : 'Unknown error',
         }))
-      },
-      onNeedRefresh() {
-        setUpdateAvailable(true)
-        console.log('Service Worker update available')
-      },
-      onOfflineReady() {
-        console.log('Service Worker ready for offline use')
-        setStatus(prev => ({
-          ...prev,
-          isActivated: true,
-        }))
-      },
-    })
+      }
+    }
+    ensureRegistration()
 
     // 监听网络状态
     const handleOnline = () => setOffline(false)
@@ -109,7 +97,6 @@ export function useServiceWorker() {
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
-      // updateSW不需要清理，因为registerSW会处理
     }
   }, [])
 

@@ -2,6 +2,11 @@
 
 本指南将帮助您将Web3加密货币AI搜索引擎部署到Railway生产环境。
 
+> 重要说明（Render 与前端部署）
+> - 后端 Render 部署的权威配置文件为：`backend/render.yaml`。
+> - 根目录 `render.yaml` 已标注为弃用，仅保留历史参考。
+> - 前端推荐部署到 Vercel，且通过 `frontend/vercel.json` 配置安全与路由；前端默认后端 API 指向 `https://web3search-api.onrender.com`。
+
 ## 📋 部署前准备
 
 ### 1. 账户注册

@@ -502,6 +502,21 @@ class Settings(BaseSettings):
                 logging.warning("生产环境检测到DATABASE_ECHO=True，强制设置为False")
                 self.DATABASE_ECHO = False
 
+        else:
+            # 开发环境友好提示
+            missing_configs = []
+            if not self.JWT_SECRET_KEY:
+                missing_configs.append("JWT_SECRET_KEY")
+            if not self.DATABASE_URL:
+                missing_configs.append("DATABASE_URL")
+            if not self.OPENROUTER_API_KEY:
+                missing_configs.append("OPENROUTER_API_KEY")
+
+            if missing_configs:
+                logging.warning(f"开发环境缺少以下配置: {', '.join(missing_configs)}")
+                logging.warning("可以通过设置环境变量或创建 .env 文件来配置")
+                logging.warning("示例: JWT_SECRET_KEY=your-secret-key DATABASE_URL=postgresql://... OPENROUTER_API_KEY=your-api-key")
+
         return self
 
     model_config = SettingsConfigDict(

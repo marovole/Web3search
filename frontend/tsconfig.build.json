@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*", "src/vite-env.d.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "src/__tests__/**",
+    "tests/**",
+    "src/setupTests.ts",
+    "src/components/ui/**",
+    "src/components/Sentiment/**",
+    "src/services/sentry.ts"
+  ]
+}

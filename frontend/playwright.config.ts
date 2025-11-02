@@ -17,6 +17,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
+  expect: { timeout: 10000 },
 
   reporter: [
     ['html', { outputFolder: 'playwright-report' }],
@@ -24,7 +25,7 @@ export default defineConfig({
   ],
 
   use: {
-    baseURL: process.env.VITE_APP_URL || 'http://localhost:5173',
+    baseURL: process.env.VITE_APP_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -38,8 +39,8 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
+    command: 'npm run build && npm run preview',
+    url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },

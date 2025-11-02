@@ -43,8 +43,8 @@ services:
 
       # Security Configuration
       - key: JWT_SECRET_KEY
-        value: "REPLACE_WITH_SECURE_32_CHARACTER_KEY"
-        description: "JWT Secret Key - Must be replaced with a secure 32+ character key in production"
+        sync: false  # Must be set manually in Render Dashboard
+        description: "JWT Secret Key - Must be set manually in Render Dashboard (32+ characters)"
 
       # Database Configuration
       - key: DATABASE_URL

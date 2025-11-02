@@ -9,8 +9,9 @@ import { test, expect } from '@playwright/test'
 test.describe('Chat Interface', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
-    // Wait for the page to load
-    await expect(page.locator('h2')).toContainText('欢迎使用 Web3 AI 搜索引擎')
+    // Wait for ModeSwitch buttons to ensure chat UI is ready
+    await expect(page.locator('button:has-text("Quick Chat")')).toBeVisible({ timeout: 15000 })
+    await expect(page.locator('button:has-text("Deep Research")')).toBeVisible({ timeout: 15000 })
   })
 
   test('should display welcome message and hotspot panel', async ({ page }) => {
