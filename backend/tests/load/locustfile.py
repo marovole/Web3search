@@ -6,6 +6,8 @@ from locust import HttpUser, task, between, events
 import random
 import json
 import time
+import gevent
+from gevent.pool import Pool
 
 
 class Web3SearchUser(HttpUser):
@@ -15,11 +17,18 @@ class Web3SearchUser(HttpUser):
     模拟用户使用Quick Chat和Deep Research功能
     """
 
-    # 请求间隔：1-3秒
-    wait_time = between(1, 3)
+    # 请求间隔：0.5-2秒 (提高并发能力)
+    wait_time = between(0.5, 2)
 
-    # 测试的加密货币符号列表
-    crypto_symbols = ["BTC", "ETH", "SOL", "UNI", "AAVE", "LINK", "MATIC", "ARB", "OP", "AVAX"]
+    # 测试的加密货币符号列表 (扩展)
+    crypto_symbols = [
+        "BTC", "ETH", "SOL", "UNI", "AAVE", "LINK", "MATIC", "ARB", "OP", "AVAX",
+        "DOT", "ADA", "BNB", "XRP", "LTC", "BCH", "FIL", "ATOM", "NEAR", "FTM",
+        "SAND", "MANA", "AXS", "GALA", "ENJ", "CHZ", "LRC", "KSM", "RUNE", "ONE"
+    ]
+    
+    # 连接池配置 (支持高并发)
+    pool = Pool(100)  # 每个用户最多100个并发连接
 
     def on_start(self):
         """用户开始测试时执行"""
@@ -30,10 +39,10 @@ class Web3SearchUser(HttpUser):
             else:
                 response.failure("Health check failed")
 
-    @task(10)
+    @task(8)
     def quick_chat(self):
         """
-        Quick Chat任务（权重10）
+        Quick Chat任务（权重8）
         模拟用户提问快速问答
         """
         questions = [
@@ -42,6 +51,16 @@ class Web3SearchUser(HttpUser):
             "How does Uniswap work?",
             "What are the differences between Layer 1 and Layer 2?",
             "Explain DeFi to me",
+            "What is Solana's ecosystem like?",
+            "How do yield farms work?",
+            "What are the risks of DeFi?",
+            "Explain NFTs to me",
+            "What is blockchain technology?",
+            "How do smart contracts work?",
+            "What is staking in crypto?",
+            "Tell me about centralized exchanges",
+            "What are liquidity pools?",
+            "How does governance work in DAOs?"
         ]
 
         question = random.choice(questions)
@@ -66,8 +85,10 @@ class Web3SearchUser(HttpUser):
                     data = response.json()
                     if "answer" in data and len(data["answer"]) > 0:
                         response.success()
-                        # 记录响应时间
-                        if duration < 3000:
+                        # 记录响应时间 (更严格的标准)
+                        if duration < 2000:
+                            print(f"✅ Quick Chat: {duration:.0f}ms (EXCELLENT)")
+                        elif duration < 3000:
                             print(f"✅ Quick Chat: {duration:.0f}ms (GOOD)")
                         elif duration < 5000:
                             print(f"⚠️ Quick Chat: {duration:.0f}ms (SLOW)")
@@ -84,10 +105,10 @@ class Web3SearchUser(HttpUser):
             else:
                 response.failure(f"Status code: {response.status_code}")
 
-    @task(3)
+    @task(4)
     def get_hotspots(self):
         """
-        获取热点任务（权重3）
+        获取热点任务（权重4）
         模拟用户查看市场热点
         """
         with self.client.get(
@@ -107,13 +128,13 @@ class Web3SearchUser(HttpUser):
             else:
                 response.failure(f"Status code: {response.status_code}")
 
-    @task(2)
+    @task(3)
     def search_autocomplete(self):
         """
-        搜索自动补全任务（权重2）
+        搜索自动补全任务（权重3）
         模拟用户搜索加密货币
         """
-        query = random.choice(["BTC", "ETH", "UNI", "AAVE", "LINK"])
+        query = random.choice(self.crypto_symbols[:15])  # 使用主要币种
 
         with self.client.get(
             f"/api/v1/search/autocomplete?q={query}",
@@ -127,6 +148,31 @@ class Web3SearchUser(HttpUser):
                         response.success()
                     else:
                         response.failure("Missing results field")
+                except json.JSONDecodeError:
+                    response.failure("Invalid JSON response")
+            else:
+                response.failure(f"Status code: {response.status_code}")
+
+    @task(1)
+    def get_market_data(self):
+        """
+        获取市场数据任务（权重1）
+        模拟用户查看实时市场数据
+        """
+        symbol = random.choice(self.crypto_symbols[:10])
+        
+        with self.client.get(
+            f"/api/v1/market/data?symbol={symbol}",
+            catch_response=True,
+            name="/api/v1/market/data",
+        ) as response:
+            if response.status_code == 200:
+                try:
+                    data = response.json()
+                    if "price" in data or "market_data" in data:
+                        response.success()
+                    else:
+                        response.failure("Missing market data")
                 except json.JSONDecodeError:
                     response.failure("Invalid JSON response")
             else:
@@ -223,8 +269,14 @@ if __name__ == "__main__":
     Web UI模式（推荐）:
         locust -f locustfile.py --host=http://localhost:8000 --web-port=8089
 
-    无头模式（100并发用户，持续60秒）:
-        locust -f locustfile.py --host=http://localhost:8000 --headless --users 100 --spawn-rate 10 --run-time 60s
+    # 无头模式（1000并发用户，持续300秒）:
+        locust -f locustfile.py --host=http://localhost:8000 --headless --users 1000 --spawn-rate 50 --run-time 300s
+
+    # 高负载测试（1500并发用户，持续600秒）:
+        locust -f locustfile.py --host=http://localhost:8000 --headless --users 1500 --spawn-rate 100 --run-time 600s
+
+    # 峰值测试（2000并发用户，突发流量）:
+        locust -f locustfile.py --host=http://localhost:8000 --headless --users 2000 --spawn-rate 200 --run-time 180s
 
     测试生产环境:
         locust -f locustfile.py --host=https://web3search-api.onrender.com --headless --users 50 --spawn-rate 5 --run-time 120s
@@ -241,9 +293,17 @@ if __name__ == "__main__":
     ║     locust -f locustfile.py --host=<API_URL>                 ║
     ║     Then open: http://localhost:8089                         ║
     ║                                                              ║
-    ║  2. Headless mode (100 users, 60s):                          ║
-    ║     locust -f locustfile.py --host=<API_URL> \\               ║
-    ║       --headless --users 100 --spawn-rate 10 --run-time 60s  ║
+    ║  2. Headless mode (1000 users, 300s):                        ║
+    ║     locust -f locustfile.py --host=<API_URL> \               ║
+    ║       --headless --users 1000 --spawn-rate 50 --run-time 300s ║
+    ║                                                              ║
+    ║  3. High load test (1500 users, 600s):                     ║
+    ║     locust -f locustfile.py --host=<API_URL> \               ║
+    ║       --headless --users 1500 --spawn-rate 100 --run-time 600s║
+    ║                                                              ║
+    ║  4. Peak test (2000 users, burst):                         ║
+    ║     locust -f locustfile.py --host=<API_URL> \               ║
+    ║       --headless --users 2000 --spawn-rate 200 --run-time 180s║
     ║                                                              ║
     ║  Examples:                                                   ║
     ║     --host=http://localhost:8000                             ║

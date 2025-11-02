@@ -1,0 +1,224 @@
+{
+  "baseline_summary": {
+    "total_baselines": 12,
+    "created_at": 1762057113.52579
+  },
+  "baselines": [
+    {
+      "endpoint": "/api/v1/chat/quick-chat",
+      "method": "POST",
+      "metric_name": "response_time",
+      "baseline_value": 2438.2869996146064,
+      "tolerance_percent": 10.0,
+      "sample_size": 30,
+      "created_at": 1762057099.433409,
+      "updated_at": 1762057099.43341
+    },
+    {
+      "endpoint": "/api/v1/chat/quick-chat",
+      "method": "POST",
+      "metric_name": "error_rate",
+      "baseline_value": 1.5580107933408953,
+      "tolerance_percent": 10.0,
+      "sample_size": 30,
+      "created_at": 1762057099.433706,
+      "updated_at": 1762057099.433706
+    },
+    {
+      "endpoint": "/api/v1/chat/quick-chat",
+      "method": "POST",
+      "metric_name": "throughput",
+      "baseline_value": 8.601240884014196,
+      "tolerance_percent": 10.0,
+      "sample_size": 30,
+      "created_at": 1762057099.433794,
+      "updated_at": 1762057099.433794
+    },
+    {
+      "endpoint": "/api/v1/chat/deep-research",
+      "method": "POST",
+      "metric_name": "response_time",
+      "baseline_value": 67964.61526158736,
+      "tolerance_percent": 10.0,
+      "sample_size": 30,
+      "created_at": 1762057103.997026,
+      "updated_at": 1762057103.9970272
+    },
+    {
+      "endpoint": "/api/v1/chat/deep-research",
+      "method": "POST",
+      "metric_name": "error_rate",
+      "baseline_value": 2.5870951054040208,
+      "tolerance_percent": 10.0,
+      "sample_size": 30,
+      "created_at": 1762057103.997237,
+      "updated_at": 1762057103.997237
+    },
+    {
+      "endpoint": "/api/v1/chat/deep-research",
+      "method": "POST",
+      "metric_name": "throughput",
+      "baseline_value": 2.1682725740898063,
+      "tolerance_percent": 10.0,
+      "sample_size": 30,
+      "created_at": 1762057103.997303,
+      "updated_at": 1762057103.997303
+    },
+    {
+      "endpoint": "/api/v1/search/autocomplete",
+      "method": "GET",
+      "metric_name": "response_time",
+      "baseline_value": 426.5643023579312,
+      "tolerance_percent": 10.0,
+      "sample_size": 30,
+      "created_at": 1762057108.557607,
+      "updated_at": 1762057108.557608
+    },
+    {
+      "endpoint": "/api/v1/search/autocomplete",
+      "method": "GET",
+      "metric_name": "error_rate",
+      "baseline_value": 0.46205044385219546,
+      "tolerance_percent": 10.0,
+      "sample_size": 30,
+      "created_at": 1762057108.557788,
+      "updated_at": 1762057108.557788
+    },
+    {
+      "endpoint": "/api/v1/search/autocomplete",
+      "method": "GET",
+      "metric_name": "throughput",
+      "baseline_value": 53.440284936394576,
+      "tolerance_percent": 10.0,
+      "sample_size": 30,
+      "created_at": 1762057108.557824,
+      "updated_at": 1762057108.557824
+    },
+    {
+      "endpoint": "/api/v1/trending/hotspots",
+      "method": "GET",
+      "metric_name": "response_time",
+      "baseline_value": 1084.05062223535,
+      "tolerance_percent": 10.0,
+      "sample_size": 30,
+      "created_at": 1762057113.12032,
+      "updated_at": 1762057113.120321
+    },
+    {
+      "endpoint": "/api/v1/trending/hotspots",
+      "method": "GET",
+      "metric_name": "error_rate",
+      "baseline_value": 1.2128224910056606,
+      "tolerance_percent": 10.0,
+      "sample_size": 30,
+      "created_at": 1762057113.1205812,
+      "updated_at": 1762057113.1205819
+    },
+    {
+      "endpoint": "/api/v1/trending/hotspots",
+      "method": "GET",
+      "metric_name": "throughput",
+      "baseline_value": 16.806748426992932,
+      "tolerance_percent": 10.0,
+      "sample_size": 30,
+      "created_at": 1762057113.1207192,
+      "updated_at": 1762057113.1207192
+    }
+  ],
+  "test_results": {
+    "test_results": {
+      "POST:/api/v1/chat/quick-chat": {
+        "response_time": "PerformanceTestResult(endpoint='/api/v1/chat/quick-chat', method='POST', metric_name='response_time', current_value=2438.2869996146064, baseline_value=2438.2869996146064, deviation_percent=0.0, is_regression=False, severity=<Severity.LOW: 'low'>, timestamp=1762057113.222243, test_duration=0.1)",
+        "error_rate": "PerformanceTestResult(endpoint='/api/v1/chat/quick-chat', method='POST', metric_name='error_rate', current_value=1.5580107933408953, baseline_value=1.5580107933408953, deviation_percent=0.0, is_regression=False, severity=<Severity.LOW: 'low'>, timestamp=1762057113.222275, test_duration=0.1)",
+        "throughput": "PerformanceTestResult(endpoint='/api/v1/chat/quick-chat', method='POST', metric_name='throughput', current_value=8.601240884014196, baseline_value=8.601240884014196, deviation_percent=0.0, is_regression=False, severity=<Severity.LOW: 'low'>, timestamp=1762057113.222282, test_duration=0.1)"
+      },
+      "POST:/api/v1/chat/deep-research": {
+        "response_time": "PerformanceTestResult(endpoint='/api/v1/chat/deep-research', method='POST', metric_name='response_time', current_value=67964.61526158736, baseline_value=67964.61526158736, deviation_percent=0.0, is_regression=False, severity=<Severity.LOW: 'low'>, timestamp=1762057113.32364, test_duration=0.1)",
+        "error_rate": "PerformanceTestResult(endpoint='/api/v1/chat/deep-research', method='POST', metric_name='error_rate', current_value=2.5870951054040208, baseline_value=2.5870951054040208, deviation_percent=0.0, is_regression=False, severity=<Severity.LOW: 'low'>, timestamp=1762057113.323659, test_duration=0.1)",
+        "throughput": "PerformanceTestResult(endpoint='/api/v1/chat/deep-research', method='POST', metric_name='throughput', current_value=2.1682725740898063, baseline_value=2.1682725740898063, deviation_percent=0.0, is_regression=False, severity=<Severity.LOW: 'low'>, timestamp=1762057113.323664, test_duration=0.1)"
+      },
+      "GET:/api/v1/search/autocomplete": {
+        "response_time": "PerformanceTestResult(endpoint='/api/v1/search/autocomplete', method='GET', metric_name='response_time', current_value=426.5643023579312, baseline_value=426.5643023579312, deviation_percent=0.0, is_regression=False, severity=<Severity.LOW: 'low'>, timestamp=1762057113.4249432, test_duration=0.1)",
+        "error_rate": "PerformanceTestResult(endpoint='/api/v1/search/autocomplete', method='GET', metric_name='error_rate', current_value=0.46205044385219546, baseline_value=0.46205044385219546, deviation_percent=0.0, is_regression=False, severity=<Severity.LOW: 'low'>, timestamp=1762057113.424959, test_duration=0.1)",
+        "throughput": "PerformanceTestResult(endpoint='/api/v1/search/autocomplete', method='GET', metric_name='throughput', current_value=53.440284936394576, baseline_value=53.440284936394576, deviation_percent=0.0, is_regression=False, severity=<Severity.LOW: 'low'>, timestamp=1762057113.4249642, test_duration=0.1)"
+      },
+      "GET:/api/v1/trending/hotspots": {
+        "response_time": "PerformanceTestResult(endpoint='/api/v1/trending/hotspots', method='GET', metric_name='response_time', current_value=1084.05062223535, baseline_value=1084.05062223535, deviation_percent=0.0, is_regression=False, severity=<Severity.LOW: 'low'>, timestamp=1762057113.525444, test_duration=0.1)",
+        "error_rate": "PerformanceTestResult(endpoint='/api/v1/trending/hotspots', method='GET', metric_name='error_rate', current_value=1.2128224910056606, baseline_value=1.2128224910056606, deviation_percent=0.0, is_regression=False, severity=<Severity.LOW: 'low'>, timestamp=1762057113.525461, test_duration=0.1)",
+        "throughput": "PerformanceTestResult(endpoint='/api/v1/trending/hotspots', method='GET', metric_name='throughput', current_value=16.806748426992932, baseline_value=16.806748426992932, deviation_percent=0.0, is_regression=False, severity=<Severity.LOW: 'low'>, timestamp=1762057113.525472, test_duration=0.1)"
+      }
+    },
+    "regressions_found": [],
+    "summary": {
+      "total_tests": 12,
+      "passed_tests": 12,
+      "failed_tests": 0,
+      "pass_rate": 100.0,
+      "severity_breakdown": {},
+      "test_timestamp": 1762057113.5254898
+    }
+  },
+  "regression_summary": {
+    "active_regressions": 0,
+    "total_regressions": 0,
+    "severity_breakdown": {},
+    "type_breakdown": {},
+    "recent_regressions": []
+  },
+  "trend_analysis": {
+    "trends": {
+      "POST:/api/v1/chat/quick-chat:response_time": {
+        "trend": "insufficient_data"
+      },
+      "POST:/api/v1/chat/quick-chat:error_rate": {
+        "trend": "insufficient_data"
+      },
+      "POST:/api/v1/chat/quick-chat:throughput": {
+        "trend": "insufficient_data"
+      },
+      "POST:/api/v1/chat/deep-research:response_time": {
+        "trend": "insufficient_data"
+      },
+      "POST:/api/v1/chat/deep-research:error_rate": {
+        "trend": "insufficient_data"
+      },
+      "POST:/api/v1/chat/deep-research:throughput": {
+        "trend": "insufficient_data"
+      },
+      "GET:/api/v1/search/autocomplete:response_time": {
+        "trend": "insufficient_data"
+      },
+      "GET:/api/v1/search/autocomplete:error_rate": {
+        "trend": "insufficient_data"
+      },
+      "GET:/api/v1/search/autocomplete:throughput": {
+        "trend": "insufficient_data"
+      },
+      "GET:/api/v1/trending/hotspots:response_time": {
+        "trend": "insufficient_data"
+      },
+      "GET:/api/v1/trending/hotspots:error_rate": {
+        "trend": "insufficient_data"
+      },
+      "GET:/api/v1/trending/hotspots:throughput": {
+        "trend": "insufficient_data"
+      }
+    },
+    "overall_health": "healthy",
+    "analysis_period": "7 days",
+    "data_points": 12
+  },
+  "recommendations": [
+    "Monitor response time trends for Quick Chat endpoint",
+    "Investigate error rate spikes in Autocomplete service",
+    "Set up automated baseline updates weekly",
+    "Implement performance gates in CI/CD pipeline",
+    "Create alerting for critical regressions"
+  ],
+  "next_steps": [
+    "Schedule regular regression tests",
+    "Integrate with deployment pipeline",
+    "Set up performance budget monitoring",
+    "Create performance dashboards"
+  ]
+}

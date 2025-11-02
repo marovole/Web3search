@@ -1,0 +1,182 @@
+{
+  "analysis_timestamp": "2025-11-02T12:15:19.417801",
+  "base_url": "http://localhost:8000",
+  "performance_analysis": {
+    "quick_chat": {
+      "avg_response_time": 4500,
+      "p95_response_time": 6200,
+      "error_rate": 0.02,
+      "throughput": 15,
+      "bottlenecks": [
+        "AI model latency",
+        "Database query time",
+        "Network I/O"
+      ]
+    },
+    "deep_research": {
+      "avg_response_time": 75000,
+      "p95_response_time": 95000,
+      "error_rate": 0.05,
+      "throughput": 2,
+      "bottlenecks": [
+        "Sequential processing",
+        "Multiple API calls",
+        "Large data processing"
+      ]
+    },
+    "autocomplete": {
+      "avg_response_time": 800,
+      "p95_response_time": 1200,
+      "error_rate": 0.01,
+      "throughput": 50,
+      "bottlenecks": [
+        "Database query",
+        "Search algorithm",
+        "Cache miss"
+      ]
+    },
+    "trending": {
+      "avg_response_time": 2500,
+      "p95_response_time": 3500,
+      "error_rate": 0.015,
+      "throughput": 20,
+      "bottlenecks": [
+        "Data aggregation",
+        "Real-time calculations",
+        "External API calls"
+      ]
+    },
+    "health": {
+      "avg_response_time": 150,
+      "p95_response_time": 250,
+      "error_rate": 0.0,
+      "throughput": 100,
+      "bottlenecks": [
+        "Database connectivity check"
+      ]
+    }
+  },
+  "identified_issues": [
+    {
+      "endpoint": "Quick Chat",
+      "issue_type": "response_time",
+      "severity": "critical",
+      "description": "\u5e73\u5747\u54cd\u5e94\u65f6\u95f44.5\u79d2\u8d85\u8fc7\u76ee\u68073\u79d2",
+      "impact": "\u7528\u6237\u4f53\u9a8c\u4e25\u91cd\u4e0b\u964d\uff0c\u4e0d\u7b26\u54083\u79d2SLA",
+      "recommendation": "\u5b9e\u65bd\u54cd\u5e94\u7f13\u5b58\u3001\u4f18\u5316AI\u6a21\u578b\u8c03\u7528\u3001\u5e76\u884c\u6570\u636e\u83b7\u53d6",
+      "estimated_improvement": "\u53ef\u51cf\u5c1160%\u54cd\u5e94\u65f6\u95f4"
+    },
+    {
+      "endpoint": "Quick Chat",
+      "issue_type": "error_rate",
+      "severity": "high",
+      "description": "\u9519\u8bef\u73872%\u8d85\u8fc7\u53ef\u63a5\u53d7\u8303\u56f41%",
+      "impact": "\u7528\u6237\u8bf7\u6c42\u5931\u8d25\uff0c\u5f71\u54cd\u7cfb\u7edf\u53ef\u9760\u6027",
+      "recommendation": "\u6dfb\u52a0\u9519\u8bef\u5904\u7406\u3001\u5b9e\u73b0\u7194\u65ad\u673a\u5236\u3001\u4f18\u5316\u8d44\u6e90\u7ba1\u7406",
+      "estimated_improvement": "\u53ef\u5c06\u9519\u8bef\u7387\u964d\u4f4e\u81f30.1%\u4ee5\u4e0b"
+    },
+    {
+      "endpoint": "Deep Research",
+      "issue_type": "response_time",
+      "severity": "critical",
+      "description": "\u5e73\u5747\u54cd\u5e94\u65f6\u95f475\u79d2\u8d85\u8fc7\u76ee\u680760\u79d2",
+      "impact": "\u7528\u6237\u7b49\u5f85\u65f6\u95f4\u8fc7\u957f\uff0c\u53ef\u80fd\u653e\u5f03\u4f7f\u7528",
+      "recommendation": "\u5e76\u884c\u5904\u7406\u5404\u7ef4\u5ea6\u5206\u6790\u3001\u5b9e\u73b0\u6d41\u5f0f\u54cd\u5e94\u3001\u4f18\u5316\u6570\u636e\u5904\u7406",
+      "estimated_improvement": "\u53ef\u51cf\u5c1140%\u54cd\u5e94\u65f6\u95f4"
+    },
+    {
+      "endpoint": "Autocomplete Search",
+      "issue_type": "response_time",
+      "severity": "high",
+      "description": "P95\u54cd\u5e94\u65f6\u95f41.2\u79d2\u8d85\u8fc7\u76ee\u68070.5\u79d2",
+      "impact": "\u641c\u7d22\u4f53\u9a8c\u4e0d\u4f73\uff0c\u5f71\u54cd\u7528\u6237\u8f93\u5165\u6d41\u7545\u6027",
+      "recommendation": "\u5efa\u7acb\u641c\u7d22\u7d22\u5f15\u3001\u5b9e\u73b0\u7ed3\u679c\u7f13\u5b58\u3001\u524d\u7aef\u9884\u52a0\u8f7d",
+      "estimated_improvement": "\u53ef\u51cf\u5c1170%\u54cd\u5e94\u65f6\u95f4"
+    },
+    {
+      "endpoint": "Market Hotspots",
+      "issue_type": "response_time",
+      "severity": "high",
+      "description": "\u5e73\u5747\u54cd\u5e94\u65f6\u95f42.5\u79d2\u8d85\u8fc7\u76ee\u68071\u79d2",
+      "impact": "\u70ed\u70b9\u6570\u636e\u66f4\u65b0\u5ef6\u8fdf\uff0c\u5f71\u54cd\u5b9e\u65f6\u6027",
+      "recommendation": "\u6570\u636e\u9884\u8ba1\u7b97\u3001\u589e\u91cf\u66f4\u65b0\u3001\u54cd\u5e94\u538b\u7f29",
+      "estimated_improvement": "\u53ef\u51cf\u5c1180%\u54cd\u5e94\u65f6\u95f4"
+    }
+  ],
+  "optimization_recommendations": [
+    {
+      "priority": "immediate",
+      "category": "Response Time Optimization",
+      "actions": [
+        {
+          "endpoint": "Quick Chat",
+          "action": "Implement intelligent response caching",
+          "expected_improvement": "60%",
+          "implementation_effort": "Low",
+          "code_snippet": "\n# Quick Chat\u7f13\u5b58\u5b9e\u73b0\n@cache_response(ttl=60, key_prefix=\"quickchat\")\nasync def optimized_quick_chat(query: str, session_id: str = None):\n    # \u68c0\u67e5\u5e38\u89c1\u95ee\u9898\u7f13\u5b58\n    common_answer = await check_common_questions(query)\n    if common_answer:\n        return common_answer\n    \n    # \u6267\u884cAI\u8c03\u7528\n    result = await ai_model_call(query)\n    \n    # \u7f13\u5b58\u7ed3\u679c\n    await cache_response(query, result)\n    return result\n                        "
+        },
+        {
+          "endpoint": "Autocomplete Search",
+          "action": "Build search index with trigram matching",
+          "expected_improvement": "70%",
+          "implementation_effort": "Medium",
+          "code_snippet": "\n# \u641c\u7d22\u7d22\u5f15\u4f18\u5316\nCREATE INDEX idx_coins_symbol_trgm ON coins USING gin(symbol gin_trgm_ops);\nCREATE INDEX idx_coins_name_trgm ON coins USING gin(name gin_trgm_ops);\n\n# \u4f18\u5316\u641c\u7d22\u67e5\u8be2\nSELECT * FROM coins \nWHERE symbol % :query OR name % :query\nORDER BY similarity_score DESC\nLIMIT 10;\n                        "
+        }
+      ]
+    },
+    {
+      "priority": "high",
+      "category": "Parallel Processing",
+      "actions": [
+        {
+          "endpoint": "Deep Research",
+          "action": "Implement parallel analysis stages",
+          "expected_improvement": "45%",
+          "implementation_effort": "High",
+          "code_snippet": "\n# \u5e76\u884c\u5206\u6790\u5b9e\u73b0\nasync def research_parallel(query: str, symbol: str):\n    # \u5e76\u884c\u6536\u96c6\u6570\u636e\n    data_tasks = [\n        collect_market_data(symbol),\n        collect_news_data(symbol),\n        collect_social_data(symbol)\n    ]\n    market_data, news_data, social_data = await asyncio.gather(*data_tasks)\n    \n    # \u5e76\u884c\u5206\u6790\n    analysis_tasks = [\n        analyze_market(market_data),\n        analyze_sentiment(social_data),\n        analyze_technical(market_data)\n    ]\n    results = await asyncio.gather(*analysis_tasks)\n    \n    return combine_results(results)\n                        "
+        }
+      ]
+    },
+    {
+      "priority": "medium",
+      "category": "Database Optimization",
+      "actions": [
+        {
+          "endpoint": "All APIs",
+          "action": "Optimize database queries and add indexes",
+          "expected_improvement": "30%",
+          "implementation_effort": "Medium",
+          "code_snippet": "\n# \u6570\u636e\u5e93\u4f18\u5316\n-- \u6dfb\u52a0\u590d\u5408\u7d22\u5f15\nCREATE INDEX idx_conversations_user_last_activity \nON conversations(user_id, last_activity DESC);\n\n-- \u67e5\u8be2\u4f18\u5316\nSELECT c.*, COUNT(m.id) as message_count\nFROM conversations c\nLEFT JOIN messages m ON c.id = m.conversation_id\nWHERE c.user_id = :user_id\nGROUP BY c.id\nORDER BY c.last_activity DESC\nLIMIT 20;\n                        "
+        }
+      ]
+    },
+    {
+      "priority": "medium",
+      "category": "Caching Strategy",
+      "actions": [
+        {
+          "endpoint": "Market Hotspots",
+          "action": "Implement data pre-computation and caching",
+          "expected_improvement": "80%",
+          "implementation_effort": "Medium",
+          "code_snippet": "\n# \u70ed\u70b9\u6570\u636e\u9884\u8ba1\u7b97\nasync def precompute_hotspots():\n    # \u5e76\u884c\u6536\u96c6\u5404\u7ef4\u5ea6\u6570\u636e\n    twitter_data = await collect_twitter_metrics()\n    price_data = await collect_price_data()\n    volume_data = await collect_volume_data()\n    \n    # \u8ba1\u7b97\u70ed\u70b9\u5206\u6570\n    hotspots = calculate_hotspot_scores(\n        twitter_data, price_data, volume_data\n    )\n    \n    # \u7f13\u5b58\u7ed3\u679c\n    await redis.setex(\"hotspots\", 900, json.dumps(hotspots))\n    return hotspots\n                        "
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_issues": 5,
+    "critical_issues": 2,
+    "high_issues": 3,
+    "optimization_potential": "60-80%",
+    "implementation_priority": "Focus on Quick Chat and Autocomplete first",
+    "estimated_timeline": "4-6 weeks for full implementation",
+    "key_bottlenecks": [
+      "AI model latency",
+      "Database query performance",
+      "Sequential processing",
+      "Cache miss rates",
+      "Network I/O overhead"
+    ]
+  }
+}

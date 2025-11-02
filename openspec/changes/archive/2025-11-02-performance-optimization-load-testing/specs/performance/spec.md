@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: 高并发负载测试
 系统**SHALL**支持1000+并发用户的负载测试，验证系统在高流量场景下的稳定性和性能表现。

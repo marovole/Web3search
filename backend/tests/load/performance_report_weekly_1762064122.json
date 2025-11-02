@@ -1,0 +1,383 @@
+{
+  "report_id": "report_weekly_1762064122",
+  "report_type": "weekly",
+  "period_start": "2025-10-26T14:15:22.742553",
+  "period_end": "2025-11-02T14:15:22.742553",
+  "overall_grade": "B",
+  "key_metrics": {
+    "page_load_time": {
+      "current_value": 3.5475610837779223,
+      "average_value": 3.102525306144652,
+      "median_value": 2.956045930505685,
+      "min_value": 2.627783911428323,
+      "max_value": 3.6090474251356777,
+      "p95_value": 3.6090474251356777,
+      "p99_value": 3.6090474251356777,
+      "std_dev": 0.40062457578940824,
+      "sample_count": 7,
+      "trend": "stable"
+    },
+    "api_response_time": {
+      "current_value": 938.1442619419349,
+      "average_value": 901.0469545852433,
+      "median_value": 938.1442619419349,
+      "min_value": 676.3818636832847,
+      "max_value": 1049.1880028956318,
+      "p95_value": 1049.1880028956318,
+      "p99_value": 1049.1880028956318,
+      "std_dev": 124.03154580304609,
+      "sample_count": 7,
+      "trend": "improving"
+    },
+    "error_rate": {
+      "current_value": 0.24591457738933314,
+      "average_value": 0.4397250037927329,
+      "median_value": 0.42347089562787227,
+      "min_value": 0.24591457738933314,
+      "max_value": 0.7162509778542445,
+      "p95_value": 0.7162509778542445,
+      "p99_value": 0.7162509778542445,
+      "std_dev": 0.16835868533728912,
+      "sample_count": 7,
+      "trend": "improving"
+    },
+    "throughput": {
+      "current_value": 1615.8824714007374,
+      "average_value": 1394.165347722049,
+      "median_value": 1379.309491189451,
+      "min_value": 1161.8351688994167,
+      "max_value": 1615.8824714007374,
+      "p95_value": 1615.8824714007374,
+      "p99_value": 1615.8824714007374,
+      "std_dev": 150.43701890794708,
+      "sample_count": 7,
+      "trend": "stable"
+    },
+    "uptime": {
+      "current_value": 99.73816002988136,
+      "average_value": 99.5606300038727,
+      "median_value": 99.5126083580738,
+      "min_value": 99.32989398204532,
+      "max_value": 99.85219691551686,
+      "p95_value": 99.85219691551686,
+      "p99_value": 99.85219691551686,
+      "std_dev": 0.20712217098727922,
+      "sample_count": 7,
+      "trend": "stable"
+    },
+    "core_web_vitals_score": {
+      "current_value": 85.61094111989726,
+      "average_value": 79.70632400889436,
+      "median_value": 78.37414900431371,
+      "min_value": 73.38573119974465,
+      "max_value": 85.61094111989726,
+      "p95_value": 85.61094111989726,
+      "p99_value": 85.61094111989726,
+      "std_dev": 4.299930819980413,
+      "sample_count": 7,
+      "trend": "stable"
+    },
+    "bundle_size": {
+      "current_value": 933.9176338555944,
+      "average_value": 905.9095210465067,
+      "median_value": 915.9539549083908,
+      "min_value": 829.3164513953907,
+      "max_value": 957.0880247985535,
+      "p95_value": 957.0880247985535,
+      "p99_value": 957.0880247985535,
+      "std_dev": 45.4710404369476,
+      "sample_count": 7,
+      "trend": "degrading"
+    }
+  },
+  "trend_analyses": [
+    {
+      "metric_name": "page_load_time",
+      "trend_direction": "stable",
+      "trend_strength": 0.019974908587283333,
+      "change_rate": -0.2839453837113442,
+      "confidence": 0.48753812257519435,
+      "seasonal_pattern": false,
+      "forecast_values": [
+        3.1173429444084615,
+        3.121047353974414,
+        3.1247517635403663,
+        3.128456173106319,
+        3.132160582672271,
+        3.135864992238224,
+        3.139569401804176
+      ],
+      "forecast_confidence": [
+        0.8,
+        0.7428571428571429,
+        0.6857142857142858,
+        0.6285714285714286,
+        0.5714285714285715,
+        0.5142857142857142,
+        0.45714285714285713
+      ]
+    },
+    {
+      "metric_name": "api_response_time",
+      "trend_direction": "degrading",
+      "trend_strength": 0.24395025244689483,
+      "change_rate": -1.0978319601183175,
+      "confidence": 0.47901396702446164,
+      "seasonal_pattern": false,
+      "forecast_values": [
+        845.0209014198111,
+        831.0143881284531,
+        817.0078748370951,
+        803.001361545737,
+        788.9948482543789,
+        774.9883349630209,
+        760.9818216716628
+      ],
+      "forecast_confidence": [
+        0.8,
+        0.7428571428571429,
+        0.6857142857142858,
+        0.6285714285714286,
+        0.5714285714285715,
+        0.5142857142857142,
+        0.45714285714285713
+      ]
+    },
+    {
+      "metric_name": "error_rate",
+      "trend_direction": "volatile",
+      "trend_strength": 0.21404477994407473,
+      "change_rate": -9.865473452832044,
+      "confidence": 0.23379399878297716,
+      "seasonal_pattern": false,
+      "forecast_values": [
+        0.3729987462273648,
+        0.3563171818360228,
+        0.33963561744468074,
+        0.3229540530533387,
+        0.3062724886619967,
+        0.28959092427065464,
+        0.27290935987931264
+      ],
+      "forecast_confidence": [
+        0.8,
+        0.7428571428571429,
+        0.6857142857142858,
+        0.6285714285714286,
+        0.5714285714285715,
+        0.5142857142857142,
+        0.45714285714285713
+      ]
+    },
+    {
+      "metric_name": "throughput",
+      "trend_direction": "improving",
+      "trend_strength": 0.4036827698034163,
+      "change_rate": 1.3446636564419423,
+      "confidence": 0.5087619485112852,
+      "seasonal_pattern": false,
+      "forecast_values": [
+        1506.6132952018456,
+        1534.725282071795,
+        1562.8372689417438,
+        1590.949255811693,
+        1619.0612426816422,
+        1647.1732295515912,
+        1675.2852164215403
+      ],
+      "forecast_confidence": [
+        0.8,
+        0.7428571428571429,
+        0.6857142857142858,
+        0.6285714285714286,
+        0.5714285714285715,
+        0.5142857142857142,
+        0.45714285714285713
+      ]
+    },
+    {
+      "metric_name": "uptime",
+      "trend_direction": "improving",
+      "trend_strength": 0.10680473535939948,
+      "change_rate": -0.01903428086013707,
+      "confidence": 0.6145863044694887,
+      "seasonal_pattern": false,
+      "forecast_values": [
+        99.60159130077786,
+        99.61183162500414,
+        99.62207194923043,
+        99.63231227345672,
+        99.64255259768301,
+        99.6527929219093,
+        99.66303324613558
+      ],
+      "forecast_confidence": [
+        0.8,
+        0.7428571428571429,
+        0.6857142857142858,
+        0.6285714285714286,
+        0.5714285714285715,
+        0.5142857142857142,
+        0.45714285714285713
+      ]
+    },
+    {
+      "metric_name": "core_web_vitals_score",
+      "trend_direction": "improving",
+      "trend_strength": 0.3334192605427388,
+      "change_rate": 0.5188972337331083,
+      "confidence": 0.5627194940495907,
+      "seasonal_pattern": false,
+      "forecast_values": [
+        82.36098307538352,
+        83.0246478420058,
+        83.6883126086281,
+        84.35197737525037,
+        85.01564214187266,
+        85.67930690849495,
+        86.34297167511724
+      ],
+      "forecast_confidence": [
+        0.8,
+        0.7428571428571429,
+        0.6857142857142858,
+        0.6285714285714286,
+        0.5714285714285715,
+        0.5142857142857142,
+        0.45714285714285713
+      ]
+    },
+    {
+      "metric_name": "bundle_size",
+      "trend_direction": "improving",
+      "trend_strength": 0.8289275125506339,
+      "change_rate": 2.1021565869941035,
+      "confidence": 0.5664728676386804,
+      "seasonal_pattern": false,
+      "forecast_values": [
+        975.7019071885691,
+        993.1500037240846,
+        1010.5981002596003,
+        1028.046196795116,
+        1045.4942933306315,
+        1062.942389866147,
+        1080.3904864016627
+      ],
+      "forecast_confidence": [
+        0.8,
+        0.7428571428571429,
+        0.6857142857142858,
+        0.6285714285714286,
+        0.5714285714285715,
+        0.5142857142857142,
+        0.45714285714285713
+      ]
+    }
+  ],
+  "insights": [
+    {
+      "id": "trend_improving_throughput",
+      "category": "performance",
+      "title": "Improving Trend in throughput",
+      "description": "throughput shows positive improvement with 1.34% daily change rate",
+      "impact_level": "low",
+      "metrics_involved": [
+        "throughput"
+      ],
+      "recommendation": "Continue current optimization strategies and monitor for sustainability",
+      "potential_improvement": "Maintain current performance levels"
+    },
+    {
+      "id": "trend_improving_uptime",
+      "category": "performance",
+      "title": "Improving Trend in uptime",
+      "description": "uptime shows positive improvement with 0.02% daily change rate",
+      "impact_level": "low",
+      "metrics_involved": [
+        "uptime"
+      ],
+      "recommendation": "Continue current optimization strategies and monitor for sustainability",
+      "potential_improvement": "Maintain current performance levels"
+    },
+    {
+      "id": "trend_improving_core_web_vitals_score",
+      "category": "performance",
+      "title": "Improving Trend in core_web_vitals_score",
+      "description": "core_web_vitals_score shows positive improvement with 0.52% daily change rate",
+      "impact_level": "low",
+      "metrics_involved": [
+        "core_web_vitals_score"
+      ],
+      "recommendation": "Continue current optimization strategies and monitor for sustainability",
+      "potential_improvement": "Maintain current performance levels"
+    },
+    {
+      "id": "trend_improving_bundle_size",
+      "category": "performance",
+      "title": "Improving Trend in bundle_size",
+      "description": "bundle_size shows positive improvement with 2.10% daily change rate",
+      "impact_level": "low",
+      "metrics_involved": [
+        "bundle_size"
+      ],
+      "recommendation": "Continue current optimization strategies and monitor for sustainability",
+      "potential_improvement": "Maintain current performance levels"
+    },
+    {
+      "id": "cwv_needs_improvement",
+      "category": "user_experience",
+      "title": "Core Web Vitals Score Needs Improvement",
+      "description": "Average CWV score is 79.7, room for improvement",
+      "impact_level": "medium",
+      "metrics_involved": [
+        "core_web_vitals_score"
+      ],
+      "recommendation": "Continue optimizing Core Web Vitals to reach excellent level",
+      "potential_improvement": "10-15 points improvement possible"
+    }
+  ],
+  "benchmarks": {
+    "page_load_time": {
+      "industry_average": 3.0,
+      "top_performer": 1.5,
+      "current_vs_industry": 18.252036125930747,
+      "current_vs_top": 136.5040722518615,
+      "percentile": 90
+    },
+    "api_response_time": {
+      "industry_average": 800,
+      "top_performer": 400,
+      "current_vs_industry": 17.268032742741866,
+      "current_vs_top": 134.53606548548373,
+      "percentile": 90
+    },
+    "error_rate": {
+      "industry_average": 1.0,
+      "top_performer": 0.2,
+      "current_vs_industry": -75.40854226106669,
+      "current_vs_top": 22.957288694666566,
+      "percentile": 10
+    },
+    "uptime": {
+      "industry_average": 99.5,
+      "top_performer": 99.99,
+      "current_vs_industry": 0.23935681395111222,
+      "current_vs_top": -0.2518651566343017,
+      "percentile": 10
+    },
+    "core_web_vitals_score": {
+      "industry_average": 75,
+      "top_performer": 90,
+      "current_vs_industry": 14.14792149319635,
+      "current_vs_top": -4.876732089003042,
+      "percentile": 95
+    }
+  },
+  "recommendations": [
+    "Continue optimizing Core Web Vitals to reach excellent level",
+    "Focus on Core Web Vitals optimization to improve user experience and SEO ranking",
+    "Continue current optimization strategies and monitor for sustainability",
+    "Optimize page load time through image compression, code splitting, and CDN optimization"
+  ],
+  "executive_summary": "Performance Report Executive Summary\n\nPeriod: 2025-10-26 to 2025-11-02 (7 days)\nOverall Performance Grade: B\n\nKey Performance Indicators:\n\u2022 page_load_time: 3.55 \u27a1\ufe0f Stable\n\u2022 api_response_time: 938.14 \ud83d\udcc8 Improving\n\u2022 error_rate: 0.25 \ud83d\udcc8 Improving\n\u2022 throughput: 1615.88 \u27a1\ufe0f Stable\n\u2022 uptime: 99.74 \u27a1\ufe0f Stable\n\nOverall Assessment: Good performance with room for improvement"
+}

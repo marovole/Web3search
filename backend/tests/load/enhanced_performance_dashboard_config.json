@@ -1,0 +1,316 @@
+{
+  "dashboard_metadata": {
+    "created_at": "2025-11-02T13:15:45.518925",
+    "version": "2.0.0",
+    "refresh_interval": 30,
+    "total_widgets": 13
+  },
+  "widgets": [
+    {
+      "id": "metric_card_page_load_time",
+      "type": "metric_card",
+      "title": "Page Load Time",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "size": {
+        "width": 2,
+        "height": 1
+      },
+      "config": {
+        "refresh_interval": 30,
+        "show_trend": true,
+        "show_target": true,
+        "clickable": true,
+        "chart_type": "gauge"
+      }
+    },
+    {
+      "id": "metric_card_api_response_time",
+      "type": "metric_card",
+      "title": "API Response Time",
+      "position": {
+        "x": 2,
+        "y": 0
+      },
+      "size": {
+        "width": 2,
+        "height": 1
+      },
+      "config": {
+        "refresh_interval": 30,
+        "show_trend": true,
+        "show_target": true,
+        "clickable": true,
+        "chart_type": "gauge"
+      }
+    },
+    {
+      "id": "metric_card_core_web_vitals_score",
+      "type": "metric_card",
+      "title": "Core Web Vitals Score",
+      "position": {
+        "x": 4,
+        "y": 0
+      },
+      "size": {
+        "width": 2,
+        "height": 1
+      },
+      "config": {
+        "refresh_interval": 30,
+        "show_trend": true,
+        "show_target": true,
+        "clickable": true,
+        "chart_type": "gauge"
+      }
+    },
+    {
+      "id": "metric_card_error_rate",
+      "type": "metric_card",
+      "title": "Error Rate",
+      "position": {
+        "x": 0,
+        "y": 1
+      },
+      "size": {
+        "width": 2,
+        "height": 1
+      },
+      "config": {
+        "refresh_interval": 30,
+        "show_trend": true,
+        "show_target": true,
+        "clickable": true,
+        "chart_type": "gauge"
+      }
+    },
+    {
+      "id": "metric_card_uptime",
+      "type": "metric_card",
+      "title": "Uptime",
+      "position": {
+        "x": 2,
+        "y": 1
+      },
+      "size": {
+        "width": 2,
+        "height": 1
+      },
+      "config": {
+        "refresh_interval": 30,
+        "show_trend": true,
+        "show_target": true,
+        "clickable": true,
+        "chart_type": "gauge"
+      }
+    },
+    {
+      "id": "metric_card_bundle_size",
+      "type": "metric_card",
+      "title": "Bundle Size",
+      "position": {
+        "x": 4,
+        "y": 1
+      },
+      "size": {
+        "width": 2,
+        "height": 1
+      },
+      "config": {
+        "refresh_interval": 30,
+        "show_trend": true,
+        "show_target": true,
+        "clickable": true,
+        "chart_type": "gauge"
+      }
+    },
+    {
+      "id": "trend_chart_page_load",
+      "type": "trend_chart",
+      "title": "Page Load Time Trend (30 Days)",
+      "position": {
+        "x": 0,
+        "y": 2
+      },
+      "size": {
+        "width": 3,
+        "height": 2
+      },
+      "config": {
+        "refresh_interval": 300,
+        "interactive": true,
+        "zoomable": true,
+        "legend": true,
+        "grid": true
+      }
+    },
+    {
+      "id": "trend_chart_web_vitals",
+      "type": "trend_chart",
+      "title": "Core Web Vitals Score Trend",
+      "position": {
+        "x": 3,
+        "y": 2
+      },
+      "size": {
+        "width": 3,
+        "height": 2
+      },
+      "config": {
+        "refresh_interval": 300,
+        "interactive": true,
+        "zoomable": true,
+        "legend": true,
+        "gradient_fill": true
+      }
+    },
+    {
+      "id": "trend_chart_api_response",
+      "type": "trend_chart",
+      "title": "API Response Time Trend",
+      "position": {
+        "x": 0,
+        "y": 4
+      },
+      "size": {
+        "width": 3,
+        "height": 2
+      },
+      "config": {
+        "refresh_interval": 300,
+        "interactive": true,
+        "legend": false,
+        "data_labels": false
+      }
+    },
+    {
+      "id": "trend_chart_error_rate",
+      "type": "trend_chart",
+      "title": "Error Rate Trend",
+      "position": {
+        "x": 3,
+        "y": 4
+      },
+      "size": {
+        "width": 3,
+        "height": 2
+      },
+      "config": {
+        "refresh_interval": 300,
+        "interactive": true,
+        "zoomable": true,
+        "alert_threshold": 1.0
+      }
+    },
+    {
+      "id": "device_breakdown",
+      "type": "device_breakdown",
+      "title": "Performance by Device Type",
+      "position": {
+        "x": 0,
+        "y": 6
+      },
+      "size": {
+        "width": 3,
+        "height": 2
+      },
+      "config": {
+        "refresh_interval": 600,
+        "interactive": true,
+        "drill_down": true,
+        "comparison_mode": true
+      }
+    },
+    {
+      "id": "geo_distribution",
+      "type": "geo_distribution",
+      "title": "Performance by Region",
+      "position": {
+        "x": 3,
+        "y": 6
+      },
+      "size": {
+        "width": 3,
+        "height": 2
+      },
+      "config": {
+        "refresh_interval": 600,
+        "interactive": true,
+        "map_view": true,
+        "drill_down": true
+      }
+    },
+    {
+      "id": "alert_panel",
+      "type": "alert_panel",
+      "title": "Active Alerts",
+      "position": {
+        "x": 0,
+        "y": 8
+      },
+      "size": {
+        "width": 6,
+        "height": 2
+      },
+      "config": {
+        "refresh_interval": 60,
+        "auto_refresh": true,
+        "filterable": true,
+        "sortable": true,
+        "max_items": 10
+      }
+    }
+  ],
+  "real_time_metrics": {
+    "page_load_time": {
+      "value": 2.8,
+      "unit": "seconds",
+      "status": "good",
+      "trend": "improving"
+    },
+    "api_response_time": {
+      "value": 850,
+      "unit": "milliseconds",
+      "status": "good",
+      "trend": "stable"
+    },
+    "error_rate": {
+      "value": 0.8,
+      "unit": "percent",
+      "status": "good",
+      "trend": "improving"
+    },
+    "uptime": {
+      "value": 99.9,
+      "unit": "percent",
+      "status": "excellent",
+      "trend": "stable"
+    },
+    "core_web_vitals_score": {
+      "value": 72,
+      "unit": "points",
+      "status": "needs_improvement",
+      "trend": "improving"
+    },
+    "bundle_size": {
+      "value": 856,
+      "unit": "KB",
+      "status": "good",
+      "trend": "stable"
+    }
+  },
+  "data_sources": {
+    "real_time": "Performance Monitoring API",
+    "historical": "Time Series Database",
+    "device_analytics": "User Analytics Platform",
+    "geo_analytics": "Geographic Performance Service"
+  },
+  "performance_summary": {
+    "overall_score": 72,
+    "total_users": 52000,
+    "avg_page_load_time": 2.7666666666666666,
+    "active_alerts": 3
+  }
+}

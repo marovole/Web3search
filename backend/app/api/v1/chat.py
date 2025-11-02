@@ -11,6 +11,10 @@ import json
 
 from app.core.database import get_db
 from app.core.monitoring import trace_operation, metrics
+from app.core.business_tracker import track_feature_usage, tracker
+from app.core.business_metrics import FeatureType
+from app.core.funnel_analyzer import funnel_analyzer, FunnelType, FunnelStage
+from app.core.conversion_monitor import conversion_monitor, ConversionEventType, ConversionEvent
 from app.api.middleware.auth import optional_auth
 from app.models.user import User
 from app.schemas.chat import (
@@ -56,10 +60,12 @@ router = APIRouter()
                 }
             }
         },
+        400: {"description": "请求参数错误", "model": ErrorResponse},
         429: {"description": "速率限制 - 每分钟最多10次请求"},
-        500: {"description": "服务器内部错误"},
-    }
+        500: {"description": "服务器内部错误", "model": ErrorResponse},
+    },
 )
+@track_feature_usage(FeatureType.CHAT, "quick_chat")
 async def quick_chat(
     request: QuickChatRequest,
     db: AsyncSession = Depends(get_db),
@@ -191,6 +197,88 @@ async def quick_chat(
             # 保存失败不影响响应，只记录日志
             print(f"⚠️ 保存对话历史失败: {e}")
             await db.rollback()
+
+        # 追踪聊天业务指标
+        if current_user:
+            try:
+                # 计算token使用量（估算）
+                estimated_tokens = len(request.query.split()) + len(result["content"].split())
+                
+                await tracker.track_chat_message(
+                    user_id=current_user.id,
+                    message_type="user",
+                    tokens_used=estimated_tokens,
+                    duration_ms=(time.time() - start_time) * 1000
+                )
+                
+                # 追踪助手回复
+                await tracker.track_chat_message(
+                    user_id=current_user.id,
+                    message_type="assistant",
+                    tokens_used=len(result["content"].split()),
+                    duration_ms=result["metadata"]["response_time"] * 1000
+                )
+                
+                # 追踪首次聊天漏斗事件
+                conversation_count = await db.execute(
+                    "SELECT COUNT(*) FROM conversations WHERE user_id = :user_id",
+                    {"user_id": current_user.id}
+                )
+                is_first_chat = conversation_count.scalar() <= 1
+                
+                if is_first_chat:
+                    await funnel_analyzer.track_funnel_event(
+                        user_id=current_user.id,
+                        funnel_type=FunnelType.USER_ONBOARDING,
+                        stage=FunnelStage.FIRST_CHAT,
+                        properties={
+                            "query_length": len(request.query),
+                            "response_length": len(result["content"]),
+                            "session_id": session_id
+                        }
+                    )
+                    
+                    # 追踪首次聊天转化事件
+                    conversion_event = ConversionEvent(
+                        event_type=ConversionEventType.FIRST_CHAT,
+                        user_id=current_user.id,
+                        timestamp=datetime.now(),
+                        properties={
+                            "query_length": len(request.query),
+                            "response_length": len(result["content"]),
+                            "session_id": session_id
+                        },
+                        conversion_value=2.0
+                    )
+                    await conversion_monitor.track_conversion_event(conversion_event)
+                
+                # 追踪搜索到聊天漏斗（如果查询包含搜索关键词）
+                if any(keyword in request.query.lower() for keyword in ['price', 'what is', 'how much', 'search']):
+                    await funnel_analyzer.track_funnel_event(
+                        user_id=current_user.id,
+                        funnel_type=FunnelType.SEARCH_TO_CHAT,
+                        stage=FunnelStage.CHAT_COMPLETED,
+                        properties={
+                            "query": request.query[:100],
+                            "has_search_intent": True
+                        }
+                    )
+                    
+                    # 追踪搜索到聊天转化事件
+                    conversion_event = ConversionEvent(
+                        event_type=ConversionEventType.SEARCH_TO_CHAT,
+                        user_id=current_user.id,
+                        timestamp=datetime.now(),
+                        properties={
+                            "query": request.query[:100],
+                            "response_time": result["metadata"]["response_time"]
+                        },
+                        conversion_value=1.5
+                    )
+                    await conversion_monitor.track_conversion_event(conversion_event)
+                
+            except Exception as e:
+                print(f"⚠️ 业务指标追踪失败: {e}")
 
         return response
 

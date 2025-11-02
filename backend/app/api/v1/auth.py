@@ -5,9 +5,12 @@
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime
 
 from app.core.database import get_db
 from app.api.middleware.auth import get_current_user
+from app.core.funnel_analyzer import funnel_analyzer, FunnelType, FunnelStage
+from app.core.conversion_monitor import conversion_monitor, ConversionEventType, ConversionEvent
 from app.models.user import User
 from app.schemas.auth import (
     RegisterRequest,
@@ -138,6 +141,38 @@ async def register(
             ip_address=ip_address,
             user_agent=user_agent,
         )
+
+        # 追踪用户注册漏斗事件
+        try:
+            # 追踪注册完成漏斗阶段
+            await funnel_analyzer.track_funnel_event(
+                user_id=user.id,
+                funnel_type=FunnelType.USER_ONBOARDING,
+                stage=FunnelStage.SIGNUP_COMPLETE,
+                properties={
+                    "ip_address": ip_address,
+                    "user_agent": user_agent[:100] if user_agent else "",
+                    "registration_method": "email"
+                }
+            )
+            
+            # 追踪用户注册转化事件
+            conversion_event = ConversionEvent(
+                event_type=ConversionEventType.USER_REGISTRATION,
+                user_id=user.id,
+                timestamp=datetime.now(),
+                properties={
+                    "ip_address": ip_address,
+                    "user_agent": user_agent[:100] if user_agent else "",
+                    "username": user.username
+                },
+                conversion_value=1.0  # 注册转化价值
+            )
+            
+            await conversion_monitor.track_conversion_event(conversion_event)
+            
+        except Exception as e:
+            logger.warning(f"Failed to track registration funnel/conversion events: {e}")
 
         return RegisterResponse(
             user_id=user.id,

@@ -2,11 +2,20 @@
 搜索API端点
 提供加密货币搜索和自动补全功能
 """
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
 from typing import List
 from pydantic import BaseModel
 
 from app.services.collectors.coingecko import coingecko_collector
+from app.core.business_tracker import track_feature_usage, tracker
+from app.core.business_metrics import FeatureType
+from app.core.funnel_analyzer import funnel_analyzer, FunnelType, FunnelStage
+from app.core.conversion_monitor import conversion_monitor, ConversionEventType, ConversionEvent
+from app.api.middleware.auth import optional_auth
+from app.models.user import User
+from app.core.redis_client import get_redis_client
+import time
+from datetime import datetime
 
 # 创建router
 router = APIRouter()
@@ -69,8 +78,10 @@ class AutocompleteResponse(BaseModel):
         500: {"description": "服务器内部错误"},
     }
 )
+@track_feature_usage(FeatureType.SEARCH, "autocomplete_search")
 async def autocomplete_search(
     q: str = Query(..., min_length=1, max_length=100, description="搜索关键词"),
+    current_user: User | None = Depends(optional_auth),
 ) -> AutocompleteResponse:
     """
     搜索自动补全API - 实时搜索加密货币
@@ -129,10 +140,71 @@ async def autocomplete_search(
     - 📝 用户输入验证
     - 🎯 币种选择器
     """
+    start_time = time.time()
+    
     # 调用CoinGecko搜索
     results = await coingecko_collector.search_coins(q)
-
+    
     # 转换为响应格式
     items = [AutocompleteItem(**item) for item in results]
+    
+    # 追踪搜索业务指标
+    if current_user:
+        try:
+            await tracker.track_search_query(
+                user_id=current_user.id,
+                query=q,
+                results_count=len(items),
+                duration_ms=(time.time() - start_time) * 1000
+            )
+            
+            # 检查是否是首次搜索
+            redis_client = get_redis_client()
+            search_history_key = f"search_history:{current_user.id}"
+            first_search = await redis_client.get(search_history_key) is None
+            
+            if first_search:
+                # 追踪首次搜索漏斗事件
+                await funnel_analyzer.track_funnel_event(
+                    user_id=current_user.id,
+                    funnel_type=FunnelType.USER_ONBOARDING,
+                    stage=FunnelStage.FIRST_SEARCH,
+                    properties={
+                        "query": q,
+                        "results_count": len(items),
+                        "search_duration": (time.time() - start_time) * 1000
+                    }
+                )
+                
+                # 追踪首次搜索转化事件
+                conversion_event = ConversionEvent(
+                    event_type=ConversionEventType.FIRST_SEARCH,
+                    user_id=current_user.id,
+                    timestamp=datetime.now(),
+                    properties={
+                        "query": q,
+                        "results_count": len(items),
+                        "search_duration": (time.time() - start_time) * 1000
+                    },
+                    conversion_value=0.5
+                )
+                await conversion_monitor.track_conversion_event(conversion_event)
+            
+            # 记录搜索历史
+            await redis_client.set(search_history_key, "1", ex=86400 * 30)  # 30天过期
+            
+            # 追踪搜索到聊天漏斗的起始阶段
+            await funnel_analyzer.track_funnel_event(
+                user_id=current_user.id,
+                funnel_type=FunnelType.SEARCH_TO_CHAT,
+                stage=FunnelStage.SEARCH_INITIATED,
+                properties={
+                    "query": q,
+                    "results_count": len(items)
+                }
+            )
+            
+        except Exception as e:
+            print(f"⚠️ 搜索业务指标追踪失败: {e}")
 
     return AutocompleteResponse(results=items, count=len(items))

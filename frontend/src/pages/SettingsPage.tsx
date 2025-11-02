@@ -15,10 +15,13 @@ import {
   Monitor,
   Volume2,
   VolumeX,
-  Save
+  Save,
+  Zap,
+  Accessibility
 } from 'lucide-react'
 import { useUserPreferences } from '@/contexts/UserPreferencesContext'
 import { cn } from '@/lib/utils'
+import { UXEnhancementSettings } from '@/components/ui/ux-enhancement-settings'
 
 interface SettingsSectionProps {
   icon: React.ReactNode
@@ -171,6 +174,7 @@ export default function SettingsPage() {
   const [importData, setImportData] = useState('')
   const [showImportDialog, setShowImportDialog] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [activeTab, setActiveTab] = useState<'general' | 'ux'>('general')
 
   // 导入设置
   const handleImport = () => {
@@ -205,7 +209,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl p-6 space-y-6">
+    <div className="container mx-auto max-w-6xl p-6 space-y-6">
       {/* 页面标题 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -237,230 +241,273 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* 设置分组 */}
-      <div className="space-y-6">
-        {/* 界面设置 */}
-        <SettingsSection
-          icon={<Palette size={20} />}
-          title="外观"
-          description="自定义应用的外观和主题"
-        >
-          <SelectSetting
-            label="主题"
-            description="选择浅色、深色或跟随系统"
-            value={preferences.theme}
-            onChange={(value) => updatePreference('theme', value)}
-            options={[
-              { label: '浅色', value: 'light' },
-              { label: '深色', value: 'dark' },
-              { label: '跟随系统', value: 'system' }
-            ]}
-          />
-
-          <SelectSetting
-            label="语言"
-            description="选择界面语言"
-            value={preferences.language}
-            onChange={(value) => updatePreference('language', value)}
-            options={[
-              { label: '简体中文', value: 'zh-CN' },
-              { label: 'English', value: 'en-US' }
-            ]}
-          />
-
-          <SelectSetting
-            label="字体大小"
-            description="调整界面字体大小"
-            value={preferences.fontSize}
-            onChange={(value) => updatePreference('fontSize', value)}
-            options={[
-              { label: '小', value: 'small' },
-              { label: '中', value: 'medium' },
-              { label: '大', value: 'large' }
-            ]}
-          />
-
-          <ToggleSetting
-            label="紧凑模式"
-            description="减少间距，显示更多内容"
-            checked={preferences.compactMode}
-            onChange={(checked) => updatePreference('compactMode', checked)}
-          />
-
-          <ToggleSetting
-            label="动画效果"
-            description="启用界面动画和过渡效果"
-            checked={preferences.enableAnimations}
-            onChange={(checked) => updatePreference('enableAnimations', checked)}
-          />
-        </SettingsSection>
-
-        {/* 聊天设置 */}
-        <SettingsSection
-          icon={<MessageSquare size={20} />}
-          title="聊天"
-          description="配置聊天功能的默认行为"
-        >
-          <SelectSetting
-            label="默认聊天模式"
-            description="选择快速聊天或深度研究"
-            value={preferences.defaultChatMode}
-            onChange={(value) => updatePreference('defaultChatMode', value)}
-            options={[
-              { label: '快速聊天', value: 'quick' },
-              { label: '深度研究', value: 'deep' }
-            ]}
-          />
-
-          <ToggleSetting
-            label="自动保存聊天"
-            description="自动保存聊天记录到本地"
-            checked={preferences.autoSaveChat}
-            onChange={(checked) => updatePreference('autoSaveChat', checked)}
-          />
-
-          <ToggleSetting
-            label="Markdown预览"
-            description="在聊天中显示Markdown格式"
-            checked={preferences.showMarkdownPreview}
-            onChange={(checked) => updatePreference('showMarkdownPreview', checked)}
-          />
-
-          <SelectSetting
-            label="最大聊天历史"
-            description="本地存储的聊天记录数量"
-            value={preferences.maxChatHistory.toString()}
-            onChange={(value) => updatePreference('maxChatHistory', parseInt(value))}
-            options={[
-              { label: '50条', value: '50' },
-              { label: '100条', value: '100' },
-              { label: '200条', value: '200' },
-              { label: '500条', value: '500' },
-              { label: '无限制', value: '-1' }
-            ]}
-          />
-        </SettingsSection>
-
-        {/* 快捷键设置 */}
-        <SettingsSection
-          icon={<Keyboard size={20} />}
-          title="键盘快捷键"
-          description="管理键盘快捷键功能"
-        >
-          <ToggleSetting
-            label="启用快捷键"
-            description="使用键盘快捷键快速操作"
-            checked={preferences.enableKeyboardShortcuts}
-            onChange={(checked) => updatePreference('enableKeyboardShortcuts', checked)}
-          />
-
-          <ToggleSetting
-            label="显示快捷键提示"
-            description="按键时显示快捷键提示"
-            checked={preferences.enableShortcutHints}
-            onChange={(checked) => updatePreference('enableShortcutHints', checked)}
-          />
-        </SettingsSection>
-
-        {/* 通知设置 */}
-        <SettingsSection
-          icon={<Bell size={20} />}
-          title="通知"
-          description="配置通知和提醒设置"
-        >
-          <ToggleSetting
-            label="启用通知"
-            description="允许显示通知"
-            checked={preferences.enableNotifications}
-            onChange={(checked) => updatePreference('enableNotifications', checked)}
-          />
-
-          <ToggleSetting
-            label="声音提醒"
-            description="操作时播放提示音"
-            checked={preferences.enableSound}
-            onChange={(checked) => updatePreference('enableSound', checked)}
-          />
-
-          <ToggleSetting
-            label="桌面通知"
-            description="在系统通知中心显示"
-            checked={preferences.enableDesktopNotifications}
-            onChange={(checked) => updatePreference('enableDesktopNotifications', checked)}
-          />
-        </SettingsSection>
-
-        {/* 隐私设置 */}
-        <SettingsSection
-          icon={<Shield size={20} />}
-          title="隐私和安全"
-          description="控制数据收集和错误报告"
-        >
-          <ToggleSetting
-            label="分析数据"
-            description="帮助我们改进产品体验"
-            checked={preferences.enableAnalytics}
-            onChange={(checked) => updatePreference('enableAnalytics', checked)}
-          />
-
-          <ToggleSetting
-            label="错误报告"
-            description="自动发送错误信息以帮助修复问题"
-            checked={preferences.enableErrorReporting}
-            onChange={(checked) => updatePreference('enableErrorReporting', checked)}
-          />
-
-          <ToggleSetting
-            label="性能追踪"
-            description="收集性能数据以优化应用"
-            checked={preferences.enablePerformanceTracking}
-            onChange={(checked) => updatePreference('enablePerformanceTracking', checked)}
-          />
-        </SettingsSection>
-
-        {/* 高级设置 */}
-        <SettingsSection
-          icon={<Monitor size={20} />}
-          title="高级"
-          description="其他高级配置选项"
-        >
-          <ToggleSetting
-            label="自动刷新数据"
-            description="定期自动获取最新数据"
-            checked={preferences.autoRefreshData}
-            onChange={(checked) => updatePreference('autoRefreshData', checked)}
-          />
-
-          <RangeSetting
-            label="刷新间隔"
-            description="自动刷新的时间间隔"
-            value={preferences.refreshInterval}
-            onChange={(value) => updatePreference('refreshInterval', value)}
-            min={10}
-            max={300}
-            step={10}
-          />
-
-          <ToggleSetting
-            label="离线模式"
-            description="优先使用本地缓存的数据"
-            checked={preferences.enableOfflineMode}
-            onChange={(checked) => updatePreference('enableOfflineMode', checked)}
-          />
-        </SettingsSection>
+      {/* 标签页导航 */}
+      <div className="border-b border-border">
+        <nav className="flex space-x-8">
+          <button
+            onClick={() => setActiveTab('general')}
+            className={cn(
+              "py-2 px-1 border-b-2 font-medium text-sm transition-colors",
+              activeTab === 'general'
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <Settings size={16} />
+              通用设置
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('ux')}
+            className={cn(
+              "py-2 px-1 border-b-2 font-medium text-sm transition-colors",
+              activeTab === 'ux'
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <Zap size={16} />
+              UX增强
+            </div>
+          </button>
+        </nav>
       </div>
 
-      {/* 危险操作区域 */}
-      <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-destructive mb-4">危险操作</h3>
-        <button
-          onClick={() => setShowResetConfirm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:opacity-90 transition-opacity"
-        >
-          <RotateCcw size={16} />
-          重置所有设置
-        </button>
-      </div>
+      {/* 标签页内容 */}
+      {activeTab === 'general' && (
+        <div className="space-y-6">
+          {/* 设置分组 */}
+          <div className="space-y-6">
+            {/* 界面设置 */}
+            <SettingsSection
+              icon={<Palette size={20} />}
+              title="外观"
+              description="自定义应用的外观和主题"
+            >
+              <SelectSetting
+                label="主题"
+                description="选择浅色、深色或跟随系统"
+                value={preferences.theme}
+                onChange={(value) => updatePreference('theme', value)}
+                options={[
+                  { label: '浅色', value: 'light' },
+                  { label: '深色', value: 'dark' },
+                  { label: '跟随系统', value: 'system' }
+                ]}
+              />
+
+              <SelectSetting
+                label="语言"
+                description="选择界面语言"
+                value={preferences.language}
+                onChange={(value) => updatePreference('language', value)}
+                options={[
+                  { label: '简体中文', value: 'zh-CN' },
+                  { label: 'English', value: 'en-US' }
+                ]}
+              />
+
+              <SelectSetting
+                label="字体大小"
+                description="调整界面字体大小"
+                value={preferences.fontSize}
+                onChange={(value) => updatePreference('fontSize', value)}
+                options={[
+                  { label: '小', value: 'small' },
+                  { label: '中', value: 'medium' },
+                  { label: '大', value: 'large' }
+                ]}
+              />
+
+              <ToggleSetting
+                label="紧凑模式"
+                description="减少间距，显示更多内容"
+                checked={preferences.compactMode}
+                onChange={(checked) => updatePreference('compactMode', checked)}
+              />
+
+              <ToggleSetting
+                label="动画效果"
+                description="启用界面动画和过渡效果"
+                checked={preferences.enableAnimations}
+                onChange={(checked) => updatePreference('enableAnimations', checked)}
+              />
+            </SettingsSection>
+
+            {/* 聊天设置 */}
+            <SettingsSection
+              icon={<MessageSquare size={20} />}
+              title="聊天"
+              description="配置聊天功能的默认行为"
+            >
+              <SelectSetting
+                label="默认聊天模式"
+                description="选择快速聊天或深度研究"
+                value={preferences.defaultChatMode}
+                onChange={(value) => updatePreference('defaultChatMode', value)}
+                options={[
+                  { label: '快速聊天', value: 'quick' },
+                  { label: '深度研究', value: 'deep' }
+                ]}
+              />
+
+              <ToggleSetting
+                label="自动保存聊天"
+                description="自动保存聊天记录到本地"
+                checked={preferences.autoSaveChat}
+                onChange={(checked) => updatePreference('autoSaveChat', checked)}
+              />
+
+              <ToggleSetting
+                label="Markdown预览"
+                description="在聊天中显示Markdown格式"
+                checked={preferences.showMarkdownPreview}
+                onChange={(checked) => updatePreference('showMarkdownPreview', checked)}
+              />
+
+              <SelectSetting
+                label="最大聊天历史"
+                description="本地存储的聊天记录数量"
+                value={preferences.maxChatHistory.toString()}
+                onChange={(value) => updatePreference('maxChatHistory', parseInt(value))}
+                options={[
+                  { label: '50条', value: '50' },
+                  { label: '100条', value: '100' },
+                  { label: '200条', value: '200' },
+                  { label: '500条', value: '500' },
+                  { label: '无限制', value: '-1' }
+                ]}
+              />
+            </SettingsSection>
+
+            {/* 快捷键设置 */}
+            <SettingsSection
+              icon={<Keyboard size={20} />}
+              title="键盘快捷键"
+              description="管理键盘快捷键功能"
+            >
+              <ToggleSetting
+                label="启用快捷键"
+                description="使用键盘快捷键快速操作"
+                checked={preferences.enableKeyboardShortcuts}
+                onChange={(checked) => updatePreference('enableKeyboardShortcuts', checked)}
+              />
+
+              <ToggleSetting
+                label="显示快捷键提示"
+                description="按键时显示快捷键提示"
+                checked={preferences.enableShortcutHints}
+                onChange={(checked) => updatePreference('enableShortcutHints', checked)}
+              />
+            </SettingsSection>
+
+            {/* 通知设置 */}
+            <SettingsSection
+              icon={<Bell size={20} />}
+              title="通知"
+              description="配置通知和提醒设置"
+            >
+              <ToggleSetting
+                label="启用通知"
+                description="允许显示通知"
+                checked={preferences.enableNotifications}
+                onChange={(checked) => updatePreference('enableNotifications', checked)}
+              />
+
+              <ToggleSetting
+                label="声音提醒"
+                description="操作时播放提示音"
+                checked={preferences.enableSound}
+                onChange={(checked) => updatePreference('enableSound', checked)}
+              />
+
+              <ToggleSetting
+                label="桌面通知"
+                description="在系统通知中心显示"
+                checked={preferences.enableDesktopNotifications}
+                onChange={(checked) => updatePreference('enableDesktopNotifications', checked)}
+              />
+            </SettingsSection>
+
+            {/* 隐私设置 */}
+            <SettingsSection
+              icon={<Shield size={20} />}
+              title="隐私和安全"
+              description="控制数据收集和错误报告"
+            >
+              <ToggleSetting
+                label="分析数据"
+                description="帮助我们改进产品体验"
+                checked={preferences.enableAnalytics}
+                onChange={(checked) => updatePreference('enableAnalytics', checked)}
+              />
+
+              <ToggleSetting
+                label="错误报告"
+                description="自动发送错误信息以帮助修复问题"
+                checked={preferences.enableErrorReporting}
+                onChange={(checked) => updatePreference('enableErrorReporting', checked)}
+              />
+
+              <ToggleSetting
+                label="性能追踪"
+                description="收集性能数据以优化应用"
+                checked={preferences.enablePerformanceTracking}
+                onChange={(checked) => updatePreference('enablePerformanceTracking', checked)}
+              />
+            </SettingsSection>
+
+            {/* 高级设置 */}
+            <SettingsSection
+              icon={<Monitor size={20} />}
+              title="高级"
+              description="其他高级配置选项"
+            >
+              <ToggleSetting
+                label="自动刷新数据"
+                description="定期自动获取最新数据"
+                checked={preferences.autoRefreshData}
+                onChange={(checked) => updatePreference('autoRefreshData', checked)}
+              />
+
+              <RangeSetting
+                label="刷新间隔"
+                description="自动刷新的时间间隔"
+                value={preferences.refreshInterval}
+                onChange={(value) => updatePreference('refreshInterval', value)}
+                min={10}
+                max={300}
+                step={10}
+              />
+
+              <ToggleSetting
+                label="离线模式"
+                description="优先使用本地缓存的数据"
+                checked={preferences.enableOfflineMode}
+                onChange={(checked) => updatePreference('enableOfflineMode', checked)}
+              />
+            </SettingsSection>
+          </div>
+
+          {/* 危险操作区域 */}
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-destructive mb-4">危险操作</h3>
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:opacity-90 transition-opacity"
+            >
+              <RotateCcw size={16} />
+              重置所有设置
+            </button>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'ux' && (
+        <UXEnhancementSettings />
+      )}
 
       {/* 导入对话框 */}
       {showImportDialog && (

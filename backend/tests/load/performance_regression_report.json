@@ -1,0 +1,115 @@
+{
+  "report_metadata": {
+    "generated_at": "2025-11-02T13:18:10.623846",
+    "report_period_days": 7,
+    "total_regressions": 3,
+    "monitoring_active": false
+  },
+  "regression_summary": {
+    "by_severity": {
+      "error": 2,
+      "info": 1
+    },
+    "by_regression_type": {
+      "performance_degradation": 2,
+      "error_rate_increase": 1
+    },
+    "by_metric": {
+      "page_load_time": 1,
+      "api_response_time": 1,
+      "error_rate": 1
+    }
+  },
+  "recent_regressions": [
+    {
+      "id": "regression_page_load_time_1762060690",
+      "metric": "page_load_time",
+      "type": "performance_degradation",
+      "severity": "error",
+      "regression_percentage": 53.30629940781213,
+      "timestamp": "2025-11-02T13:18:10.623497",
+      "description": "page_load_time has increased by 53.3% from baseline (2.12 \u2192 3.26)"
+    },
+    {
+      "id": "regression_api_response_time_1762060690",
+      "metric": "api_response_time",
+      "type": "performance_degradation",
+      "severity": "error",
+      "regression_percentage": 32.653531064940026,
+      "timestamp": "2025-11-02T13:18:10.623599",
+      "description": "api_response_time has increased by 32.7% from baseline (760.79 \u2192 1009.22)"
+    },
+    {
+      "id": "regression_error_rate_1762060690",
+      "metric": "error_rate",
+      "type": "error_rate_increase",
+      "severity": "info",
+      "regression_percentage": 54.19493855660722,
+      "timestamp": "2025-11-02T13:18:10.623681",
+      "description": "error_rate has increased by 54.2% from baseline (0.44 \u2192 0.68)"
+    }
+  ],
+  "notification_summary": {
+    "email": {
+      "sent": 2,
+      "failed": 0
+    },
+    "slack": {
+      "sent": 2,
+      "failed": 0
+    },
+    "webhook": {
+      "sent": 3,
+      "failed": 0
+    }
+  },
+  "baseline_status": {
+    "established_baselines": [
+      "page_load_time",
+      "api_response_time",
+      "error_rate",
+      "throughput",
+      "uptime",
+      "core_web_vitals_score",
+      "bundle_size"
+    ],
+    "total_baselines": 7
+  },
+  "threshold_configuration": {
+    "page_load_time": {
+      "warning_threshold": 3.0,
+      "critical_threshold": 5.0,
+      "regression_threshold": 15.0
+    },
+    "api_response_time": {
+      "warning_threshold": 1000,
+      "critical_threshold": 2000,
+      "regression_threshold": 20.0
+    },
+    "error_rate": {
+      "warning_threshold": 1.0,
+      "critical_threshold": 5.0,
+      "regression_threshold": 50.0
+    },
+    "throughput": {
+      "warning_threshold": 500,
+      "critical_threshold": 200,
+      "regression_threshold": 25.0
+    },
+    "uptime": {
+      "warning_threshold": 99.0,
+      "critical_threshold": 95.0,
+      "regression_threshold": 2.0
+    },
+    "core_web_vitals_score": {
+      "warning_threshold": 70,
+      "critical_threshold": 50,
+      "regression_threshold": 10.0
+    },
+    "bundle_size": {
+      "warning_threshold": 1000,
+      "critical_threshold": 2000,
+      "regression_threshold": 15.0
+    }
+  }
+}

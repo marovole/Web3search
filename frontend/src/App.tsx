@@ -5,6 +5,7 @@ import ErrorBoundary from './components/Error/ErrorBoundary'
 import OfflineIndicator from './components/Network/OfflineIndicator'
 import { ToastProvider } from './components/ui/toast'
 import { ThemeProvider } from './components/theme-provider'
+import { LoadingProvider, AdaptiveSkeleton } from './components/ui/loading'
 import { KeyboardShortcutsProvider } from './contexts/KeyboardShortcutsContext'
 import { UserPreferencesProvider } from './contexts/UserPreferencesContext'
 import { SearchHistoryProvider } from './contexts/SearchHistoryContext'
@@ -15,9 +16,10 @@ import { useSmartPreload } from './hooks/usePreloadRoutes'
 import { useServiceWorker } from './hooks/useServiceWorker'
 import { useKeyboardShortcutsContext } from './contexts/KeyboardShortcutsContext'
 import Sidebar from './components/Layout/Sidebar'
-import { initSentry, addBreadcrumb, setContext } from './services/sentry'
+import { initSentry, addBreadcrumb, setContext, trackCoreWebVitals, trackPageLoad, trackResourceLoading } from './services/sentry'
 import performanceMonitor from './services/performance'
 import { PageLoading, ChatLoading, ReportLoading } from './components/Loading/PageLoading'
+import { UXEnhancementProvider, useUXEnhancement } from './components/ui/ux-enhancement-provider'
 
 // 懒加载页面组件
 const ChatPage = React.lazy(() => import('./pages/ChatPage'))
@@ -87,16 +89,20 @@ function App() {
   // Service Worker管理
   const { updateAvailable: _updateAvailable, offline: _offline, activateUpdate: _activateUpdate } = useServiceWorker()
 
+  // UX增强配置
+  const { config: uxConfig } = useUXEnhancement()
+
   // 初始化监控服务
   React.useEffect(() => {
-    // 初始化Sentry错误监控
+    // 初始化Sentry错误监控和RUM
     initSentry()
 
     // 设置应用上下文信息
     setContext('app', {
       version: process.env.npm_package_version || '1.0.0',
       name: 'Web3search Frontend',
-      buildTime: new Date().toISOString()
+      buildTime: new Date().toISOString(),
+      uxEnhancements: uxConfig
     })
 
     // 添加面包屑导航
@@ -106,9 +112,15 @@ function App() {
       level: 'info',
       data: {
         userAgent: navigator.userAgent,
-        url: window.location.href
+        url: window.location.href,
+        uxFeatures: uxConfig.features
       }
     })
+
+    // 初始化RUM监控
+    trackCoreWebVitals()
+    trackPageLoad()
+    trackResourceLoading()
 
     // 性能监控已在性能监控服务中自动初始化
 
@@ -117,86 +129,104 @@ function App() {
       // 如果需要，可以在这里清理监控
       performanceMonitor.dispose()
     }
-  }, [])
+  }, [uxConfig])
 
   return (
-    <AuthProvider>
-      <UserPreferencesProvider>
-        <SearchHistoryProvider>
-          <KeyboardShortcutsProvider>
-            <Router>
-              <ThemeProvider defaultTheme="system" storageKey="web3search-theme">
-                <ToastProvider>
-                  <OfflineIndicator />
-                  <ErrorBoundary>
-                    <Routes>
-                      {/* 认证路由 - 不显示侧边栏 */}
-                      <Route path="/auth/login" element={
-                        <Suspense fallback={<PageLoading message="加载登录页面..." />}>
-                          <LoginPage />
-                        </Suspense>
-                      } />
-                      <Route path="/auth/register" element={
-                        <Suspense fallback={<PageLoading message="加载注册页面..." />}>
-                          <RegisterPage />
-                        </Suspense>
-                      } />
-                      <Route path="/auth/forgot-password" element={
-                        <Suspense fallback={<PageLoading message="加载忘记密码页面..." />}>
-                          <ForgotPasswordPage />
-                        </Suspense>
-                      } />
-                      <Route path="/auth/reset-password" element={
-                        <Suspense fallback={<PageLoading message="加载重置密码页面..." />}>
-                          <ResetPasswordPage />
-                        </Suspense>
-                      } />
-                      {/* 应用路由 - 显示侧边栏 */}
-                      <Route path="/*" element={
-                        <AppLayout>
-                          <Routes>
-                            <Route path="/" element={
-                              <Suspense fallback={<ChatLoading />}>
-                                <ChatPage />
-                              </Suspense>
-                            } />
-                            <Route path="/shared/:shareToken" element={
-                              <Suspense fallback={<ReportLoading />}>
-                                <SharedReportPage />
-                              </Suspense>
-                            } />
-                            <Route path="/history" element={
-                              <Suspense fallback={<PageLoading message="加载历史记录..." />}>
-                                <HistoryPage />
-                              </Suspense>
-                            } />
-                            <Route path="/watchlist" element={
-                              <Suspense fallback={<PageLoading message="加载监控列表..." />}>
-                                <WatchlistPage />
-                              </Suspense>
-                            } />
-                            <Route path="/search" element={
-                              <Suspense fallback={<PageLoading message="加载搜索..." />}>
-                                <SearchPage />
-                              </Suspense>
-                            } />
-                            <Route path="/settings" element={
-                              <Suspense fallback={<PageLoading message="加载设置..." />}>
-                                <SettingsPage />
-                              </Suspense>
-                            } />
-                          </Routes>
-                        </AppLayout>
-                      } />
-                    </Routes>
-                  </ErrorBoundary>
-                </ToastProvider>
-              </ThemeProvider>
-            </Router>
-          </KeyboardShortcutsProvider>
-        </SearchHistoryProvider>
-      </UserPreferencesProvider>
-    </AuthProvider>
+    <UXEnhancementProvider 
+      config={{
+        // 根据环境变量配置部署阶段
+        phase: process.env.NODE_ENV === 'production' ? 'production' : 'development',
+        // 开发环境显示UX控制面板
+        showUXControls: process.env.NODE_ENV !== 'production',
+        // 启用所有功能阶段
+        features: {
+          phase1: true, // 性能和加载优化
+          phase2: true, // 错误处理和用户支持
+          phase3: true, // 用户引导和帮助系统
+          phase4: true  // 可访问性和交互优化
+        }
+      }}
+    >
+      <AuthProvider>
+        <LoadingProvider>
+          <UserPreferencesProvider>
+            <SearchHistoryProvider>
+              <KeyboardShortcutsProvider>
+                <Router>
+                  <ThemeProvider defaultTheme="system" storageKey="web3search-theme">
+                    <ToastProvider>
+                      <OfflineIndicator />
+                      <ErrorBoundary>
+                        <Routes>
+                          {/* 认证路由 - 不显示侧边栏 */}
+                          <Route path="/auth/login" element={
+                            <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
+                              <LoginPage />
+                            </Suspense>
+                          } />
+                          <Route path="/auth/register" element={
+                            <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
+                              <RegisterPage />
+                            </Suspense>
+                          } />
+                          <Route path="/auth/forgot-password" element={
+                            <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
+                              <ForgotPasswordPage />
+                            </Suspense>
+                          } />
+                          <Route path="/auth/reset-password" element={
+                            <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
+                              <ResetPasswordPage />
+                            </Suspense>
+                          } />
+                          {/* 应用路由 - 显示侧边栏 */}
+                          <Route path="/*" element={
+                            <AppLayout>
+                              <Routes>
+                                <Route path="/" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="chat" />}>
+                                    <ChatPage />
+                                  </Suspense>
+                                } />
+                                <Route path="/shared/:shareToken" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="report" />}>
+                                    <SharedReportPage />
+                                  </Suspense>
+                                } />
+                                <Route path="/history" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="history" />}>
+                                    <HistoryPage />
+                                  </Suspense>
+                                } />
+                                <Route path="/watchlist" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="search" />}>
+                                    <WatchlistPage />
+                                  </Suspense>
+                                } />
+                                <Route path="/search" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="search" />}>
+                                    <SearchPage />
+                                  </Suspense>
+                                } />
+                                <Route path="/settings" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
+                                    <SettingsPage />
+                                  </Suspense>
+                                } />
+                              </Routes>
+                            </AppLayout>
+                          } />
+                        </Routes>
+                      </ErrorBoundary>
+                    </ToastProvider>
+                  </ThemeProvider>
+                </Router>
+              </KeyboardShortcutsProvider>
+            </SearchHistoryProvider>
+          </UserPreferencesProvider>
+        </LoadingProvider>
+      </AuthProvider>
+    </UXEnhancementProvider>
   )
 }
 

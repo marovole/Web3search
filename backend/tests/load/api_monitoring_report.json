@@ -1,0 +1,182 @@
+{
+  "monitoring_summary": {
+    "monitored_endpoints": 4,
+    "active_alerts": 6,
+    "system_health": "critical",
+    "monitoring_duration": "5 minutes simulation"
+  },
+  "endpoint_performance": [
+    {
+      "path": "/api/v1/chat/quick-chat",
+      "method": "POST",
+      "targets": {
+        "response_time": 3000,
+        "error_rate": 1.0,
+        "throughput": 10
+      },
+      "current_stats": {
+        "avg_response_time": 3819.68,
+        "p95_response_time": 5000,
+        "p99_response_time": 5000,
+        "min_response_time": 2018,
+        "max_response_time": 5000,
+        "request_count": 100,
+        "error_rate": 0.07,
+        "throughput": 0.3333333333333333
+      },
+      "status": "warning"
+    },
+    {
+      "path": "/api/v1/chat/deep-research",
+      "method": "POST",
+      "targets": {
+        "response_time": 60000,
+        "error_rate": 5.0,
+        "throughput": 2
+      },
+      "current_stats": {
+        "avg_response_time": 48766.87,
+        "p95_response_time": 68537,
+        "p99_response_time": 69988,
+        "min_response_time": 30426,
+        "max_response_time": 69988,
+        "request_count": 100,
+        "error_rate": 0.04,
+        "throughput": 0.3333333333333333
+      },
+      "status": "warning"
+    },
+    {
+      "path": "/api/v1/search/autocomplete",
+      "method": "GET",
+      "targets": {
+        "response_time": 500,
+        "error_rate": 0.5,
+        "throughput": 50
+      },
+      "current_stats": {
+        "avg_response_time": 404.82,
+        "p95_response_time": 571,
+        "p99_response_time": 599,
+        "min_response_time": 205,
+        "max_response_time": 599,
+        "request_count": 100,
+        "error_rate": 0.11,
+        "throughput": 0.3333333333333333
+      },
+      "status": "critical"
+    },
+    {
+      "path": "/api/v1/trending/hotspots",
+      "method": "GET",
+      "targets": {
+        "response_time": 1000,
+        "error_rate": 1.0,
+        "throughput": 20
+      },
+      "current_stats": {
+        "avg_response_time": 993.62,
+        "p95_response_time": 1451,
+        "p99_response_time": 1482,
+        "min_response_time": 500,
+        "max_response_time": 1482,
+        "request_count": 100,
+        "error_rate": 0.06,
+        "throughput": 0.3333333333333333
+      },
+      "status": "critical"
+    }
+  ],
+  "alert_rules_config": [
+    {
+      "name": "/api/v1/chat/quick-chat response time",
+      "metric_type": "response_time",
+      "endpoint": "/api/v1/chat/quick-chat",
+      "threshold": 3000,
+      "severity": "warning"
+    },
+    {
+      "name": "/api/v1/chat/quick-chat error rate",
+      "metric_type": "error_rate",
+      "endpoint": "/api/v1/chat/quick-chat",
+      "threshold": 1.0,
+      "severity": "critical"
+    },
+    {
+      "name": "/api/v1/chat/quick-chat low throughput",
+      "metric_type": "throughput",
+      "endpoint": "/api/v1/chat/quick-chat",
+      "threshold": 5.0,
+      "severity": "warning"
+    },
+    {
+      "name": "/api/v1/chat/deep-research response time",
+      "metric_type": "response_time",
+      "endpoint": "/api/v1/chat/deep-research",
+      "threshold": 60000,
+      "severity": "warning"
+    },
+    {
+      "name": "/api/v1/chat/deep-research error rate",
+      "metric_type": "error_rate",
+      "endpoint": "/api/v1/chat/deep-research",
+      "threshold": 5.0,
+      "severity": "critical"
+    },
+    {
+      "name": "/api/v1/chat/deep-research low throughput",
+      "metric_type": "throughput",
+      "endpoint": "/api/v1/chat/deep-research",
+      "threshold": 1.0,
+      "severity": "warning"
+    },
+    {
+      "name": "/api/v1/search/autocomplete response time",
+      "metric_type": "response_time",
+      "endpoint": "/api/v1/search/autocomplete",
+      "threshold": 500,
+      "severity": "warning"
+    },
+    {
+      "name": "/api/v1/search/autocomplete error rate",
+      "metric_type": "error_rate",
+      "endpoint": "/api/v1/search/autocomplete",
+      "threshold": 0.5,
+      "severity": "critical"
+    },
+    {
+      "name": "/api/v1/search/autocomplete low throughput",
+      "metric_type": "throughput",
+      "endpoint": "/api/v1/search/autocomplete",
+      "threshold": 25.0,
+      "severity": "warning"
+    },
+    {
+      "name": "/api/v1/trending/hotspots response time",
+      "metric_type": "response_time",
+      "endpoint": "/api/v1/trending/hotspots",
+      "threshold": 1000,
+      "severity": "warning"
+    },
+    {
+      "name": "/api/v1/trending/hotspots error rate",
+      "metric_type": "error_rate",
+      "endpoint": "/api/v1/trending/hotspots",
+      "threshold": 1.0,
+      "severity": "critical"
+    },
+    {
+      "name": "/api/v1/trending/hotspots low throughput",
+      "metric_type": "throughput",
+      "endpoint": "/api/v1/trending/hotspots",
+      "threshold": 10.0,
+      "severity": "warning"
+    }
+  ],
+  "recommendations": [
+    "Investigate Quick Chat response time issues",
+    "Fix Autocomplete error rate spikes",
+    "Optimize Trending endpoint throughput",
+    "Set up automated alert notifications"
+  ]
+}

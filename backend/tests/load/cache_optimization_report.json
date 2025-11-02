@@ -1,0 +1,199 @@
+{
+  "generated_at": "2025-11-02T14:18:56.423460",
+  "performance_analysis": {
+    "overall_score": 71.75,
+    "cache_efficiency": {
+      "browser_cache": {
+        "hit_rate_score": 92.85714285714288,
+        "response_time_score": 0,
+        "efficiency_score": 46.42857142857144,
+        "grade": "F"
+      },
+      "cdn_cache": {
+        "hit_rate_score": 94.44444444444444,
+        "response_time_score": 0,
+        "efficiency_score": 47.22222222222222,
+        "grade": "F"
+      },
+      "api_cache": {
+        "hit_rate_score": 75.0,
+        "response_time_score": 0,
+        "efficiency_score": 37.5,
+        "grade": "F"
+      },
+      "redis_cache": {
+        "hit_rate_score": 100.0,
+        "response_time_score": 95.0,
+        "efficiency_score": 97.5,
+        "grade": "A"
+      }
+    },
+    "performance_issues": [
+      {
+        "cache_type": "api_cache",
+        "issue": "Low hit rate",
+        "value": 0.45,
+        "threshold": 0.5
+      }
+    ],
+    "optimization_opportunities": [
+      {
+        "cache_type": "browser_cache",
+        "opportunity": "Increase cache hit rate",
+        "potential_improvement": 4.999999999999993,
+        "effort": "medium",
+        "impact": "high"
+      },
+      {
+        "cache_type": "browser_cache",
+        "opportunity": "Optimize TTL settings",
+        "potential_improvement": 5.000000000000004,
+        "effort": "low",
+        "impact": "medium"
+      },
+      {
+        "cache_type": "api_cache",
+        "opportunity": "Increase cache hit rate",
+        "potential_improvement": 24.999999999999993,
+        "effort": "medium",
+        "impact": "high"
+      },
+      {
+        "cache_type": "api_cache",
+        "opportunity": "Reduce cache eviction rate",
+        "potential_improvement": 6.0,
+        "effort": "medium",
+        "impact": "medium"
+      },
+      {
+        "cache_type": "api_cache",
+        "opportunity": "Optimize TTL settings",
+        "potential_improvement": 20.000000000000007,
+        "effort": "low",
+        "impact": "medium"
+      }
+    ],
+    "cost_analysis": {
+      "total_bandwidth_saved": 79500,
+      "estimated_cost_savings": 7950.0,
+      "cache_storage_cost": 30.0,
+      "roi": 265.0
+    },
+    "recommendations_summary": {}
+  },
+  "cache_optimization": {
+    "rules_count": 6,
+    "recommendations_count": 0,
+    "recommendations": []
+  },
+  "cdn_optimization": {
+    "provider": "cloudflare",
+    "recommendations_count": 5,
+    "recommendations": [
+      {
+        "id": "cdn_cache_key_headers",
+        "category": "configuration",
+        "priority": "medium",
+        "title": "Optimize Cache Key Policy for HTTP Headers",
+        "description": "Include only necessary headers in cache key to improve hit rate",
+        "current_config": {
+          "headers": "all"
+        },
+        "recommended_config": {
+          "headers": [
+            "Accept-Encoding",
+            "Origin"
+          ]
+        },
+        "expected_improvement": {
+          "hit_rate_increase": 0.1
+        },
+        "implementation_effort": "low",
+        "risk_level": "low"
+      },
+      {
+        "id": "cdn_enable_brotli",
+        "category": "performance",
+        "priority": "high",
+        "title": "Enable Brotli Compression",
+        "description": "Brotli provides 15-25% better compression than Gzip",
+        "current_config": {
+          "brotli_enabled": false
+        },
+        "recommended_config": {
+          "brotli_enabled": true,
+          "brotli_level": 4
+        },
+        "expected_improvement": {
+          "bandwidth_saved": 0.2,
+          "response_time_reduction": 0.1
+        },
+        "implementation_effort": "low",
+        "risk_level": "low"
+      },
+      {
+        "id": "cdn_optimize_gzip_level",
+        "category": "performance",
+        "priority": "medium",
+        "title": "Optimize Gzip Compression Level",
+        "description": "Level 6 provides good balance between compression and CPU",
+        "current_config": {
+          "gzip_level": 4
+        },
+        "recommended_config": {
+          "gzip_level": 6
+        },
+        "expected_improvement": {
+          "bandwidth_saved": 0.05
+        },
+        "implementation_effort": "low",
+        "risk_level": "low"
+      },
+      {
+        "id": "cdn_edge_compression",
+        "category": "performance",
+        "priority": "high",
+        "title": "Add Edge Compression Function",
+        "description": "Edge functions can compress responses at CDN edge for better performance",
+        "current_config": {
+          "edge_compression": false
+        },
+        "recommended_config": {
+          "edge_compression": true,
+          "algorithm": "brotli"
+        },
+        "expected_improvement": {
+          "bandwidth_saved": 0.25,
+          "response_time_reduction": 0.15
+        },
+        "implementation_effort": "medium",
+        "risk_level": "low"
+      },
+      {
+        "id": "cdn_edge_image_optimization",
+        "category": "performance",
+        "priority": "medium",
+        "title": "Add Edge Image Optimization Function",
+        "description": "Automatic image optimization and WebP conversion at CDN edge",
+        "current_config": {
+          "image_optimization": false
+        },
+        "recommended_config": {
+          "image_optimization": true,
+          "webp_conversion": true
+        },
+        "expected_improvement": {
+          "bandwidth_saved": 0.3,
+          "response_time_reduction": 0.2
+        },
+        "implementation_effort": "medium",
+        "risk_level": "low"
+      }
+    ]
+  },
+  "configurations_generated": {
+    "nginx": "nginx_cache_config.conf",
+    "apache": "apache_cache_config.conf",
+    "cloudflare": "cloudflare_cache_config.json"
+  }
+}

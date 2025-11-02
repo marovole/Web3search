@@ -55,16 +55,27 @@ def init_sentry():
                     event_level=logging.ERROR,  # 将ERROR及以上级别作为事件发送
                 ),
             ],
-            # 性能监控
-            traces_sample_rate=0.1 if settings.ENVIRONMENT == "production" else 1.0,
+            # 性能监控 - 扩展APM配置
+            traces_sample_rate=get_traces_sample_rate(),
             # 错误采样（生产环境采样以节省配额）
-            sample_rate=0.5 if settings.ENVIRONMENT == "production" else 1.0,
+            sample_rate=get_error_sample_rate(),
             # 过滤
             before_send=before_send_filter,
+            before_breadcrumb=before_breadcrumb_filter,
             # 配置
             max_breadcrumbs=50,
             attach_stacktrace=True,
             send_default_pii=False,  # 不发送个人身份信息
+            # APM性能监控扩展配置
+            enable_tracing=True,
+            trace_propagation_targets=[
+                "openrouter.ai",
+                "api.coingecko.com",
+                "api.etherscan.io",
+                "api.bscscan.com"
+            ],
+            # 分布式追踪配置
+            instrumenter="otel",  # 使用OpenTelemetry作为instrumenter
         )
 
         logger.info(f"✅ Sentry initialized: environment={settings.ENVIRONMENT}")
@@ -73,6 +84,68 @@ def init_sentry():
         logger.warning("⚠️ sentry-sdk not installed, skipping Sentry initialization")
     except Exception as e:
         logger.error(f"❌ Failed to initialize Sentry: {e}")
+
+
+def get_traces_sample_rate() -> float:
+    """
+    根据环境和配置动态获取性能追踪采样率
+    
+    Returns:
+        采样率 (0.0-1.0)
+    """
+    env = settings.ENVIRONMENT.lower()
+    
+    if env == "production":
+        return 0.1  # 生产环境10%采样率
+    elif env in ("staging", "stage"):
+        return 0.5  # 预发布环境50%采样率
+    else:
+        return 1.0  # 开发环境100%采样率
+
+
+def get_error_sample_rate() -> float:
+    """
+    根据环境和配置动态获取错误采样率
+    
+    Returns:
+        采样率 (0.0-1.0)
+    """
+    env = settings.ENVIRONMENT.lower()
+    
+    if env == "production":
+        return 0.5  # 生产环境50%错误采样
+    elif env in ("staging", "stage"):
+        return 0.8  # 预发布环境80%错误采样
+    else:
+        return 1.0  # 开发环境100%错误采样
+
+
+def before_breadcrumb_filter(breadcrumb: Dict[str, Any], hint: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Sentry面包屑过滤器
+    用于过滤或 enrich 面包屑数据
+    
+    Args:
+        breadcrumb: Sentry面包屑
+        hint: 额外信息
+    
+    Returns:
+        处理后的面包屑，或None（跳过该面包屑）
+    """
+    # 过滤掉一些不重要的面包屑
+    if breadcrumb.get("category") == "http":
+        url = breadcrumb.get("data", {}).get("url", "")
+        # 过滤健康检查端点
+        if "/health" in url or "/metrics" in url:
+            return None
+    
+    # enrich面包屑数据
+    if breadcrumb.get("category") == "http":
+        # 添加响应时间信息
+        if "duration_ms" not in breadcrumb.get("data", {}):
+            breadcrumb.setdefault("data", {})["duration_ms"] = "unknown"
+    
+    return breadcrumb
 
 
 def before_send_filter(event: Dict[str, Any], hint: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -429,12 +502,233 @@ class MetricsCollector:
         self.logger.debug("Cache operation metric", extra=metric)
 
 
+class APMCollector:
+    """
+    APM性能指标收集器
+    专门用于收集应用性能监控数据
+    """
+    
+    def __init__(self):
+        self.logger = logging.getLogger("apm")
+    
+    def record_database_performance(
+        self,
+        query_type: str,
+        table_name: str,
+        duration_ms: float,
+        rows_affected: int = 0,
+        success: bool = True
+    ):
+        """
+        记录数据库性能指标
+        
+        Args:
+            query_type: 查询类型 (SELECT, INSERT, UPDATE, DELETE)
+            table_name: 表名
+            duration_ms: 执行时间（毫秒）
+            rows_affected: 影响行数
+            success: 是否成功
+        """
+        metric = {
+            "metric": "database_performance",
+            "query_type": query_type,
+            "table_name": table_name,
+            "duration_ms": round(duration_ms, 2),
+            "rows_affected": rows_affected,
+            "success": success
+        }
+        
+        self.logger.info("Database performance metric", extra=metric)
+        
+        # 发送到Sentry
+        try:
+            import sentry_sdk
+            sentry_sdk.set_measurement(
+                f"db.{table_name}.{query_type.lower()}.duration", 
+                duration_ms, 
+                "millisecond"
+            )
+            if rows_affected > 0:
+                sentry_sdk.set_measurement(
+                    f"db.{table_name}.{query_type.lower()}.rows", 
+                    rows_affected, 
+                    "none"
+                )
+        except ImportError:
+            pass
+    
+    def record_external_api_call(
+        self,
+        service_name: str,
+        endpoint: str,
+        method: str,
+        status_code: int,
+        duration_ms: float,
+        response_size_bytes: int = 0
+    ):
+        """
+        记录外部API调用性能
+        
+        Args:
+            service_name: 服务名称 (OpenRouter, CoinGecko, Etherscan等)
+            endpoint: API端点
+            method: HTTP方法
+            status_code: 响应状态码
+            duration_ms: 响应时间（毫秒）
+            response_size_bytes: 响应大小（字节）
+        """
+        metric = {
+            "metric": "external_api_call",
+            "service_name": service_name,
+            "endpoint": endpoint,
+            "method": method,
+            "status_code": status_code,
+            "duration_ms": round(duration_ms, 2),
+            "response_size_bytes": response_size_bytes
+        }
+        
+        self.logger.info("External API call metric", extra=metric)
+        
+        # 发送到Sentry
+        try:
+            import sentry_sdk
+            sentry_sdk.set_measurement(
+                f"external.{service_name.lower()}.duration", 
+                duration_ms, 
+                "millisecond"
+            )
+            sentry_sdk.set_measurement(
+                f"external.{service_name.lower()}.response_size", 
+                response_size_bytes, 
+                "byte"
+            )
+        except ImportError:
+            pass
+    
+    def record_cache_performance(
+        self,
+        cache_level: str,  # L1, L2
+        operation: str,    # get, set, delete
+        hit: bool,
+        key_pattern: str,
+        duration_ms: float = 0.0
+    ):
+        """
+        记录缓存性能指标
+        
+        Args:
+            cache_level: 缓存级别 (L1, L2)
+            operation: 操作类型
+            hit: 是否命中（对于get操作）
+            key_pattern: 键模式
+            duration_ms: 操作耗时
+        """
+        metric = {
+            "metric": "cache_performance",
+            "cache_level": cache_level,
+            "operation": operation,
+            "hit": hit,
+            "key_pattern": key_pattern,
+            "duration_ms": round(duration_ms, 2)
+        }
+        
+        self.logger.debug("Cache performance metric", extra=metric)
+        
+        # 发送到Sentry
+        try:
+            import sentry_sdk
+            sentry_sdk.set_measurement(
+                f"cache.{cache_level.lower()}.{operation}.duration", 
+                duration_ms, 
+                "millisecond"
+            )
+            if operation == "get":
+                sentry_sdk.set_measurement(
+                    f"cache.{cache_level.lower()}.hit_rate", 
+                    1.0 if hit else 0.0, 
+                    "ratio"
+                )
+        except ImportError:
+            pass
+    
+    def record_memory_usage(
+        self,
+        component: str,
+        memory_mb: float,
+        memory_type: str = "rss"  # rss, vms, shared
+    ):
+        """
+        记录内存使用情况
+        
+        Args:
+            component: 组件名称
+            memory_mb: 内存使用量（MB）
+            memory_type: 内存类型
+        """
+        metric = {
+            "metric": "memory_usage",
+            "component": component,
+            "memory_mb": round(memory_mb, 2),
+            "memory_type": memory_type
+        }
+        
+        self.logger.info("Memory usage metric", extra=metric)
+        
+        # 发送到Sentry
+        try:
+            import sentry_sdk
+            sentry_sdk.set_measurement(
+                f"memory.{component}.{memory_type}", 
+                memory_mb, 
+                "megabyte"
+            )
+        except ImportError:
+            pass
+    
+    def record_cpu_usage(
+        self,
+        component: str,
+        cpu_percent: float,
+        duration_ms: float
+    ):
+        """
+        记录CPU使用情况
+        
+        Args:
+            component: 组件名称
+            cpu_percent: CPU使用率（百分比）
+            duration_ms: 监控时长
+        """
+        metric = {
+            "metric": "cpu_usage",
+            "component": component,
+            "cpu_percent": round(cpu_percent, 2),
+            "duration_ms": round(duration_ms, 2)
+        }
+        
+        self.logger.info("CPU usage metric", extra=metric)
+        
+        # 发送到Sentry
+        try:
+            import sentry_sdk
+            sentry_sdk.set_measurement(
+                f"cpu.{component}.usage", 
+                cpu_percent, 
+                "percent"
+            )
+        except ImportError:
+            pass
+
+
 # ================================
 # 全局实例
 # ================================
 
 # 指标收集器
 metrics = MetricsCollector()
+
+# APM收集器
+apm_collector = APMCollector()
 
 
 # ================================

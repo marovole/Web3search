@@ -13,12 +13,33 @@ from app.core.database import close_db, init_db
 from app.core.redis_client import close_redis
 from app.core.logging_config import setup_logging
 from app.core.monitoring import init_sentry
+from app.core.opentelemetry_config import init_opentelemetry
+from app.core.alerting import alert_manager
+from app.core.metrics_collector import metrics_collector
+from app.core.business_metrics import business_metrics_collector
+from app.core.funnel_analyzer import funnel_analyzer
+from app.core.conversion_monitor import conversion_monitor
+from app.core.real_time_dashboard import real_time_dashboard
+from app.core.user_segment_analyzer import user_segment_analyzer
+from app.core.log_aggregation import log_aggregator, log_analyzer
+from app.core.structured_logging import structured_log_manager
+from app.core.alerting_system import alert_manager as alert_notification_manager
+from app.core.alert_rules_engine import alert_rule_engine
+from app.core.infrastructure_monitor import resource_monitor
+from app.core.database_monitor import database_monitor
+from app.core.network_storage_monitor import network_storage_monitor
+from app.core.infrastructure_recovery import infrastructure_recovery_manager
+from app.core.monitoring_validator import monitoring_validator
+from app.middleware.distributed_tracing import DistributedTracingMiddleware
 
 # 初始化日志系统
 setup_logging(level=settings.LOG_LEVEL)
 
 # 初始化Sentry（如果配置了DSN）
 init_sentry()
+
+# 初始化OpenTelemetry（生产环境和预发布环境）
+init_opentelemetry()
 
 
 # ================================
@@ -70,6 +91,122 @@ async def lifespan(app: FastAPI):
     # 创建后台任务（不等待完成）
     asyncio.create_task(preload_in_background())
 
+    # 启动实时指标收集和告警系统
+    if settings.ENVIRONMENT in ("production", "staging", "stage"):
+        print("📈 Starting real-time metrics collection...")
+        try:
+            await metrics_collector.start_collection()
+            print("✅ Metrics collection started")
+        except Exception as e:
+            print(f"⚠️ Metrics collection startup warning: {e}")
+
+        print("📊 Starting business metrics collection...")
+        try:
+            await business_metrics_collector.start_collection()
+            print("✅ Business metrics collection started")
+        except Exception as e:
+            print(f"⚠️ Business metrics collection startup warning: {e}")
+
+        print("🔍 Starting funnel analysis...")
+        try:
+            await funnel_analyzer.initialize()
+            print("✅ Funnel analyzer initialized")
+        except Exception as e:
+            print(f"⚠️ Funnel analyzer initialization warning: {e}")
+
+        print("📈 Starting conversion monitoring...")
+        try:
+            await conversion_monitor.start_monitoring()
+            print("✅ Conversion monitoring started")
+        except Exception as e:
+            print(f"⚠️ Conversion monitoring startup warning: {e}")
+
+        print("📊 Starting real-time dashboard...")
+        try:
+            await real_time_dashboard.start_dashboard()
+            print("✅ Real-time dashboard started")
+        except Exception as e:
+            print(f"⚠️ Real-time dashboard startup warning: {e}")
+
+        print("👥 Starting user segment analysis...")
+        try:
+            await user_segment_analyzer.start_analysis()
+            print("✅ User segment analysis started")
+        except Exception as e:
+            print(f"⚠️ User segment analysis startup warning: {e}")
+
+        print("📝 Starting log aggregation system...")
+        try:
+            await log_aggregator.initialize()
+            print("✅ Log aggregation system initialized")
+        except Exception as e:
+            print(f"⚠️ Log aggregation system startup warning: {e}")
+
+        print("📋 Starting structured logging system...")
+        try:
+            await structured_log_manager.initialize()
+            print("✅ Structured logging system initialized")
+        except Exception as e:
+            print(f"⚠️ Structured logging system startup warning: {e}")
+
+        print("🚨 Starting alert notification system...")
+        try:
+            await alert_notification_manager.initialize()
+            print("✅ Alert notification system initialized")
+        except Exception as e:
+            print(f"⚠️ Alert notification system startup warning: {e}")
+
+        print("⚙️ Starting alert rules engine...")
+        try:
+            await alert_rule_engine.initialize()
+            print("✅ Alert rules engine initialized")
+        except Exception as e:
+            print(f"⚠️ Alert rules engine startup warning: {e}")
+
+        print("🖥️ Starting infrastructure monitoring...")
+        try:
+            await resource_monitor.initialize()
+            # 在后台启动资源监控
+            import asyncio
+            asyncio.create_task(resource_monitor.start_monitoring())
+            print("✅ Infrastructure monitoring started")
+        except Exception as e:
+            print(f"⚠️ Infrastructure monitoring startup warning: {e}")
+
+        print("🗄️ Starting database monitoring...")
+        try:
+            await database_monitor.initialize()
+            # 在后台启动数据库监控
+            asyncio.create_task(database_monitor.start_monitoring())
+            print("✅ Database monitoring started")
+        except Exception as e:
+            print(f"⚠️ Database monitoring startup warning: {e}")
+
+        print("🌐 Starting network and storage monitoring...")
+        try:
+            await network_storage_monitor.initialize()
+            # 在后台启动网络存储监控
+            asyncio.create_task(network_storage_monitor.start_monitoring())
+            print("✅ Network and storage monitoring started")
+        except Exception as e:
+            print(f"⚠️ Network and storage monitoring startup warning: {e}")
+
+        print("🔧 Starting infrastructure recovery manager...")
+        try:
+            await infrastructure_recovery_manager.initialize()
+            # 在后台启动基础设施恢复管理
+            asyncio.create_task(infrastructure_recovery_manager.start_monitoring())
+            print("✅ Infrastructure recovery manager started")
+        except Exception as e:
+            print(f"⚠️ Infrastructure recovery manager startup warning: {e}")
+
+        print("🔍 Initializing monitoring system validator...")
+        try:
+            await monitoring_validator.initialize()
+            print("✅ Monitoring system validator initialized")
+        except Exception as e:
+            print(f"⚠️ Monitoring system validator initialization warning: {e}")
+
     # 启动WebSocket广播器
     from app.api.v1.websocket import sentiment_broadcaster
     try:
@@ -78,12 +215,110 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"⚠️ WebSocket broadcaster warning: {e}")
 
-    print("✅ API is ready!")
+    print("🚀 Web3 Search API startup completed")
 
     yield  # 应用运行中
 
     # 关闭
     print("🛑 Shutting down Web3 Search API...")
+
+    # 停止指标收集
+    try:
+        await metrics_collector.stop_collection()
+        print("✅ Metrics collection stopped")
+    except Exception as e:
+        print(f"⚠️ Metrics collection shutdown warning: {e}")
+
+    # 停止业务指标收集
+    try:
+        await business_metrics_collector.stop_collection()
+        print("✅ Business metrics collection stopped")
+    except Exception as e:
+        print(f"⚠️ Business metrics collection shutdown warning: {e}")
+
+    # 停止转化监控
+    try:
+        await conversion_monitor.stop_monitoring()
+        print("✅ Conversion monitoring stopped")
+    except Exception as e:
+        print(f"⚠️ Conversion monitoring shutdown warning: {e}")
+
+    # 停止实时Dashboard
+    try:
+        await real_time_dashboard.stop_dashboard()
+        print("✅ Real-time dashboard stopped")
+    except Exception as e:
+        print(f"⚠️ Real-time dashboard shutdown warning: {e}")
+
+    # 停止用户分群分析
+    try:
+        await user_segment_analyzer.stop_analysis()
+        print("✅ User segment analysis stopped")
+    except Exception as e:
+        print(f"⚠️ User segment analysis shutdown warning: {e}")
+
+    # 停止告警规则引擎
+    try:
+        await alert_rule_engine.shutdown()
+        print("✅ Alert rules engine stopped")
+    except Exception as e:
+        print(f"⚠️ Alert rules engine shutdown warning: {e}")
+
+    # 停止告警通知系统
+    try:
+        await alert_notification_manager.shutdown()
+        print("✅ Alert notification system stopped")
+    except Exception as e:
+        print(f"⚠️ Alert notification system shutdown warning: {e}")
+
+    # 停止结构化日志系统
+    try:
+        await structured_log_manager.shutdown()
+        print("✅ Structured logging system stopped")
+    except Exception as e:
+        print(f"⚠️ Structured logging system shutdown warning: {e}")
+
+    # 停止日志聚合系统
+    try:
+        await log_aggregator.shutdown()
+        print("✅ Log aggregation system stopped")
+    except Exception as e:
+        print(f"⚠️ Log aggregation system shutdown warning: {e}")
+
+    # 停止基础设施监控
+    try:
+        await resource_monitor.shutdown()
+        print("✅ Infrastructure monitoring stopped")
+    except Exception as e:
+        print(f"⚠️ Infrastructure monitoring shutdown warning: {e}")
+
+    # 停止数据库监控
+    try:
+        await database_monitor.shutdown()
+        print("✅ Database monitoring stopped")
+    except Exception as e:
+        print(f"⚠️ Database monitoring shutdown warning: {e}")
+
+    # 停止网络存储监控
+    try:
+        await network_storage_monitor.shutdown()
+        print("✅ Network and storage monitoring stopped")
+    except Exception as e:
+        print(f"⚠️ Network and storage monitoring shutdown warning: {e}")
+
+    # 停止基础设施恢复管理器
+    try:
+        await infrastructure_recovery_manager.shutdown()
+        print("✅ Infrastructure recovery manager stopped")
+    except Exception as e:
+        print(f"⚠️ Infrastructure recovery manager shutdown warning: {e}")
+
+    # 停止监控验证器
+    try:
+        await monitoring_validator.shutdown()
+        print("✅ Monitoring system validator stopped")
+    except Exception as e:
+        print(f"⚠️ Monitoring system validator shutdown warning: {e}")
 
     # 停止WebSocket广播器
     try:
@@ -195,6 +430,9 @@ app = FastAPI(
 # ================================
 # 中间件配置
 # ================================
+
+# 分布式追踪中间件 - 必须在其他中间件之前添加
+app.add_middleware(DistributedTracingMiddleware)
 
 # GZip压缩中间件（任务 9.4）
 # 自动压缩响应大小 > 1KB 的响应
