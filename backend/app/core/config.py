@@ -168,7 +168,7 @@ class Settings(BaseSettings):
     # JWT认证配置
     # ================================
     JWT_SECRET_KEY: str = Field(
-        default="",
+        default="temp_development_key_only_replace_in_production_32chars",
         min_length=32,
         description="JWT Secret Key（必须通过环境变量设置，不允许默认值）"
     )
@@ -490,8 +490,18 @@ class Settings(BaseSettings):
                 raise ValueError("生产环境必须配置OPENROUTER_API_KEY")
 
             # 生产环境必须配置安全的JWT密钥
+            forbidden_keys = [
+                "temp_development_key_only_replace_in_production_32chars",
+                "change-me",
+                "default_secret_key_change_me",
+                "your-secret-key-here"
+            ]
+
             if not self.JWT_SECRET_KEY or len(self.JWT_SECRET_KEY) < 32:
                 raise ValueError("生产环境必须通过环境变量设置安全的JWT_SECRET_KEY，长度至少32位")
+
+            if self.JWT_SECRET_KEY in forbidden_keys:
+                raise ValueError("生产环境不能使用默认或临时JWT密钥，请设置安全的JWT_SECRET_KEY环境变量")
 
             # 生产环境必须配置数据库连接
             if not self.DATABASE_URL:
@@ -504,18 +514,28 @@ class Settings(BaseSettings):
 
         else:
             # 开发环境友好提示
+            development_warnings = []
+
+            if self.JWT_SECRET_KEY == "temp_development_key_only_replace_in_production_32chars":
+                development_warnings.append("⚠️ 使用临时JWT密钥（仅开发环境）")
+                development_warnings.append("   生产环境必须设置安全的JWT_SECRET_KEY环境变量")
+
             missing_configs = []
-            if not self.JWT_SECRET_KEY:
-                missing_configs.append("JWT_SECRET_KEY")
             if not self.DATABASE_URL:
                 missing_configs.append("DATABASE_URL")
             if not self.OPENROUTER_API_KEY:
                 missing_configs.append("OPENROUTER_API_KEY")
 
             if missing_configs:
-                logging.warning(f"开发环境缺少以下配置: {', '.join(missing_configs)}")
-                logging.warning("可以通过设置环境变量或创建 .env 文件来配置")
-                logging.warning("示例: JWT_SECRET_KEY=your-secret-key DATABASE_URL=postgresql://... OPENROUTER_API_KEY=your-api-key")
+                development_warnings.append(f"缺少配置: {', '.join(missing_configs)}")
+
+            if development_warnings:
+                logging.warning("=" * 60)
+                logging.warning("🔧 开发环境配置提醒")
+                for warning in development_warnings:
+                    logging.warning(warning)
+                logging.warning("📖 完整配置指南: DEPLOYMENT_FIX_GUIDE.md")
+                logging.warning("=" * 60)
 
         return self
 
