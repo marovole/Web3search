@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, Clock, ArrowRight } from 'lucide-react'
-import { useSearchHistory } from '@/contexts/SearchHistoryContext'
+import { useSearchHistory } from '../../contexts/SearchHistoryContext'
 import { useNavigate } from 'react-router-dom'
-import { cn } from '@/lib/utils'
+import { cn } from '../../lib/utils'
 
 interface GlobalSearchDialogProps {
   isOpen: boolean
@@ -138,6 +138,7 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
                 <Search className="w-5 h-5 text-muted-foreground" />
                 <input
                   ref={inputRef}
+                  data-testid="search-input"
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}

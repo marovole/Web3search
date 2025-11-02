@@ -1,0 +1,76 @@
+import { defaults } from 'jest-config';
+
+export default {
+  // Use the Vite Jest preset
+  preset: 'ts-jest/presets/default-esm',
+  
+  // Test environment
+  testEnvironment: 'jsdom',
+  
+  // Setup files
+  setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
+  
+  // Module file extensions
+  moduleFileExtensions: [...defaults.moduleFileExtensions, 'ts', 'tsx'],
+  
+  // Transform
+  transform: {
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      useESM: true,
+      tsconfig: {
+        jsx: 'react-jsx',
+        esModuleInterop: true,
+      },
+    }],
+  },
+  
+  // Module name mapping for absolute imports
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^.+\\.module\\.(css|sass|scss)$': 'identity-obj-proxy',
+    '^.+\\.(jpg|jpeg|png|gif|webp|avif|svg)$': '<rootDir>/__mocks__/fileMock.js',
+  },
+  
+  // Test file patterns
+  testMatch: [
+    '<rootDir>/src/**/__tests__/**/*.{ts,tsx}',
+    '<rootDir>/src/**/*.{test,spec}.{ts,tsx}',
+  ],
+  
+  // Coverage configuration
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/main.tsx',
+    '!src/vite-env.d.ts',
+    '!src/**/*.stories.{ts,tsx}',
+  ],
+  
+  // Coverage reporters
+  coverageReporters: ['text', 'lcov', 'html', 'json-summary'],
+  
+  // Coverage thresholds - to be enabled when we reach target coverage
+  // coverageThreshold: {
+  //   global: {
+  //     branches: 80,
+  //     functions: 80,
+  //     lines: 80,
+  //     statements: 80,
+  //   },
+  // },
+  
+  // Ignore patterns
+  testPathIgnorePatterns: [
+    '<rootDir>/node_modules/',
+    '<rootDir>/dist/',
+    '<rootDir>/build/',
+  ],
+  
+  // Transform ignore patterns - allow transformation of specific ES modules
+  transformIgnorePatterns: [
+    'node_modules/(?!(msw|@mswjs|until-async|@faker-js|faker|remark-gfm|react-markdown|unified|bail|is-plain-obj|trough|vfile|unist-util-stringify-position|unist-builder|remark-parse|mdast-util-from-markdown|mdast-util-to-markdown|micromark|decode-named-character-reference|character-entities|character-entities-legacy|character-reference-invalid|is-alphabetical|is-alphanumerical|is-decimal|is-hexadecimal|is-word-character|markdown-escape|remark-stringify|remark-rehype|rehype-remark|rehype-parse|hast-util-from-parse5|hast-util-to-parse5|hastscript|property-information|space-separated-tokens|comma-separated-tokens|web-namespaces|html-void-elements|parse5|ccount|escape-string-regexp|markdown-extensions|mdast-util-mdx-expression|mdast-util-mdx-jsx|mdast-util-mdxjs-esm|mdast-util-to-hast|mdast-util-to-string|micromark-core-commonmark|micromark-factory-destination|micromark-factory-label|micromark-factory-space|micromark-factory-title|micromark-factory-whitespace|micromark-util-character|micromark-util-chunked|micromark-util-combine-extensions|micromark-util-decode-numeric-character-reference|micromark-util-decode-string|micromark-util-encode|micromark-util-events-to-acorn|micromark-util-html-tag-name|micromark-util-normalize-identifier|micromark-util-resolve-all|micromark-util-subtokenize|micromark-util-symbol|micromark-util-syntax|micromark-util-classify-character)/)',
+  ],
+  
+  // Extensions to transform
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
+};

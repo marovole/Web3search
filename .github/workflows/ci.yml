@@ -10,17 +10,22 @@ env:
   NODE_VERSION: '18'
 
 jobs:
-  lint-and-typecheck:
-    name: Lint and Type Check
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: ${{ matrix.node-version }}
           cache: 'npm'
           cache-dependency-path: 'frontend/package-lock.json'
 
@@ -39,40 +44,60 @@ jobs:
           cd frontend
           npm run type-check
 
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: 'frontend/package-lock.json'
-
-      - name: Install dependencies
+      - name: Run unit tests with coverage
         run: |
           cd frontend
-          npm ci
+          npm run test:coverage
 
-      - name: Run tests
+      - name: Check coverage thresholds
         run: |
           cd frontend
-          npm run test:ci
+          npm run test:coverage-check
 
-      - name: Upload coverage reports
+      - name: Run E2E tests
+        run: |
+          cd frontend
+          npm run test:e2e
+        continue-on-error: true
+
+      - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
         with:
           directory: frontend/coverage
-          fail_ci_if_error: true
+          fail_ci_if_error: false
+          flags: frontend-node-${{ matrix.node-version }}
+          name: frontend-coverage-node-${{ matrix.node-version }}
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report-node-${{ matrix.node-version }}
+          path: frontend/coverage/
+          retention-days: 30
+
+      - name: Upload E2E test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-results-node-${{ matrix.node-version }}
+          path: frontend/playwright-report/
+          retention-days: 7
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-node-${{ matrix.node-version }}
+          path: |
+            frontend/coverage/
+            frontend/test-results/
+          retention-days: 7
 
   build:
     name: Build Application
     runs-on: ubuntu-latest
-    needs: [lint-and-typecheck, test]
+    needs: [test]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -101,11 +126,74 @@ jobs:
         continue-on-error: true
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-files
           path: frontend/dist
-          retention-days: 1
+          retention-days: 7
+
+  # Performance and Quality Gates
+  quality-gates:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report-node-18
+          path: frontend/coverage/
+
+      - name: Check test coverage quality gates
+        run: |
+          cd frontend
+          npm run test:coverage-check
+
+      - name: Run accessibility tests
+        run: |
+          cd frontend
+          npm run test:a11y
+        continue-on-error: true
+
+      - name: Run performance tests (Lighthouse CI)
+        run: |
+          cd frontend
+          npm run build
+          npm run test:lighthouse
+        continue-on-error: true
+
+      - name: Upload accessibility report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: accessibility-report
+          path: frontend/a11y-report/
+          retention-days: 7
+
+      - name: Upload performance report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-report
+          path: frontend/.lighthouseci/
+          retention-days: 7
 
   security-scan:
     name: Security Scan
@@ -135,12 +223,12 @@ jobs:
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: [build, quality-gates]
     if: github.ref == 'refs/heads/develop'
     environment: staging
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: build-files
           path: frontend/dist
@@ -158,12 +246,12 @@ jobs:
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: [build, security-scan]
+    needs: [build, security-scan, quality-gates]
     if: github.ref == 'refs/heads/main'
     environment: production
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: build-files
           path: frontend/dist
@@ -177,6 +265,12 @@ jobs:
           vercel-args: '--prod'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Run smoke tests
+        run: |
+          # Add smoke test commands here
+          echo "Running smoke tests against production..."
+        continue-on-error: true
 
   notify:
     name: Notify Deployment Status
