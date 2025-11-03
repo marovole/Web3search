@@ -158,13 +158,24 @@ export function loadEnvConfig(): EnvConfig {
 }
 
 /**
- * 获取当前环境配置（单例模式）
+ * 获取当前环境配置（单例模式，运行时检测生产环境）
  */
 let envConfig: EnvConfig | null = null
 
 export function getEnvConfig(): EnvConfig {
   if (!envConfig) {
     envConfig = loadEnvConfig()
+
+    // 运行时检测：如果在浏览器且非localhost，强制使用生产API
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname
+      const isProduction = hostname !== 'localhost' && hostname !== '127.0.0.1'
+
+      if (isProduction && !envConfig.API_BASE_URL.startsWith('https://')) {
+        console.log(`🔄 Runtime detection: hostname is ${hostname}, switching to production API`)
+        envConfig.API_BASE_URL = 'https://web3search-api.onrender.com'
+      }
+    }
   }
   return envConfig
 }
