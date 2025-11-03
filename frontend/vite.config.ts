@@ -126,64 +126,23 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        // 手动chunk分离策略 - 首屏优化
+        // 简化的chunk分离策略 - 只保留React核心分离
         manualChunks(id) {
-          // 将Node_modules分离到单独的chunk
           if (id.includes('node_modules')) {
-            // React核心库分离
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+            // React核心库必须优先加载
+            if (id.includes('/react/') || id.includes('/react-dom/')) {
               return 'react-vendor'
             }
-            // UI组件库分离
-            if (id.includes('@radix-ui') || id.includes('@shadcn')) {
-              return 'ui-vendor'
+            // React Router单独分离
+            if (id.includes('react-router')) {
+              return 'router-vendor'
             }
-            // 动画库分离
-            if (id.includes('framer-motion') || id.includes('motion')) {
-              return 'animation-vendor'
-            }
-            // Markdown相关库分离（按需加载）
-            if (id.includes('react-markdown') || id.includes('remark-') || id.includes('micromark')) {
-              return 'markdown-vendor'
-            }
-            // 代码高亮库分离（按需加载）
-            if (id.includes('react-syntax-highlighter') || id.includes('highlight.js') || id.includes('prismjs')) {
-              return 'syntax-vendor'
-            }
-            // 表单库分离
-            if (id.includes('react-hook-form') || id.includes('@hookform')) {
-              return 'form-vendor'
-            }
-            // 验证库分离
-            if (id.includes('zod')) {
-              return 'validation-vendor'
-            }
-            // 工具库分离
-            if (id.includes('lucide-react') || id.includes('axios') || id.includes('clsx') || id.includes('tailwind-merge') || id.includes('class-variance-authority')) {
-              return 'utils-vendor'
-            }
-            // 监控库分离（可以延迟加载）
-            if (id.includes('@sentry') || id.includes('sentry')) {
-              return 'monitor-vendor'
-            }
-            // Chart.js或图表库分离（如果将来添加）
-            if (id.includes('chart.js') || id.includes('recharts') || id.includes('d3')) {
-              return 'chart-vendor'
-            }
-            // 其他第三方库
+            // 其他所有node_modules打包在一起
             return 'vendor'
           }
           // 页面组件懒加载分离
           if (id.includes('/pages/')) {
             return 'pages'
-          }
-          // 组件库分离
-          if (id.includes('/components/')) {
-            return 'components'
-          }
-          // 服务和工具分离
-          if (id.includes('/services/') || id.includes('/utils/') || id.includes('/hooks/')) {
-            return 'utils'
           }
         },
         // 优化chunk命名
@@ -215,18 +174,9 @@ export default defineConfig({
         esmExternals: true
       },
     },
-    // 压缩配置
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: process.env.NODE_ENV === 'production',
-        drop_debugger: true,
-        pure_funcs: ['console.log'],
-      },
-      mangle: {
-        safari10: true,
-      },
-    },
+    // 压缩配置 - 使用esbuild替代terser以避免React初始化问题
+    minify: 'esbuild',
+    // terserOptions已移除，使用esbuild默认配置
   },
   // 优化依赖预构建
     optimizeDeps: {
