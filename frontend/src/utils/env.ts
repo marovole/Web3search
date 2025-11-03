@@ -123,9 +123,11 @@ export function loadEnvConfig(): EnvConfig {
 
     validateConfig(config)
 
-    // 生产环境优化：使用相对路径配合API代理
-    if (config.ENVIRONMENT === 'production') {
-      config.API_BASE_URL = '/api'  // 使用相对路径，通过Vercel代理转发
+    // 生产环境配置：使用完整后端URL
+    // 注意：不使用相对路径，避免与API路径前缀重复（/api + /api/v1 = /api/api/v1）
+    if (config.ENVIRONMENT === 'production' && !config.API_BASE_URL.startsWith('http')) {
+      console.warn('⚠️ Production environment detected but API_BASE_URL is not a complete URL. Using default backend URL.')
+      config.API_BASE_URL = 'https://web3search-api.onrender.com'
     }
 
     // 在开发环境显示配置信息
