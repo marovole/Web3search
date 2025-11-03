@@ -218,10 +218,14 @@ class DeepResearchEngine:
         """
         print("  📝 生成TL;DR摘要...")
 
-        # 调用TldrGenerator
+        # 调用TldrGenerator - 确保aggregated_data包含symbol信息
+        # 将symbol添加到aggregated_data中，因为generate_tldr方法不接受symbol参数
+        enhanced_aggregated_data = aggregated_data.copy()
+        enhanced_aggregated_data["symbol"] = symbol
+        
         tldr_output = await self.tldr_generator.generate_tldr(
             query=query,
-            aggregated_data=aggregated_data,
+            aggregated_data=enhanced_aggregated_data,
         )
 
         if isinstance(tldr_output, Exception):

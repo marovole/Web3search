@@ -6,9 +6,13 @@ import asyncio
 from typing import Dict, Any, Optional, List
 import httpx
 from datetime import datetime
+import time
 
 from app.core.config import settings
 from app.core.redis_client import cache_get_json, cache_set
+from app.core.structlog_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class CoinGeckoCollector:
@@ -89,7 +93,14 @@ class CoinGeckoCollector:
                 else:
                     raise Exception(f"CoinGecko请求失败: {str(e)}")
 
-        raise Exception("CoinGecko API请求达到最大重试次数")
+        # 返回友好的错误信息，而不是抛出异常
+        logger.error(f"CoinGecko API请求达到最大重试次数: {endpoint}")
+        return {
+            "error": True,
+            "message": "CoinGecko API暂时不可用，请稍后再试",
+            "endpoint": endpoint,
+            "attempts": 3
+        }
 
     # ================================
     # 核心数据采集方法

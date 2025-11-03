@@ -37,87 +37,31 @@ TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose 
 - **AND** 在管理后台展示Token使用趋势图
 
 ### Requirement: 六维深度分析
-系统**SHALL**对加密货币项目进行六个维度的深度分析，完整集成9个专用analyzers（TldrGenerator、TimeframeAnalyzer、SentimentAnalyzer、TechnicalAnalyzer、OnchainAnalyzer、CompetitorAnalyzer、TokenomicsAnalyzer、RiskAssessor、ConclusionSynthesizer）的结构化输出。
+TLDRGenerator**SHALL**修复函数签名兼容性问题，确保深度研究报告能正常生成摘要。
 
-#### Scenario: 生成完整研究报告
-- **WHEN** 用户请求项目X（如Hyperliquid）的深度研究
-- **THEN** 系统并行执行以下9个专用analyzers：
-  1. TldrGenerator（核心判断+置信度）
-  2. TimeframeAnalyzer（24h/7d/30d）
-  3. SentimentAnalyzer（社媒情绪）
-  4. TechnicalAnalyzer（技术面）
-  5. OnchainAnalyzer（链上数据）
-  6. CompetitorAnalyzer（竞品对比）
-  7. TokenomicsAnalyzer（代币经济学）
-  8. RiskAssessor（风险评估）
-  9. ConclusionSynthesizer（结论）
-- **AND** 每个analyzer返回结构化的Dict输出（包含data、metadata、visualization_hints字段）
-- **AND** 每个analyzer的输出通过Pydantic验证（符合预定义Schema）
-- **AND** 总处理时间< 30秒（通过并行化）
+#### Scenario: 函数参数兼容性
+- **WHEN** 调用TLDRGenerator.generate_tldr()方法
+- **THEN** 函数签名应与实现匹配
+- **AND** 移除不存在的symbol参数
+- **AND** 传递正确的content参数
+- **AND** 返回格式正确的TLDR摘要
+- **AND** 处理边界情况和异常输入
 
-#### Scenario: Analyzer输出完整集成
-- **WHEN** Deep Research引擎调用analyzers
-- **THEN** 收集所有9个analyzers的结构化输出
-- **AND** 验证每个analyzer输出包含必需字段：
-  - data: 分析结果数据（Dict类型）
-  - metadata: 元数据（模型名称、生成时间、置信度等）
-  - visualization_hints: 可视化建议（表格结构、图表类型等）
-- **AND** 输出数据传递给报告生成器用于生成Markdown和图表
-- **AND** 在报告metadata中记录每个analyzer的执行状态
+#### Scenario: 错误处理和回退机制
+- **WHEN** TLDR生成过程中发生错误
+- **THEN** 系统应捕获并记录详细错误信息
+- **AND** 提供用户友好的错误提示
+- **AND** 实现自动重试机制
+- **AND** 支持手动重新生成TLDR
+- **AND** 在多次失败时提供降级方案
 
-#### Scenario: Analyzer失败降级策略
-- **WHEN** 某个analyzer执行失败（如LLM超时、输出验证失败）
-- **THEN** 记录错误日志（包含analyzer名称、错误原因、输入参数）
-- **AND** 继续执行其他analyzers（不中断整体流程）
-- **AND** 在报告中标注该部分缺失："[该章节生成失败，请稍后重试]"
-- **AND** 在响应metadata中添加警告标识：`"partial_failure": ["TechnicalAnalyzer"]`
-- **AND** 如超过3个analyzers失败，返回整体错误并建议用户稍后重试
-
-#### Scenario: Analyzer输出包含可视化数据
-- **WHEN** analyzer返回可表格化或可图表化的数据
-- **THEN** 在visualization_hints字段中包含以下信息：
-  - type: "table" 或 "chart"
-  - table_columns: 表格列定义（如["协议", "日交易量", "TVL"]）
-  - chart_type: 图表类型（如"line", "bar", "pie"）
-  - chart_data: 图表数据（x轴、y轴值）
-- **AND** 报告生成器根据visualization_hints自动调用table_generator或chart_generator
-- **AND** 生成的表格和图表嵌入到对应章节
-
-#### Scenario: TL;DR生成符合标准格式
-- **WHEN** 生成TL;DR部分
-- **THEN** 输出包含以下元素：
-  - 核心判断：`Bull`/`Neutral`/`Bear`（看涨/中性/看跌）
-  - 置信度：百分比（如75%）
-  - 一句话总结：100字以内，包含具体数字和关键催化剂
-- **AND** 格式严格匹配模板：
-  ```
-  核心判断: Bull (看涨，置信度 75%)
-  一句话总结: [项目] 凭借 [核心优势]，展现了 [领域] 的 [地位]。尽管面临 [短期压力]，但其 [核心机制] 和 [增长点] 提供了 [支撑类型]。
-  ```
-- **AND** 使用Pydantic模型验证输出格式
-- **AND** 验证失败时重新生成（最多3次）
-
-#### Scenario: 时间窗分析多维度输出
-- **WHEN** 分析时间窗口数据
-- **THEN** 输出包含3个时间窗口：
-  - **24h**: 价格变化、成交量变化、短期驱动因素
-  - **7d**: 周度表现、板块对比、主要事件
-  - **30d**: 月度趋势、里程碑事件、协议指标变化
-- **AND** 每个时间窗口包含：
-  - 价格涨跌幅（带正负号和百分比）
-  - 关键事件列表（最多3个）
-  - 叙事性描述（50-100字）
-- **AND** 数据来源标注（如"数据来源：CoinGecko, 更新时间：2025-01-15 10:30"）
-
-#### Scenario: 情绪分析量化
-- **WHEN** 分析社交媒体情绪
-- **THEN** 输出包含：
-  - 正面/中性/负面占比（总和100%）
-  - Twitter提及量趋势（7天趋势图数据）
-  - Top 5讨论话题（关键词+频次）
-  - 关键KOL发声（用户名+粉丝数+核心观点）
-- **AND** 情绪得分计算公式：`(正面% * 1 + 中性% * 0 + 负面% * -1) / 100`
-- **AND** 情绪得分范围：-1（极度负面）到+1（极度正面）
+#### Scenario: 性能优化和监控
+- **WHEN** 生成TLDR摘要
+- **THEN** 处理时间应在合理范围内（<30秒）
+- **AND** 支持异步处理避免阻塞
+- **AND** 记录性能指标用于监控
+- **AND** 实现缓存机制提升响应速度
+- **AND** 支持批量处理优化效率
 
 ### Requirement: 社媒情绪分析
 系统 SHALL分析社交媒体数据（Twitter、Reddit、Telegram、Discord），识别市场情绪和热门话题。**多平台情绪分析已完成集成。**

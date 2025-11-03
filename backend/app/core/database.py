@@ -168,7 +168,7 @@ async def check_database_health() -> dict:
 
         # 执行简单查询测试连接
         async with AsyncSessionLocal() as session:
-            await session.execute("SELECT 1")
+            await session.execute(text("SELECT 1"))
 
         latency_ms = round((time.time() - start_time) * 1000, 2)
 

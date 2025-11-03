@@ -196,6 +196,33 @@ TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose 
 - **AND** 支持通配符域名（预览环境）
 - **AND** 验证Origin头防止CSRF攻击
 
+### Requirement: 生产环境部署验证
+系统**SHALL**提供生产环境部署状态验证机制，确保前端应用可正常访问和功能完整。
+
+#### Scenario: 部署状态健康检查
+- **WHEN** 用户访问前端应用
+- **THEN** 应用应返回200状态码
+- **AND** 所有静态资源应正确加载
+- **AND** JavaScript应用应正常初始化
+- **AND** API代理应正确转发请求
+- **AND** 用户体验应流畅无错误
+
+#### Scenario: 部署失败自动恢复
+- **WHEN** Vercel部署失败或返回404错误
+- **THEN** 系统应自动检测部署状态
+- **AND** 触发告警通知开发团队
+- **AND** 提供详细的部署日志信息
+- **AND** 支持一键重新部署功能
+- **AND** 在修复期间显示友好的维护页面
+
+#### Scenario: 域名和SSL配置验证
+- **WHEN** 配置自定义域名
+- **THEN** 域名应正确解析到Vercel
+- **AND** SSL证书应自动配置和更新
+- **AND** HTTPS重定向应正常工作
+- **AND** 所有安全头部应正确设置
+- **AND** CDN缓存策略应优化配置
+
 ### Requirement: 备份与灾难恢复
 系统**SHALL**定期备份数据并支持快速恢复。
 
