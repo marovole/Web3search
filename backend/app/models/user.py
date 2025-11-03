@@ -83,6 +83,11 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+    roles: Mapped[list["Role"]] = relationship(
+        "Role",
+        secondary="user_roles",
+        back_populates="users"
+    )
 
     # 索引
     __table_args__ = (

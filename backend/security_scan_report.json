@@ -1,0 +1,182 @@
+{
+  "timestamp": "2024-01-01T00:00:00Z",
+  "summary": {
+    "total_scans": 5,
+    "total_issues": 23,
+    "failed_categories": 2,
+    "overall_status": "FAIL"
+  },
+  "categories": [
+    {
+      "category": "敏感文件",
+      "status": "INFO",
+      "issues": 4,
+      "details": [
+        {
+          "file": ".env.production",
+          "type": "sensitive_file",
+          "size": 1347
+        },
+        {
+          "file": ".env.staging",
+          "type": "sensitive_file",
+          "size": 594
+        },
+        {
+          "file": ".env.dev",
+          "type": "sensitive_file",
+          "size": 585
+        },
+        {
+          "file": ".env.example",
+          "type": "sensitive_file",
+          "size": 2639
+        }
+      ]
+    },
+    {
+      "category": "硬编码密钥",
+      "status": "FAIL",
+      "issues": 1,
+      "details": [
+        {
+          "file": "tests/test_security_hardening.py",
+          "line": 140,
+          "type": "硬编码API密钥",
+          "content": "api_key=\"test_api_key\""
+        }
+      ]
+    },
+    {
+      "category": "配置安全",
+      "status": "PASS",
+      "issues": 0,
+      "details": []
+    },
+    {
+      "category": "Python代码安全",
+      "status": "WARNING",
+      "issues": 16,
+      "details": [
+        {
+          "file": "app/core/query_cache.py",
+          "line": 137,
+          "type": "使用不安全的MD5哈希",
+          "content": "hash_value = hashlib.md5(hash_input.encode(\"utf-8\")).hexdigest()"
+        },
+        {
+          "file": "app/core/alerting_system.py",
+          "line": 88,
+          "type": "使用不安全的MD5哈希",
+          "content": "return hashlib.md5(content.encode()).hexdigest()"
+        },
+        {
+          "file": "app/core/alerting.py",
+          "line": 307,
+          "type": "使用eval函数",
+          "content": "return eval(condition, allowed_names)"
+        },
+        {
+          "file": "app/services/ab_testing.py",
+          "line": 141,
+          "type": "使用不安全的随机数生成器",
+          "content": "return TestVariant.B if random.random() < self.config.traffic_split else TestVariant.A"
+        },
+        {
+          "file": "tests/load/api_optimization_implementation_plan.py",
+          "line": 124,
+          "type": "使用不安全的MD5哈希",
+          "content": "cache_key = f\"quickchat:{hashlib.md5(request.query.encode()).hexdigest()}\""
+        },
+        {
+          "file": "tests/load/advanced_user_behavior.py",
+          "line": 31,
+          "type": "使用不安全的随机数生成器",
+          "content": "return random.random() < probability"
+        },
+        {
+          "file": "tests/load/mock_ai_service.py",
+          "line": 173,
+          "type": "使用不安全的随机数生成器",
+          "content": "if random.random() < 0.01:"
+        },
+        {
+          "file": "tests/load/mock_ai_service.py",
+          "line": 177,
+          "type": "使用不安全的随机数生成器",
+          "content": "if random.random() < 0.05:"
+        },
+        {
+          "file": "tests/load/mock_ai_service.py",
+          "line": 209,
+          "type": "使用不安全的随机数生成器",
+          "content": "if random.random() < 0.02:"
+        },
+        {
+          "file": "tests/load/mock_ai_service.py",
+          "line": 213,
+          "type": "使用不安全的随机数生成器",
+          "content": "if random.random() < 0.10:"
+        },
+        {
+          "file": "tests/load/performance_regression_monitoring.py",
+          "line": 701,
+          "type": "使用不安全的随机数生成器",
+          "content": "if random.random() < 0.1:  # 10%概率产生回归"
+        },
+        {
+          "file": "tests/load/critical_endpoint_optimizer.py",
+          "line": 276,
+          "type": "使用不安全的MD5哈希",
+          "content": "return f\"quickchat:{hashlib.md5(normalized.encode()).hexdigest()}\""
+        },
+        {
+          "file": "tests/load/ai_model_optimization.py",
+          "line": 334,
+          "type": "使用不安全的MD5哈希",
+          "content": "context_hash = hashlib.md5(str(context[\"market_data\"]).encode()).hexdigest()[:8]"
+        },
+        {
+          "file": "tests/load/ai_model_optimization.py",
+          "line": 338,
+          "type": "使用不安全的MD5哈希",
+          "content": "return hashlib.md5(key_data.encode()).hexdigest()"
+        },
+        {
+          "file": "scripts/simple_security_scan.py",
+          "line": 206,
+          "type": "shell=True可能存在命令注入风险",
+          "content": "(r'shell=True', \"shell=True可能存在命令注入风险\"),"
+        },
+        {
+          "file": "scripts/simple_security_scan.py",
+          "line": 208,
+          "type": "shell=True可能存在命令注入风险",
+          "content": "(r'subprocess\\.call\\s*\\([^)]*shell=True', \"subprocess使用shell=True\"),"
+        }
+      ]
+    },
+    {
+      "category": "文件权限",
+      "status": "FAIL",
+      "issues": 2,
+      "details": [
+        {
+          "file": ".env.production",
+          "permissions": "644",
+          "issue": "文件对其他用户可读"
+        },
+        {
+          "file": "render.yaml",
+          "permissions": "644",
+          "issue": "文件对其他用户可读"
+        }
+      ]
+    }
+  ],
+  "recommendations": [
+    "移除代码中的硬编码密钥，使用环境变量管理敏感信息",
+    "审查Python代码中的安全问题，避免使用不安全的函数",
+    "修复敏感文件的权限设置，限制不必要的访问权限"
+  ]
+}

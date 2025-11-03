@@ -87,14 +87,32 @@ class Settings(BaseSettings):
 
     # CORS配置
     CORS_ORIGINS: str = Field(
-        default="http://localhost:3000,http://localhost:5173,https://web3search.vercel.app",
-        description="允许的跨域来源（逗号分隔）"
+        default="http://localhost:3000,http://localhost:5173",
+        description="允许的跨域来源（逗号分隔，生产环境必须指定具体域名）"
     )
 
     @property
     def cors_origins_list(self) -> List[str]:
-        """将CORS_ORIGINS字符串转换为列表"""
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+        """将CORS_ORIGINS字符串转换为列表并进行安全验证"""
+        origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+
+        # 生产环境安全检查
+        if self.ENVIRONMENT in ('production', 'prod'):
+            # 检查是否有危险的通配符
+            dangerous_patterns = ['*', '.*', '*.*']
+            for origin in origins:
+                for pattern in dangerous_patterns:
+                    if pattern in origin:
+                        raise ValueError(f"生产环境不允许使用不安全的CORS配置: {origin}")
+
+            # 检查是否包含具体的生产域名
+            production_domains = ['web3search.ai', 'www.web3search.ai', 'api.web3search.ai']
+            has_valid_domain = any(domain in origin for origin in origins for domain in production_domains)
+
+            if not has_valid_domain:
+                raise ValueError(f"生产环境必须配置具体的生产域名，当前配置: {origins}")
+
+        return origins
 
     # ================================
     # 数据库配置
@@ -168,13 +186,24 @@ class Settings(BaseSettings):
     # JWT认证配置
     # ================================
     JWT_SECRET_KEY: str = Field(
-        default="temp_development_key_only_replace_in_production_32chars",
+        ...,
         min_length=32,
         description="JWT Secret Key（必须通过环境变量设置，不允许默认值）"
     )
     JWT_ALGORITHM: str = Field(
         default="HS256",
         description="JWT算法"
+    )
+
+    # API签名验证配置
+    SIGNATURE_SECRET_KEY: str = Field(
+        ...,
+        min_length=32,
+        description="API签名验证密钥（必须通过环境变量设置）"
+    )
+    ENABLE_SIGNATURE_VERIFICATION: bool = Field(
+        default=False,
+        description="是否启用API请求签名验证（生产环境建议启用）"
     )
     ACCESS_TOKEN_EXPIRE_HOURS: int = Field(
         default=24,
@@ -515,12 +544,13 @@ class Settings(BaseSettings):
         else:
             # 开发环境友好提示
             development_warnings = []
-
-            if self.JWT_SECRET_KEY == "temp_development_key_only_replace_in_production_32chars":
-                development_warnings.append("⚠️ 使用临时JWT密钥（仅开发环境）")
-                development_warnings.append("   生产环境必须设置安全的JWT_SECRET_KEY环境变量")
-
             missing_configs = []
+
+            # JWT密钥在所有环境都是必需的
+            if not self.JWT_SECRET_KEY or len(self.JWT_SECRET_KEY) < 32:
+                development_warnings.append("⚠️ JWT_SECRET_KEY未设置或长度不足32位")
+                development_warnings.append("   请设置安全的JWT_SECRET_KEY环境变量")
+
             if not self.DATABASE_URL:
                 missing_configs.append("DATABASE_URL")
             if not self.OPENROUTER_API_KEY:
