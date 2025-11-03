@@ -123,9 +123,12 @@ export function loadEnvConfig(): EnvConfig {
 
     validateConfig(config)
 
-    // 生产环境配置：使用完整后端URL
+    // 生产环境配置：自动检测并使用完整后端URL
     // 注意：不使用相对路径，避免与API路径前缀重复（/api + /api/v1 = /api/api/v1）
-    if (config.ENVIRONMENT === 'production' && !config.API_BASE_URL.startsWith('http')) {
+    const isProduction = config.ENVIRONMENT === 'production' ||
+                        (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+
+    if (isProduction && !config.API_BASE_URL.startsWith('http')) {
       console.warn('⚠️ Production environment detected but API_BASE_URL is not a complete URL. Using default backend URL.')
       config.API_BASE_URL = 'https://web3search-api.onrender.com'
     }
