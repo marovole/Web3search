@@ -126,25 +126,8 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        // 简化的chunk分离策略 - 只保留React核心分离
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            // React核心库必须优先加载
-            if (id.includes('/react/') || id.includes('/react-dom/')) {
-              return 'react-vendor'
-            }
-            // React Router单独分离
-            if (id.includes('react-router')) {
-              return 'router-vendor'
-            }
-            // 其他所有node_modules打包在一起
-            return 'vendor'
-          }
-          // 页面组件懒加载分离
-          if (id.includes('/pages/')) {
-            return 'pages'
-          }
-        },
+        // 禁用手动代码分割，让Vite自动处理
+        // manualChunks: undefined,
         // 优化chunk命名
         chunkFileNames: (chunkInfo) => {
           // 保持chunk名称的可读性
