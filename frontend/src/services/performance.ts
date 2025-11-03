@@ -392,10 +392,17 @@ class PerformanceMonitor {
   }
 }
 
-// 创建全局性能监控实例
-const performanceMonitor = new PerformanceMonitor()
+// 延迟创建实例，避免在模块加载时执行
+let performanceMonitorInstance: PerformanceMonitor | null = null
 
-export default performanceMonitor
+function getPerformanceMonitor(): PerformanceMonitor {
+  if (!performanceMonitorInstance) {
+    performanceMonitorInstance = new PerformanceMonitor()
+  }
+  return performanceMonitorInstance
+}
+
+export default getPerformanceMonitor
 
 // 导出主要功能
 export { PerformanceMonitor }

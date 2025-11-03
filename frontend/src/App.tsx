@@ -16,11 +16,9 @@ import { useSmartPreload } from './hooks/usePreloadRoutes'
 import { useServiceWorker } from './hooks/useServiceWorker'
 import { useKeyboardShortcutsContext } from './contexts/KeyboardShortcutsContext'
 import Sidebar from './components/Layout/Sidebar'
-import { initSentry, addBreadcrumb, setContext, trackCoreWebVitals, trackPageLoad, trackResourceLoading } from './services/sentry-lite'
-import performanceMonitor from './services/performance'
 import { PageLoading, ChatLoading, ReportLoading } from './components/Loading/PageLoading'
 
-// 懒加载页面组件
+// 懒加载页面组件（已修复嵌套懒加载问题）
 const ChatPage = React.lazy(() => import('./pages/ChatPage'))
 const SharedReportPage = React.lazy(() => import('./pages/SharedReportPage'))
 const HistoryPage = React.lazy(() => import('./pages/HistoryPage'))
@@ -91,42 +89,50 @@ function App() {
   // UX增强配置（轻量占位，避免引入复杂 Provider）
   const uxConfig = { features: {} as Record<string, boolean> }
 
-  // 初始化监控服务
+  // 初始化监控服务（延迟导入，避免React初始化冲突）
   React.useEffect(() => {
-    // 初始化Sentry错误监控和RUM
-    initSentry()
+    const initMonitoring = async () => {
+      try {
+        const { initSentry, addBreadcrumb, setContext, trackCoreWebVitals, trackPageLoad, trackResourceLoading } = await import('./services/sentry-lite')
+        const getPerformanceMonitor = (await import('./services/performance')).default
 
-    // 设置应用上下文信息
-    setContext('app', {
-      version: process.env.npm_package_version || '1.0.0',
-      name: 'Web3search Frontend',
-      buildTime: new Date().toISOString(),
-      uxEnhancements: uxConfig
-    })
+        // 初始化Sentry错误监控和RUM
+        initSentry()
 
-    // 添加面包屑导航
-    addBreadcrumb({
-      message: '应用启动',
-      category: 'navigation',
-      level: 'info',
-      data: {
-        userAgent: navigator.userAgent,
-        url: window.location.href,
-        uxFeatures: uxConfig.features
+        // 设置应用上下文信息
+        setContext('app', {
+          version: process.env.npm_package_version || '1.0.0',
+          name: 'Web3search Frontend',
+          buildTime: new Date().toISOString(),
+          uxEnhancements: uxConfig
+        })
+
+        // 添加面包屑导航
+        addBreadcrumb({
+          message: '应用启动',
+          category: 'navigation',
+          level: 'info',
+          data: {
+            userAgent: navigator.userAgent,
+            url: window.location.href,
+            uxFeatures: uxConfig.features
+          }
+        })
+
+        // 初始化RUM监控
+        trackCoreWebVitals()
+        trackPageLoad()
+        trackResourceLoading()
+      } catch (error) {
+        console.error('初始化监控失败:', error)
       }
-    })
+    }
 
-    // 初始化RUM监控
-    trackCoreWebVitals()
-    trackPageLoad()
-    trackResourceLoading()
-
-    // 性能监控已在性能监控服务中自动初始化
+    initMonitoring()
 
     // 清理函数
     return () => {
-      // 如果需要，可以在这里清理监控
-      performanceMonitor.dispose()
+      // 清理监控（如需要）
     }
   }, [uxConfig])
 

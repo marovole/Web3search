@@ -1,12 +1,10 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react'
+import React, { useState, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { SharedReportResponse } from '../../types'
 import ExportButton from './ExportButton'
 import AddButton from '../Watchlist/AddButton'
 import CodeBlock from '../Common/CodeBlock'
-
-// 动态导入ReactMarkdown（按需加载）
-const ReactMarkdown = lazy(() => import('react-markdown'))
 
 interface ReportViewerProps {
   report: SharedReportResponse
@@ -143,93 +141,91 @@ const ReportViewer: React.FC<ReportViewerProps> = ({ report }) => {
 
           {/* Markdown Content */}
           <article className="prose prose-lg max-w-none">
-            <Suspense fallback={<div className="text-muted-foreground">加载中...</div>}>
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  // Add IDs to headings for TOC
-                  h2: ({ children }) => {
-                    const text = String(children)
-                    const id = text
-                      .toLowerCase()
-                      .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
-                      .replace(/^-|-$/g, '')
-                    return <h2 id={id}>{children}</h2>
-                  },
-                  h3: ({ children }) => {
-                    const text = String(children)
-                    const id = text
-                      .toLowerCase()
-                      .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
-                      .replace(/^-|-$/g, '')
-                    return <h3 id={id}>{children}</h3>
-                  },
-                  h4: ({ children }) => {
-                    const text = String(children)
-                    const id = text
-                      .toLowerCase()
-                      .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
-                      .replace(/^-|-$/g, '')
-                    return <h4 id={id}>{children}</h4>
-                  },
-                  // Code blocks - using type-safe CodeBlock component
-                  code: CodeBlock,
-                  // Tables
-                  table({ children }) {
-                    return (
-                      <div className="overflow-x-auto my-6">
-                        <table className="min-w-full divide-y divide-gray-300 border border-gray-300">
-                          {children}
-                        </table>
-                      </div>
-                    )
-                  },
-                  thead({ children }) {
-                    return <thead className="bg-gray-50">{children}</thead>
-                  },
-                  th({ children }) {
-                    return (
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 border-b border-gray-300">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                // Add IDs to headings for TOC
+                h2: ({ children }) => {
+                  const text = String(children)
+                  const id = text
+                    .toLowerCase()
+                    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
+                    .replace(/^-|-$/g, '')
+                  return <h2 id={id}>{children}</h2>
+                },
+                h3: ({ children }) => {
+                  const text = String(children)
+                  const id = text
+                    .toLowerCase()
+                    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
+                    .replace(/^-|-$/g, '')
+                  return <h3 id={id}>{children}</h3>
+                },
+                h4: ({ children }) => {
+                  const text = String(children)
+                  const id = text
+                    .toLowerCase()
+                    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
+                    .replace(/^-|-$/g, '')
+                  return <h4 id={id}>{children}</h4>
+                },
+                // Code blocks - using type-safe CodeBlock component
+                code: CodeBlock,
+                // Tables
+                table({ children }) {
+                  return (
+                    <div className="overflow-x-auto my-6">
+                      <table className="min-w-full divide-y divide-gray-300 border border-gray-300">
                         {children}
-                      </th>
-                    )
-                  },
-                  td({ children }) {
-                    return (
-                      <td className="px-4 py-3 text-sm text-gray-700 border-b border-gray-200">
-                        {children}
-                      </td>
-                    )
-                  },
-                  // Images (Base64 or URLs)
-                  img({ src, alt }) {
-                    return (
-                      <img
-                        src={src}
-                        alt={alt}
-                        className="max-w-full h-auto rounded-lg shadow-sm my-6"
-                        loading="lazy"
-                      />
-                    )
-                  },
-                  // Links
-                  a({ href, children }) {
-                    return (
-                      <a
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        {children}
-                      </a>
-                    )
-                  },
-                }}
-              >
-                {report.markdown_content}
-              </ReactMarkdown>
-            </Suspense>
+                      </table>
+                    </div>
+                  )
+                },
+                thead({ children }) {
+                  return <thead className="bg-gray-50">{children}</thead>
+                },
+                th({ children }) {
+                  return (
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 border-b border-gray-300">
+                      {children}
+                    </th>
+                  )
+                },
+                td({ children }) {
+                  return (
+                    <td className="px-4 py-3 text-sm text-gray-700 border-b border-gray-200">
+                      {children}
+                    </td>
+                  )
+                },
+                // Images (Base64 or URLs)
+                img({ src, alt }) {
+                  return (
+                    <img
+                      src={src}
+                      alt={alt}
+                      className="max-w-full h-auto rounded-lg shadow-sm my-6"
+                      loading="lazy"
+                    />
+                  )
+                },
+                // Links
+                a({ href, children }) {
+                  return (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      {children}
+                    </a>
+                  )
+                },
+              }}
+            >
+              {report.markdown_content}
+            </ReactMarkdown>
           </article>
 
           {/* Footer */}

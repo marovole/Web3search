@@ -211,6 +211,9 @@ export default defineConfig({
       },
       // 外部依赖优化（如果有CDN版本）
       external: [],
+      commonjsOptions: {
+        esmExternals: true
+      },
     },
     // 压缩配置
     minify: 'terser',
@@ -236,17 +239,15 @@ export default defineConfig({
       'clsx',
       'tailwind-merge',
       'class-variance-authority',
+      'react-markdown',
+      'remark-gfm',
     ],
     exclude: [
       // 排除大型库，让它们按需加载
-      'react-markdown',
       'react-syntax-highlighter',
-      'remark-gfm',
       // 排除监控库，延迟加载
       '@sentry/react',
       '@sentry/tracing',
     ],
-    // 预构建依赖的浏览器缓存
-    force: true,
   },
 })

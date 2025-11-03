@@ -72,59 +72,76 @@ export function usePreloadRoutes(config: PreloadConfig) {
 /**
  * 智能预加载策略
  * 根据用户行为预加载相关页面
+ * 此hook必须在Router内部使用
  */
 export function useSmartPreload() {
+  // useLocation必须在Router内部调用，否则会抛出错误
+  // 我们假设这个hook总是在Router内部调用
   const location = useLocation()
 
   useEffect(() => {
-    // 根据当前路径预加载可能访问的页面
-    let preloadTargets: string[] = []
+    // 延迟执行以确保Router完全初始化
+    const initTimer = setTimeout(() => {
+      try {
+        // 根据当前路径预加载可能访问的页面
+        let preloadTargets: string[] = []
 
-    switch (location.pathname) {
-      case '/':
-        // 首页用户可能访问历史记录或监控列表
-        preloadTargets = ['/history', '/watchlist']
-        break
-      case '/history':
-        // 历史记录用户可能返回首页或查看监控列表
-        preloadTargets = ['/watchlist', '/']
-        break
-      case '/watchlist':
-        // 监控列表用户可能访问历史记录或返回首页
-        preloadTargets = ['/history', '/']
-        break
-      case '/shared':
-        // 分享页面用户可能访问首页
-        preloadTargets = ['/']
-        break
-      default:
-        // 默认预加载首页
-        preloadTargets = ['/']
-    }
-
-    // 延迟预加载，避免影响当前页面加载
-    const timer = setTimeout(() => {
-      preloadTargets.forEach(route => {
-        const componentMap: Record<string, () => Promise<any>> = {
-          '/': () => import('../pages/ChatPage'),
-          '/shared': () => import('../pages/SharedReportPage'),
-          '/history': () => import('../pages/HistoryPage'),
-          '/watchlist': () => import('../pages/WatchlistPage'),
+        switch (location.pathname) {
+          case '/':
+            // 首页用户可能访问历史记录或监控列表
+            preloadTargets = ['/history', '/watchlist']
+            break
+          case '/history':
+            // 历史记录用户可能返回首页或查看监控列表
+            preloadTargets = ['/watchlist', '/']
+            break
+          case '/watchlist':
+            // 监控列表用户可能访问历史记录或返回首页
+            preloadTargets = ['/history', '/']
+            break
+          case '/shared':
+            // 分享页面用户可能访问首页
+            preloadTargets = ['/']
+            break
+          default:
+            // 默认预加载首页
+            preloadTargets = ['/']
         }
 
-        const preloadKey = Object.keys(componentMap).find(key =>
-          route === key || route.startsWith(key)
-        )
+        // 延迟预加载，避免影响当前页面加载
+        const preloadTimer = setTimeout(() => {
+          try {
+            preloadTargets.forEach(route => {
+              const componentMap: Record<string, () => Promise<any>> = {
+                '/': () => import('../pages/ChatPage'),
+                '/shared': () => import('../pages/SharedReportPage'),
+                '/history': () => import('../pages/HistoryPage'),
+                '/watchlist': () => import('../pages/WatchlistPage'),
+              }
 
-        if (preloadKey) {
-          componentMap[preloadKey]().catch(error => {
-            console.warn(`Failed to preload route ${route}:`, error)
-          })
-        }
-      })
-    }, 3000) // 3秒后开始预加载
+              const preloadKey = Object.keys(componentMap).find(key =>
+                route === key || route.startsWith(key)
+              )
 
-    return () => clearTimeout(timer)
+              if (preloadKey) {
+                componentMap[preloadKey]().catch(error => {
+                  console.warn(`Failed to preload route ${route}:`, error)
+                })
+              }
+            })
+          } catch (error) {
+            console.warn('Error during route preloading:', error)
+          }
+        }, 3000) // 3秒后开始预加载
+
+        return () => clearTimeout(preloadTimer)
+      } catch (error) {
+        console.warn('useSmartPreload initialization error:', error)
+        return () => {} // 返回空清理函数
+      }
+    }, 100) // 延迟100ms，确保Router初始化完成
+
+    return () => clearTimeout(initTimer)
   }, [location.pathname])
 }
 
