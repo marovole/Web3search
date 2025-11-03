@@ -372,26 +372,32 @@ The system SHALL support deployment across development, staging, and production 
 ### Requirement: Frontend Production Deployment
 The system SHALL provide complete frontend deployment configuration for production use.
 
-#### Scenario: Vercel Platform Integration
-- **WHEN** frontend is deployed to Vercel
-- **THEN** build configuration shall be optimized for production
-- **AND** custom domain shall be properly configured
-- **AND** SSL certificates shall be automatically managed
-- **AND** edge caching shall be configured for optimal performance
+#### Scenario: Environment Variable Management
+- **WHEN** deploying frontend to Vercel production
+- **THEN** VITE_API_BASE_URL shall be configured with complete backend URL
+- **AND** value shall be `https://web3search-api.onrender.com`
+- **AND** VITE_ENVIRONMENT shall be set to `production`
+- **AND** configuration shall prevent API path duplication errors
 
-#### Scenario: API Proxy Configuration
-- **WHEN** frontend makes API calls from different domains
-- **THEN** Vercel shall properly proxy API requests to backend
-- **AND** CORS policies shall be correctly configured
-- **AND** request headers shall be securely forwarded
-- **AND** response caching shall be appropriately managed
+**Rationale**: 修复环境变量配置，确保生产环境使用正确的完整后端URL，而非相对路径。
 
-#### Scenario: Build Optimization
-- **WHEN** frontend application is built for production
-- **THEN** assets shall be properly minified and compressed
-- **AND** code splitting shall reduce initial bundle size
-- **AND** critical CSS shall be inlined for faster rendering
-- **AND** static assets shall be optimized for caching
+#### Scenario: API URL Configuration Logic
+- **WHEN** environment configuration is loaded in production
+- **THEN** API_BASE_URL shall use environment variable value directly
+- **AND** shall not override with relative path `/api`
+- **AND** configuration validation shall check for path duplication
+- **AND** error messages shall clearly indicate configuration issues
+
+**Rationale**: 简化配置逻辑，消除生产环境特殊处理导致的路径重复问题。
+
+#### Scenario: Deployment Verification
+- **WHEN** production deployment completes
+- **THEN** automated checks shall verify API connectivity
+- **AND** health check shall test all critical API endpoints
+- **AND** deployment shall be marked successful only if APIs respond correctly
+- **AND** 404 errors shall trigger deployment failure alerts
+
+**Rationale**: 增强部署验证机制，及早发现配置错误，防止错误配置进入生产环境。
 
 ### Requirement: Monitoring and Observability
 The system SHALL provide comprehensive monitoring capabilities for the frontend application in production.
@@ -481,4 +487,34 @@ The system SHALL implement security best practices for frontend deployment.
 - **AND** 显示测试覆盖率、执行时间、通过率等关键指标
 - **AND** 支持按时间段、模块、团队成员维度分析
 - **AND** 提供导出功能和定期报告生成
+
+### Requirement: Configuration Error Prevention
+The system SHALL implement safeguards to prevent API configuration errors in production.
+
+#### Scenario: Configuration Validation
+- **WHEN** application initializes
+- **THEN** environment configuration shall be validated
+- **AND** API_BASE_URL format shall be checked (must be complete URL)
+- **AND** path duplication shall be detected and prevented
+- **AND** validation errors shall be logged with actionable messages
+
+**Rationale**: 建立配置验证机制，在应用启动时检测并防止常见配置错误。
+
+#### Scenario: Development vs Production Configuration
+- **WHEN** different environments require different API configurations
+- **THEN** development environment may use relative paths with proxy
+- **AND** production environment shall always use complete URLs
+- **AND** configuration logic shall be clear and well-documented
+- **AND** examples shall be provided for each environment
+
+**Rationale**: 明确不同环境的配置要求，避免开发环境配置模式错误应用到生产环境。
+
+#### Scenario: Configuration Documentation
+- **WHEN** developers configure deployment environment
+- **THEN** clear documentation shall explain API_BASE_URL requirements
+- **AND** examples shall show correct vs incorrect configurations
+- **AND** common pitfalls shall be highlighted with solutions
+- **AND** troubleshooting guide shall cover 404 error scenarios
+
+**Rationale**: 通过完善的文档防止类似配置错误再次发生，降低开发者配置难度。
 
