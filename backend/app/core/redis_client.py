@@ -34,6 +34,10 @@ def get_redis() -> Redis:
     return redis_client
 
 
+# 别名，保持向后兼容
+get_redis_client = get_redis
+
+
 async def get_async_redis() -> AsyncRedis:
     """
     获取异步Redis客户端（单例模式）
