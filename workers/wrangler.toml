@@ -4,6 +4,7 @@
 name = "web3search-worker"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
+account_id = "b80eef96097fab92f15b574ed5fbb927"
 
 # Workers开发环境
 workers_dev = true
