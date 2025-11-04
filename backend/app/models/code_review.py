@@ -148,7 +148,7 @@ class AnalysisResult(Base):
     
     # Analysis data
     analysis_data = Column(JSON, nullable=False)  # Structured analysis results
-    metadata = Column(JSON, nullable=True)  # Additional metadata
+    meta_info = Column(JSON, nullable=True)  # Additional metadata
     
     # Execution details
     execution_time = Column(Float, nullable=True)  # seconds
