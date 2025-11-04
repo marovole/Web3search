@@ -1,0 +1,45 @@
+# Cloudflare Workers Configuration
+# https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "web3search-worker"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# Workers开发环境
+workers_dev = true
+
+# KV命名空间（用于边缘缓存）
+# 需要在Cloudflare Dashboard创建后取消注释
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "your-kv-namespace-id"
+
+# 环境变量
+[vars]
+BACKEND_API_URL = "https://web3search-api.onrender.com"
+CACHE_TTL = "3600"
+ENABLE_CACHE = "true"
+ENABLE_RATE_LIMIT = "true"
+
+# 生产环境配置
+[env.production]
+name = "web3search-api-proxy"
+# route = "api.web3search.ai/*"  # 自定义域名路由
+workers_dev = false
+
+[env.production.vars]
+BACKEND_API_URL = "https://web3search-api.onrender.com"
+CACHE_TTL = "7200"
+ENABLE_CACHE = "true"
+ENABLE_RATE_LIMIT = "true"
+
+# 开发环境配置
+[env.development]
+name = "web3search-worker-dev"
+workers_dev = true
+
+[env.development.vars]
+BACKEND_API_URL = "http://localhost:8000"
+CACHE_TTL = "60"
+ENABLE_CACHE = "false"
+ENABLE_RATE_LIMIT = "false"

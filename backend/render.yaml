@@ -51,7 +51,7 @@ services:
       - key: ENABLE_SIGNATURE_VERIFICATION
         value: "true"
       - key: CORS_ORIGINS
-        value: "https://web3search.ai,https://www.web3search.ai,https://api.web3search.ai"
+        value: "https://web3search.pages.dev,https://web3search.ai,https://www.web3search.ai,https://api.web3search.ai"
 
       # Database Configuration
       - key: DATABASE_URL

@@ -1,0 +1,23 @@
+{
+  "name": "web3search-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for Web3 Search API proxy and edge caching",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:prod": "wrangler deploy --env production",
+    "tail": "wrangler tail",
+    "test": "vitest"
+  },
+  "keywords": ["cloudflare", "workers", "api-proxy", "edge-computing"],
+  "author": "Web3 Search Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "typescript": "^5.2.2",
+    "vitest": "^1.0.0",
+    "wrangler": "^3.80.0"
+  },
+  "dependencies": {}
+}

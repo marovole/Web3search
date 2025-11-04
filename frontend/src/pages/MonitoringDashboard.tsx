@@ -83,7 +83,8 @@ export default function MonitoringDashboard() {
   // 模拟数据加载
   const loadMetrics = async () => {
     // 获取性能监控数据
-    const performanceMetrics = performanceMonitor.getWebVitals()
+    const monitor = performanceMonitor()
+    const performanceMetrics = monitor.getWebVitals()
 
     setMetrics(prev => ({
       ...prev,
@@ -92,7 +93,7 @@ export default function MonitoringDashboard() {
       averageSessionDuration: Math.floor(Math.random() * 300) + 120,
       bounceRate: Math.random() * 20 + 30,
       errorRate: Math.random() * 2 + 1,
-      performanceScore: performanceMonitor.getPerformanceScore()
+      performanceScore: monitor.getPerformanceScore()
     }))
 
     setRealtimeData({
