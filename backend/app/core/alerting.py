@@ -12,8 +12,8 @@ from enum import Enum
 import json
 import aiohttp
 import smtplib
-from email.mime.text import MimeText
-from email.mime.multipart import MimeMultipart
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 from app.core.config import settings
 
@@ -417,7 +417,7 @@ class AlertManager:
         if not all([smtp_server, smtp_username, smtp_password, recipient_emails]):
             return
         
-        msg = MimeMultipart()
+        msg = MIMEMultipart()
         msg['From'] = smtp_username
         msg['To'] = ', '.join(recipient_emails)
         msg['Subject'] = f"[{alert.level.value.upper()}] Web3Search Alert: {alert.rule_name}"
@@ -434,7 +434,7 @@ class AlertManager:
         {json.dumps(alert.details, indent=2, ensure_ascii=False)}
         """
         
-        msg.attach(MimeText(body, 'plain', 'utf-8'))
+        msg.attach(MIMEText(body, 'plain', 'utf-8'))
         
         try:
             server = smtplib.SMTP(smtp_server, smtp_port)
