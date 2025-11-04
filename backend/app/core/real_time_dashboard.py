@@ -834,7 +834,7 @@ class RealTimeDashboard:
                 timestamp=datetime.now(),
                 trend=trend,
                 trend_percentage=trend_percentage,
-                value=float(previous_value),
+                previous_value=float(previous_value),
                 alert_level=alert_level
             )
             
@@ -862,7 +862,7 @@ class RealTimeDashboard:
                 timestamp=datetime.now(),
                 trend=trend,
                 trend_percentage=trend_percentage,
-                value=float(previous_value),
+                previous_value=float(previous_value),
                 alert_level=alert_level
             )
             
@@ -888,7 +888,7 @@ class RealTimeDashboard:
                 timestamp=datetime.now(),
                 trend=trend,
                 trend_percentage=trend_percentage,
-                value=float(previous_value),
+                previous_value=float(previous_value),
                 alert_level=alert_level
             )
             
@@ -918,7 +918,7 @@ class RealTimeDashboard:
                 timestamp=datetime.now(),
                 trend=trend,
                 trend_percentage=trend_percentage,
-                value=previous_value,
+                previous_value=previous_value,
                 alert_level=alert_level
             )
             
@@ -948,7 +948,7 @@ class RealTimeDashboard:
                 timestamp=datetime.now(),
                 trend=trend,
                 trend_percentage=trend_percentage,
-                value=previous_value,
+                previous_value=previous_value,
                 alert_level=alert_level
             )
             
