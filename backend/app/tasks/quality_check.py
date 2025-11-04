@@ -11,7 +11,7 @@ from celery import Task
 from sqlalchemy import select, desc
 
 from app.tasks.celery_app import celery_app
-from app.core.database import get_db_session
+from app.core.database import AsyncSessionLocal
 from app.models import ProjectSnapshot, DataQualityReport
 from app.core.data_validator import data_validator
 from app.core.data_quality import data_quality_metrics
@@ -61,7 +61,7 @@ def generate_data_quality_report(self: Task):
         logger.info("🔄 开始生成数据质量报告...")
 
         # 获取数据库会话
-        session = run_async(get_db_session())
+        session = run_async(AsyncSessionLocal().__aenter__())
 
         # 查询最近1小时的快照
         one_hour_ago = datetime.utcnow() - timedelta(hours=1)

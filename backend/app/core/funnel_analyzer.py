@@ -11,7 +11,7 @@ from enum import Enum
 import logging
 
 from app.core.redis_client import get_redis_client
-from app.core.database import get_db_session
+from app.core.database import AsyncSessionLocal
 from app.core.business_metrics import business_metrics_collector
 from app.core.business_tracker import tracker
 from app.models.user import User

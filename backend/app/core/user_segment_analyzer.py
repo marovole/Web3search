@@ -13,7 +13,7 @@ import numpy as np
 from collections import defaultdict, Counter
 
 from app.core.redis_client import get_redis_client
-from app.core.database import get_db_session
+from app.core.database import AsyncSessionLocal
 from app.core.business_metrics import business_metrics_collector
 from app.core.funnel_analyzer import funnel_analyzer, FunnelType, FunnelStage
 from app.core.conversion_monitor import conversion_monitor, ConversionEventType
@@ -648,7 +648,7 @@ class UserSegmentAnalyzer:
     async def _get_total_users(self, start_date: datetime, end_date: datetime) -> int:
         """获取总用户数"""
         try:
-            async with get_db_session() as session:
+            async with AsyncSessionLocal() as session:
                 from sqlalchemy import func
                 result = await session.execute(
                     func.count(User.id).filter(

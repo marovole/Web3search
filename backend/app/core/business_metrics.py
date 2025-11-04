@@ -11,7 +11,7 @@ from enum import Enum
 import logging
 
 from app.core.redis_client import get_redis_client
-from app.core.database import get_db_session
+from app.core.database import get_db, AsyncSessionLocal
 from app.models.user import User
 from app.models.report import Report
 from sqlalchemy import func, and_, or_
@@ -172,7 +172,7 @@ class BusinessMetricsCollector:
             date = datetime.now().date()
         
         try:
-            async with get_db_session() as session:
+            async with AsyncSessionLocal() as session:
                 # 总用户数
                 total_users_result = await session.execute(func.count(User.id))
                 total_users = total_users_result.scalar() or 0
@@ -345,7 +345,7 @@ class BusinessMetricsCollector:
         segments = {level: 0 for level in UserActivityLevel}
         
         try:
-            async with get_db_session() as session:
+            async with AsyncSessionLocal() as session:
                 # 获取所有用户最后活动时间
                 # 这里需要根据实际的用户活动表来查询
                 # 暂时返回模拟数据
@@ -387,7 +387,7 @@ class BusinessMetricsCollector:
         try:
             # 基于多个因素计算参与度评分
             # 1. 活跃用户比例
-            async with get_db_session() as session:
+            async with AsyncSessionLocal() as session:
                 total_users_result = await session.execute(func.count(User.id))
                 total_users = total_users_result.scalar() or 1
             
