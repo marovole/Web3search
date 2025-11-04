@@ -93,5 +93,48 @@ This project contributes to ongoing research discussions in:
 - **Web3 Analytics Frameworks**  
 - **Privacy-Preserving Distributed Computation**  
 
-All publications or derivative works citing this repository should note that **no proprietary or restricted datasets** (such as Polygon.io data) are included in or redistributed through this project.  
-Only algorithmic concepts, architectures, and open methodologies are shared.  
+All publications or derivative works citing this repository should note that **no proprietary or restricted datasets** (such as Polygon.io data) are included in or redistributed through this project.
+Only algorithmic concepts, architectures, and open methodologies are shared.
+
+---
+
+### 🧪 Testing
+
+The project includes comprehensive integration tests to ensure API reliability and prevent production issues.
+
+#### Test Structure
+- **Backend Integration Tests**: `backend/tests/integration/`
+  - API endpoint tests
+  - Environment configuration validation
+  - Database and Redis integration
+
+- **Frontend Integration Tests**: `frontend/tests/integration/`
+  - API client testing
+  - Environment configuration
+  - Error handling validation
+
+- **End-to-End Tests**: `frontend/tests/e2e/`
+  - Complete API flow testing
+  - Cross-service integration
+
+#### Running Tests
+
+**Backend:**
+```bash
+cd backend
+pytest tests/integration/ -v --cov=app
+```
+
+**Frontend:**
+```bash
+cd frontend
+npm run test:integration
+npm run test:e2e
+```
+
+**CI/CD:**
+Integration tests run automatically on:
+- Pull requests to `main` or `develop`
+- Push to `main` or `develop` branches
+
+See `docs/testing-guide.md` for detailed testing documentation.  

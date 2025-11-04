@@ -4,54 +4,91 @@
 TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose after archive.
 ## Requirements
 ### Requirement: 机构级Markdown报告生成
-系统**SHALL**生成符合机构研报标准的Markdown格式报告，集成table_generator和chart_generator自动生成表格和图表，包含完整的结构化内容和数据可视化。
+系统 SHALL 生成符合机构研报标准的Markdown格式报告，**完整实现六维分析内容整合和质量验证**。
 
 #### Scenario: 生成完整研究报告结构
 - **WHEN** Deep Research完成所有分析维度
 - **THEN** 报告包含以下章节（按顺序）：
-  1. **标题**：`# [项目名称] 研究级报告`
-  2. **TL;DR**：核心判断+置信度+一句话总结
+  1. **标题**：`# [项目名称] 深度研究报告`
+  2. **TL;DR**：核心判断（Bull/Neutral/Bear）+置信度+一句话总结
   3. **核心分析**：
-     - 时间窗分析（24h/7d/30d）
-     - 社媒与新闻情绪分析
-     - 技术面分析
-     - 链上交易与基本面
-     - 竞品对比分析
-     - 代币与经济模型
-     - 催化与风险评估
-  4. **结论**：一句话判断+短中期观点+关键跟踪指标
+     - **时间窗分析（24h/7d/30d）**：价格变化、交易量趋势、市场表现
+     - **基本面分析**：项目背景、团队、代币经济学、TVL、协议收入
+     - **技术面分析**：价格走势、支撑阻力、技术指标、交易信号
+     - **链上数据分析**：活跃地址、交易笔数、大户持仓、链上交易量
+     - **社媒情绪分析**：Twitter/Reddit/Telegram情绪聚合、热度趋势
+     - **竞品对比分析**：多维度对比表格（交易量、TVL、市值、估值倍数）
+  4. **代币经济学**：流通供应、释放计划、持仓分布
+  5. **风险评估**：市场风险、技术风险、监管风险、竞争风险
+  6. **结论**：投资建议+关键跟踪指标+预期催化剂
 - **AND** 总字数3000-5000字
-- **AND** 包含至少3个表格（通过table_generator生成）
-- **AND** 包含至少2个图表（通过chart_generator生成）
-- **AND** 从analyzers的visualization_hints字段自动提取数据用于生成表格和图表
+- **AND** 包含至少3个Markdown表格
+- **AND** 每个分析维度150-500字
+- **AND** 使用清晰的结构和格式（标题层级、列表、粗体）
 
-#### Scenario: 从Analyzer输出生成表格和图表
-- **WHEN** 报告生成器接收到analyzer输出
-- **THEN** 解析analyzer的visualization_hints字段
-- **AND** 当type为"table"时，调用table_generator生成Markdown表格
-- **AND** 当type为"chart"时，调用chart_generator生成图表并Base64编码
-- **AND** 将生成的表格和图表嵌入到对应章节
-- **AND** 表格和图表生成失败时记录警告但不中断报告生成
+#### Scenario: 从Analyzer输出整合报告
+- **WHEN** 报告生成器接收到所有analyzer输出
+- **THEN** 解析每个analyzer返回的结构化数据：
+  ```python
+  {
+      "dimension": "tldr",
+      "content": "...",
+      "metadata": {
+          "model": "qwen3-235b",
+          "confidence": 85,
+          "timestamp": "..."
+      },
+      "tables": [...],  # 表格数据
+      "metrics": {...}  # 关键指标
+  }
+  ```
+- **AND** 按预定义顺序排列各个分析维度
+- **AND** 提取tables字段生成Markdown表格
+- **AND** 格式化metrics字段为关键指标列表
+- **AND** 在每个章节末尾添加数据来源标注
+- **AND** 生成metadata记录使用的模型版本和Prompt版本
 
-#### Scenario: Markdown格式规范
+#### Scenario: Markdown格式规范和质量
 - **WHEN** 生成Markdown内容
 - **THEN** 遵循以下格式规范：
-  - 一级标题：`# 标题`
-  - 二级标题：`## 标题`
-  - 三级标题：`### 标题`
-  - 粗体：`**文字**`
-  - 列表：`- 项目` 或 `1. 项目`
+  - 一级标题：`# 标题`（仅报告标题）
+  - 二级标题：`## 标题`（主要章节）
+  - 三级标题：`### 标题`（子章节）
+  - 粗体：`**文字**`（强调关键信息）
+  - 列表：`- 项目`（要点）或`1. 项目`（有序列表）
   - 表格：使用GitHub Flavored Markdown表格语法
-  - 代码块：使用三个反引号包裹
-- **AND** 换行使用两个空格或空行
+  - 代码块：使用三个反引号包裹（用于显示原始数据）
+- **AND** 换行使用空行分隔段落
 - **AND** 特殊字符正确转义（如`$`转义为`\$`）
+- **AND** 数字格式化（价格保留2位小数、大数字使用亿/万单位）
 
-#### Scenario: 报告结构验证
+#### Scenario: 报告质量验证流程
 - **WHEN** 报告生成完成
-- **THEN** 调用quality_validator验证所有必需章节存在
-- **AND** 验证每个章节内容长度符合要求（如TL;DR < 200字）
-- **AND** 验证Markdown语法正确性
-- **AND** 验证失败时记录错误并标记报告为"质量不合格"
+- **THEN** 调用quality_validator执行以下验证：
+  1. **结构完整性**：检查所有必需章节存在
+  2. **内容长度**：每个章节内容长度符合要求（TL;DR 50-200字，其他150-500字）
+  3. **Markdown语法**：验证标题层级正确、表格格式有效
+  4. **数据一致性**：报告中的数字与原始数据差异< 10%
+  5. **可读性评分**：计算整体质量评分（0-100）
+- **AND** 验证通过后返回报告
+- **AND** 验证失败时记录详细错误并标记报告为"质量不合格"
+- **AND** 严重质量问题时拒绝返回报告，要求重新生成
+
+#### Scenario: 部分维度失败的报告生成
+- **WHEN** 某些分析维度失败但至少50%维度成功
+- **THEN** 生成部分报告，包含成功的维度
+- **AND** 在报告顶部添加警告：
+  ```markdown
+  > ⚠️ **注意**：部分分析维度生成失败，报告可能不完整。
+  > 失败的维度：技术面分析、竞品对比分析
+  ```
+- **AND** 失败的维度章节显示占位符：
+  ```markdown
+  ## 技术面分析
+  该分析维度暂时不可用，请稍后重试或联系支持团队。
+  ```
+- **AND** 报告metadata标记为"partial_success"
+- **AND** 提供"重新生成失败维度"的选项
 
 ### Requirement: 动态表格生成
 系统**SHALL**使用table_generator模块根据analyzer输出动态生成Markdown表格，支持复杂的多列对比。
@@ -208,77 +245,96 @@ TBD - created by archiving change add-crypto-ai-search-platform. Update Purpose 
 - **AND** 通知运维团队（通过Sentry）
 
 ### Requirement: 分享链接生成
-系统**SHALL**为每份报告生成唯一的分享链接，支持无需登录访问。
+系统 SHALL 为每份报告生成唯一的分享链接，**支持完整的报告访问和过期管理**。
 
-#### Scenario: 分享链接生成
+#### Scenario: 分享链接生成和存储
 - **WHEN** 报告生成完成
-- **THEN** 创建唯一share_token（使用UUID v4）
-- **AND** 将报告内容和metadata存储到`reports`表
-- **AND** 设置过期时间为7天（expires_at = now() + 7 days）
+- **THEN** 创建唯一share_token（使用UUID v4，32位hex）
+- **AND** 将报告完整内容存储到`reports`表：
+  ```sql
+  INSERT INTO reports (
+    id, share_token, project_name, report_type,
+    content, metadata, expires_at, created_at
+  ) VALUES (
+    uuid_generate_v4(), 'abc123...', 'Hyperliquid', 'deep_research',
+    '...', '{"quality_score": 85, ...}', now() + interval '7 days', now()
+  )
+  ```
+- **AND** 设置过期时间为7天
 - **AND** 返回分享URL：`https://web3search.ai/reports/{share_token}`
-- **AND** 前端显示"复制链接"按钮（点击复制到剪贴板）
+- **AND** 前端显示"复制链接"按钮（一键复制到剪贴板）
+- **AND** 显示过期时间提示："此链接将在7天后过期"
 
 #### Scenario: 通过分享链接访问报告
 - **WHEN** 用户访问分享链接（如`/reports/abc123...`）
 - **THEN** 后端查询`reports`表（WHERE share_token = 'abc123...'）
 - **AND** 检查是否过期（expires_at > now()）
-- **AND** 如未过期，返回报告内容（Markdown格式）
-- **AND** 前端渲染报告（包含表格和图表）
-- **AND** 显示提示："此报告生成于XX天前，数据可能已过时"
+- **AND** 如未过期，返回报告内容（JSON格式）
+- **AND** 前端渲染完整报告（包含所有章节、表格）
+- **AND** 显示生成时间和数据新鲜度提示
+- **AND** 提供"导出PDF"选项
+- **AND** 增加访问计数（views字段+1）
 
-#### Scenario: 分享链接过期处理
+#### Scenario: 分享链接过期和清理
 - **WHEN** 用户访问已过期的分享链接
 - **THEN** 返回404错误
 - **AND** 显示友好提示："此报告已过期（保留期7天），请重新生成"
 - **AND** 提供"重新生成"按钮（跳转到首页并预填项目名）
-
-#### Scenario: 定时清理过期报告
-- **WHEN** Celery定时任务每天凌晨3点执行
-- **THEN** 删除`reports`表中过期的记录（expires_at < now()）
-- **AND** 记录删除数量到日志
-- **AND** 释放数据库存储空间
+- **AND** Celery定时任务每日凌晨3点清理过期记录
+- **AND** 清理时记录删除数量到日志
 
 ### Requirement: 报告质量验证
-系统**SHALL**验证生成报告的质量，确保符合标准。
+系统 SHALL 验证生成报告的质量，**实施严格的质量门禁和评分机制**。
 
 #### Scenario: 结构完整性检查
 - **WHEN** 报告生成完成
 - **THEN** 验证以下章节存在：
-  - TL;DR
-  - 时间窗分析
-  - 社媒情绪
-  - 技术面
-  - 基本面
-  - 竞品对比
-  - 代币经济学
-  - 风险评估
-  - 结论
-- **AND** 如缺少任何章节，标记为"结构不完整"
-- **AND** 在报告顶部添加警告："报告生成不完整，部分章节缺失"
+  - TL;DR ✅
+  - 基本面分析 ✅
+  - 技术面分析 ✅
+  - 链上数据分析 ✅
+  - 社媒情绪分析 ✅
+  - 竞品对比分析 ✅
+  - 代币经济学 ✅
+  - 风险评估 ✅
+  - 结论 ✅
+- **AND** 如缺少超过2个章节，拒绝生成报告
+- **AND** 如缺少1-2个章节，标记为"部分完成"并添加警告
+- **AND** 记录缺失章节到metadata
 
-#### Scenario: 数据准确性检查
-- **WHEN** 报告包含数字数据（如价格、市值）
-- **THEN** 与原始输入数据交叉验证
-- **AND** 如差异> 10%，标记为"数据可能不准确"
-- **AND** 在对应章节添加警告标识："⚠️ 数据可能存在偏差"
+#### Scenario: 数据准确性验证
+- **WHEN** 报告包含数字数据（如价格、市值、TVL）
+- **THEN** 与原始输入数据交叉验证：
+  ```python
+  diff = abs(report_value - source_value) / source_value
+  if diff > 0.10:  # 差异>10%
+      warnings.append("数据可能不准确")
+  ```
+- **AND** 如发现数据偏差> 10%，在对应章节添加警告："⚠️ 数据可能存在偏差"
+- **AND** 严重偏差（> 30%）时拒绝该章节内容，要求重新生成
+- **AND** 记录所有数据验证结果到日志
 
-#### Scenario: 可读性评分
+#### Scenario: 质量评分计算
 - **WHEN** 报告生成完成
-- **THEN** 计算可读性评分（0-100）：
-  - 字数符合范围（3000-5000）：+20分
-  - 包含所有必需章节：+20分
-  - 表格数量>= 3：+20分
-  - 图表数量>= 2：+20分
-  - Markdown格式正确：+20分
-- **AND** 如评分< 60分，标记为"质量不合格"
-- **AND** 在管理后台显示质量评分趋势
+- **THEN** 计算综合质量评分（0-100）：
+  - **结构完整性**（30分）：所有章节存在+20，缺1-2章节+10，缺3+章节+0
+  - **内容长度**（20分）：总字数在3000-5000范围+20，否则按比例扣分
+  - **表格数量**（15分）：>= 3个表格+15，2个+10，1个+5
+  - **数据准确性**（20分）：无偏差+20，轻微偏差+10，严重偏差+0
+  - **Markdown格式**（15分）：格式正确+15，轻微问题+10，严重问题+5
+- **AND** 评分>= 80分：标记为"优质"
+- **AND** 评分60-79分：标记为"合格"
+- **AND** 评分< 60分：标记为"不合格"，拒绝返回
+- **AND** 在报告metadata中记录质量评分
+- **AND** 在管理后台显示质量评分趋势图
 
-#### Scenario: 人工抽检机制
-- **WHEN** 每日生成超过10份报告
-- **THEN** 随机抽取5份报告进行人工审核
-- **AND** 审核标准：与Hyperliquid PDF对比（结构/数据/可读性）
-- **AND** 记录审核评分（1-5星）
-- **AND** 平均评分< 3星时触发告警（Prompt需要优化）
+#### Scenario: 质量门禁和拒绝机制
+- **WHEN** 质量评分< 60分或存在严重问题
+- **THEN** 拒绝返回报告给用户
+- **AND** 返回错误："报告质量不符合标准，请稍后重试"
+- **AND** 自动触发重新生成（最多2次）
+- **AND** 2次重试仍失败时通知运维团队
+- **AND** 记录详细的质量问题到日志（用于Prompt优化）
 
 ### Requirement: Frontend Report Display
 The system SHALL provide comprehensive frontend display capabilities for generated reports.

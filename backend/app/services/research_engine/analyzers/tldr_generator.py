@@ -5,11 +5,9 @@ TL;DR 生成器
 import json
 import time
 from typing import Dict, Any, Optional
-from pathlib import Path
-import yaml
 
 from app.services.llm import llm_client, ModelConfig
-from app.core.config import settings
+from app.services.prompt_manager import prompt_manager
 from app.services.research_engine.analyzers.analyzer_output import (
     AnalyzerOutput,
     create_analyzer_output,
@@ -27,23 +25,18 @@ class TLDRGenerator:
     def __init__(self):
         """初始化TL;DR生成器"""
         self.llm_client = llm_client
-        self._load_prompts()
+        self.prompt_manager = prompt_manager
 
-    def _load_prompts(self):
-        """加载提示词模板"""
-        prompts_dir = Path(settings.BASE_DIR) / "prompts" / "deep_research"
-        tldr_yaml_path = prompts_dir / "tldr.yaml"
+        # 获取模板元数据
+        metadata = self.prompt_manager.get_template_metadata("tldr")
+        self.model = metadata["model"]
+        self.temperature = metadata["temperature"]
+        self.max_tokens = metadata["max_tokens"]
 
-        if not tldr_yaml_path.exists():
-            raise FileNotFoundError(f"TL;DR提示词文件不存在: {tldr_yaml_path}")
-
-        with open(tldr_yaml_path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-
-        self.system_prompt = data.get("system_prompt", "")
-        self.user_prompt_template = data.get("user_prompt_template", "")
-        self.model_config = data.get("model_config", {})
-        self.output_validation = data.get("output_validation", {})
+        # 输出格式验证规则
+        self.required_fields = ["core_thesis", "confidence", "one_liner"]
+        self.valid_thesis_values = ["Bull", "Neutral", "Bear"]
+        self.confidence_range = {"min": 0, "max": 100}
 
     async def generate_tldr(
         self,
@@ -90,18 +83,18 @@ class TLDRGenerator:
         )
 
         # 调用LLM生成
-        model_used = self.model_config.get("primary_model", ModelConfig.DEEP_RESEARCH_SUMMARY)
+        model_used = self.model
         fallback_used = False
 
         try:
-            # 使用qwen3-235b主模型
+            # 使用模板配置的主模型
             result = await self._call_llm(user_prompt, use_fallback=False)
         except Exception as e:
             print(f"⚠️ 主模型调用失败: {e}，尝试fallback模型")
             try:
-                # Fallback到qwen3-30b
+                # Fallback到快速模型
                 result = await self._call_llm(user_prompt, use_fallback=True)
-                model_used = self.model_config.get("fallback_model", ModelConfig.QUICK_CHAT)
+                model_used = ModelConfig.QUICK_CHAT
                 fallback_used = True
             except Exception as fallback_error:
                 # 如果两个模型都失败，返回错误响应
@@ -114,6 +107,9 @@ class TLDRGenerator:
             print("⚠️ 输出格式验证失败，使用默认值补全")
             validation_warnings.append("输出格式验证失败，已使用默认值补全")
             result = self._fix_invalid_output(result, symbol)
+        else:
+            # 格式正确，转换为旧格式
+            result = self._transform_output_format(result, symbol)
 
         # 计算生成时间
         generation_time_ms = int((time.time() - start_time) * 1000)
@@ -141,56 +137,38 @@ class TLDRGenerator:
         social_data: Dict,
         onchain_data: Dict,
     ) -> str:
-        """格式化用户提示词"""
+        """格式化用户提示词，使用PromptManager"""
         # 安全提取数据（带默认值）
         current_price = market_data.get("current_price", "N/A")
         market_cap = market_data.get("market_cap", "N/A")
-        market_rank = market_data.get("market_cap_rank", "N/A")
-        price_change_24h = market_data.get("price_change_percentage_24h", "N/A")
-        price_change_7d = market_data.get("price_change_percentage_7d", "N/A")
-        price_change_30d = market_data.get("price_change_percentage_30d", "N/A")
+        price_change_24h = market_data.get("price_change_percentage_24h", 0)
+        price_change_7d = market_data.get("price_change_percentage_7d", 0)
+        price_change_30d = market_data.get("price_change_percentage_30d", 0)
         volume_24h = market_data.get("total_volume", "N/A")
-        circulating_supply = market_data.get("circulating_supply", "N/A")
-        total_supply = market_data.get("total_supply", "N/A")
 
         project_name = project_info.get("name", symbol)
-        categories = ", ".join(project_info.get("categories", [])[:3]) or "N/A"
-        description = project_info.get("description", {}).get("en", "N/A")
-        if len(description) > 300:
-            description = description[:297] + "..."
 
         twitter_followers = social_data.get("twitter", {}).get("followers", "N/A")
         reddit_subscribers = social_data.get("reddit", {}).get("subscribers", "N/A")
-        social_sentiment = social_data.get("overall_sentiment", "N/A")
-        discussion_heat = social_data.get("discussion_heat", "N/A")
+        twitter_sentiment = social_data.get("twitter", {}).get("sentiment", "中性")
+        reddit_sentiment = social_data.get("reddit", {}).get("sentiment", "中性")
 
         active_addresses = onchain_data.get("active_addresses", "N/A")
-        holder_count = onchain_data.get("holder_count", "N/A")
-        whale_activity = onchain_data.get("whale_activity", "N/A")
+        daily_transactions = onchain_data.get("daily_transactions", "N/A")
 
-        # 替换模板占位符
-        prompt = self.user_prompt_template.format(
-            query=query,
-            symbol=symbol,
-            current_price=current_price,
-            market_cap=market_cap,
-            market_rank=market_rank,
+        # 使用PromptManager渲染模板
+        prompt = self.prompt_manager.get_tldr_prompt(
+            project_name=project_name,
+            price=current_price,
+            market_cap=str(market_cap),
+            volume_24h=str(volume_24h),
             price_change_24h=price_change_24h,
             price_change_7d=price_change_7d,
             price_change_30d=price_change_30d,
-            volume_24h=volume_24h,
-            circulating_supply=circulating_supply,
-            total_supply=total_supply,
-            project_name=project_name,
-            categories=categories,
-            description=description,
-            twitter_followers=twitter_followers,
-            reddit_subscribers=reddit_subscribers,
-            social_sentiment=social_sentiment,
-            discussion_heat=discussion_heat,
-            active_addresses=active_addresses,
-            holder_count=holder_count,
-            whale_activity=whale_activity,
+            active_addresses=str(active_addresses),
+            daily_transactions=str(daily_transactions),
+            twitter_sentiment=f"{twitter_sentiment} ({twitter_followers} followers)",
+            reddit_sentiment=f"{reddit_sentiment} ({reddit_subscribers} subscribers)",
         )
 
         return prompt
@@ -200,30 +178,23 @@ class TLDRGenerator:
         调用LLM生成TL;DR
 
         Args:
-            user_prompt: 用户提示词
+            user_prompt: 渲染后的完整prompt（包含system和user部分）
             use_fallback: 是否使用fallback模型
 
         Returns:
             Dict: 解析后的JSON响应
         """
-        model = (
-            self.model_config.get("fallback_model", ModelConfig.QUICK_CHAT)
-            if use_fallback
-            else self.model_config.get("primary_model", ModelConfig.DEEP_RESEARCH_SUMMARY)
-        )
-
-        temperature = self.model_config.get("temperature", 0.3)
-        max_tokens = self.model_config.get("max_tokens", 800)
+        # 使用模板配置的模型，或fallback到默认模型
+        model = self.model if not use_fallback else ModelConfig.QUICK_CHAT
 
         # 调用LLM
         response = await self.llm_client.chat_completion(
             messages=[
-                {"role": "system", "content": self.system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
             model=model,
-            temperature=temperature,
-            max_tokens=max_tokens,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
         )
 
         content = response.get("content", "")
@@ -248,7 +219,7 @@ class TLDRGenerator:
 
     def _validate_output(self, result: Dict[str, Any]) -> bool:
         """
-        验证输出格式
+        验证输出格式（适配新模板格式）
 
         Args:
             result: LLM生成的结果
@@ -256,35 +227,99 @@ class TLDRGenerator:
         Returns:
             bool: 是否符合格式要求
         """
-        required_fields = self.output_validation.get("required_fields", [])
-
         # 检查必填字段
-        for field in required_fields:
+        for field in self.required_fields:
             if field not in result:
                 print(f"❌ 缺少必填字段: {field}")
                 return False
 
-        # 验证judgment值
-        valid_judgments = self.output_validation.get("judgment_values", [])
-        if result.get("judgment") not in valid_judgments:
-            print(f"❌ judgment值无效: {result.get('judgment')}")
+        # 验证core_thesis值
+        core_thesis = result.get("core_thesis", "")
+        if core_thesis not in self.valid_thesis_values:
+            print(f"❌ core_thesis值无效: {core_thesis}")
             return False
 
         # 验证confidence范围
         confidence = result.get("confidence", -1)
-        conf_range = self.output_validation.get("confidence_range", {})
-        if not (conf_range.get("min", 0) <= confidence <= conf_range.get("max", 100)):
+        if not (self.confidence_range["min"] <= confidence <= self.confidence_range["max"]):
             print(f"❌ confidence超出范围: {confidence}")
             return False
 
-        # 验证summary长度
-        summary = result.get("summary", "")
-        summary_length = self.output_validation.get("summary_length", {})
-        if not (summary_length.get("min", 0) <= len(summary) <= summary_length.get("max", 300)):
-            print(f"⚠️ summary长度不符合要求: {len(summary)}字")
+        # 验证one_liner长度
+        one_liner = result.get("one_liner", "")
+        if not (50 <= len(one_liner) <= 300):
+            print(f"⚠️ one_liner长度不符合要求: {len(one_liner)}字")
             # 长度问题不算严重错误，只警告
 
         return True
+
+    def _transform_output_format(self, result: Dict[str, Any], symbol: str) -> Dict[str, Any]:
+        """
+        将新格式转换为旧格式（保持向后兼容）
+
+        新格式:
+        {
+            "core_thesis": "Bull/Neutral/Bear",
+            "confidence": 85,
+            "one_liner": "一句话总结",
+            "key_metrics": {...}
+        }
+
+        转换为旧格式:
+        {
+            "judgment": "BULL/NEUTRAL/BEAR",
+            "judgment_emoji": "🟢/🟡/🔴",
+            "confidence": 85,
+            "confidence_level": "高/中/低",
+            "summary": "一句话总结",
+            "key_metrics": {...},
+            "reasoning": "..."
+        }
+
+        Args:
+            result: 新格式的结果
+            symbol: 币种符号
+
+        Returns:
+            Dict: 旧格式的结果
+        """
+        # 映射core_thesis到judgment
+        thesis_to_judgment = {
+            "Bull": "BULL",
+            "Neutral": "NEUTRAL",
+            "Bear": "BEAR",
+        }
+        judgment = thesis_to_judgment.get(result.get("core_thesis", "Neutral"), "NEUTRAL")
+
+        # 映射judgment到emoji
+        judgment_emoji_map = {
+            "BULL": "🟢",
+            "NEUTRAL": "🟡",
+            "BEAR": "🔴",
+        }
+        judgment_emoji = judgment_emoji_map[judgment]
+
+        # 映射confidence到confidence_level
+        confidence = result.get("confidence", 50)
+        if confidence >= 80:
+            confidence_level = "高"
+        elif confidence >= 60:
+            confidence_level = "中等"
+        else:
+            confidence_level = "低"
+
+        # 转换为旧格式
+        transformed = {
+            "judgment": judgment,
+            "judgment_emoji": judgment_emoji,
+            "confidence": confidence,
+            "confidence_level": confidence_level,
+            "summary": result.get("one_liner", f"{symbol}项目的数据不完整，暂时无法给出明确判断。"),
+            "key_metrics": result.get("key_metrics", {}),
+            "reasoning": result.get("one_liner", "数据不足，需要更多信息。"),  # one_liner兼作reasoning
+        }
+
+        return transformed
 
     def _fix_invalid_output(self, result: Dict[str, Any], symbol: str) -> Dict[str, Any]:
         """
@@ -295,33 +330,27 @@ class TLDRGenerator:
             symbol: 币种符号
 
         Returns:
-            Dict: 修复后的结果
+            Dict: 修复后的旧格式结果
         """
-        # 设置默认值
-        fixed = {
-            "judgment": result.get("judgment", "NEUTRAL"),
-            "judgment_emoji": result.get("judgment_emoji", "🟡"),
-            "confidence": result.get("confidence", 50),
-            "confidence_level": result.get("confidence_level", "中等"),
-            "summary": result.get("summary", f"{symbol}项目的数据不完整，暂时无法给出明确判断。"),
+        # 尝试从新格式或旧格式中提取数据
+        core_thesis = result.get("core_thesis", result.get("judgment", "Neutral"))
+        if core_thesis in ["BULL", "NEUTRAL", "BEAR"]:
+            # 如果是旧格式的值，转换为新格式
+            core_thesis = core_thesis.capitalize()
+
+        confidence = result.get("confidence", 50)
+        one_liner = result.get("one_liner", result.get("summary", f"{symbol}项目的数据不完整，暂时无法给出明确判断。"))
+
+        # 构建有效的新格式
+        fixed_new_format = {
+            "core_thesis": core_thesis if core_thesis in self.valid_thesis_values else "Neutral",
+            "confidence": max(0, min(100, confidence)),
+            "one_liner": one_liner,
             "key_metrics": result.get("key_metrics", {}),
-            "reasoning": result.get("reasoning", "数据不足，需要更多信息。"),
         }
 
-        # 确保judgment和emoji匹配
-        judgment_emoji_map = {
-            "BULL": "🟢",
-            "NEUTRAL": "🟡",
-            "BEAR": "🔴",
-        }
-        fixed["judgment_emoji"] = judgment_emoji_map.get(
-            fixed["judgment"], "🟡"
-        )
-
-        # 确保confidence在范围内
-        fixed["confidence"] = max(0, min(100, fixed["confidence"]))
-
-        return fixed
+        # 转换为旧格式
+        return self._transform_output_format(fixed_new_format, symbol)
 
     def _create_error_response(self, symbol: str, error_msg: str, model_used: str) -> AnalyzerOutput:
         """

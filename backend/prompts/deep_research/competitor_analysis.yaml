@@ -1,0 +1,92 @@
+# 竞品对比分析Prompt模板
+name: "Competitor Analysis"
+version: "1.0.0"
+description: "对比分析项目与主要竞品的优劣势"
+
+model: "qwen/qwen-2.5-72b-instruct:free"
+temperature: 0.6
+max_tokens: 700
+
+system: |
+  你是一位擅长竞品分析的加密货币研究员。
+  你的任务是客观对比项目与主要竞品，识别相对优势和劣势。
+
+  对比维度：
+  1. 市场份额（TVL、交易量、用户数）
+  2. 产品功能和技术创新
+  3. 代币表现（价格、市值、估值倍数）
+  4. 社区活跃度和生态发展
+  5. 竞争优势和差距
+
+  输出要求：
+  - 使用Markdown表格对比关键指标
+  - 客观分析，不偏袒任何一方
+  - 长度：200-400字
+
+user_template: |
+  请对比分析以下项目与其主要竞品：
+
+  **目标项目**: {project_name}
+  - TVL: ${project_tvl}
+  - 日交易量: ${project_volume}
+  - 活跃用户: {project_users}
+  - 市值: ${project_market_cap}
+
+  **竞品1**: {competitor1_name}
+  - TVL: ${competitor1_tvl}
+  - 日交易量: ${competitor1_volume}
+  - 活跃用户: {competitor1_users}
+  - 市值: ${competitor1_market_cap}
+
+  **竞品2**: {competitor2_name}
+  - TVL: ${competitor2_tvl}
+  - 日交易量: ${competitor2_volume}
+  - 活跃用户: {competitor2_users}
+  - 市值: ${competitor2_market_cap}
+
+  请生成对比分析报告：
+
+  ## 关键指标对比
+
+  | 指标 | {project_name} | {competitor1_name} | {competitor2_name} |
+  |------|----------------|-------------------|-------------------|
+  | TVL | ${project_tvl} | ${competitor1_tvl} | ${competitor2_tvl} |
+  | 日交易量 | ${project_volume} | ${competitor1_volume} | ${competitor2_volume} |
+  | 活跃用户 | {project_users} | {competitor1_users} | {competitor2_users} |
+  | 市值 | ${project_market_cap} | ${competitor1_market_cap} | ${competitor2_market_cap} |
+
+  ## 相对优势
+  [目标项目的竞争优势]
+
+  ## 差距分析
+  [与竞品相比的不足]
+
+  ## 市场地位
+  [在赛道中的排名和份额]
+
+few_shot_examples:
+  - input: |
+      目标项目: Uniswap
+      TVL: $4.5B, 日交易量: $1.2B, 活跃用户: 250K, 市值: $5.5B
+      竞品1: SushiSwap
+      TVL: $800M, 日交易量: $200M, 活跃用户: 50K, 市值: $600M
+      竞品2: PancakeSwap
+      TVL: $2.1B, 日交易量: $500M, 活跃用户: 180K, 市值: $1.2B
+    output: |
+      ## 关键指标对比
+
+      | 指标 | Uniswap | SushiSwap | PancakeSwap |
+      |------|---------|-----------|-------------|
+      | TVL | $4.5B | $800M | $2.1B |
+      | 日交易量 | $1.2B | $200M | $500M |
+      | 活跃用户 | 250K | 50K | 180K |
+      | 市值 | $5.5B | $600M | $1.2B |
+
+      ## 相对优势
+      Uniswap在所有关键指标上领先，TVL和交易量遥遥领先。V3集中流动性创新提升资金效率，多链部署巩固市场地位。品牌认知度最高，机构用户首选。
+
+      ## 差距分析
+      估值倍数相对较高（P/TVL约1.2x），成长空间不如竞品大。手续费分配机制不如SushiSwap对代币持有者友好。
+
+      ## 市场地位
+      DEX龙头，占据约55%市场份额。以太坊上绝对领先，但在BSC等其他链上份额被PancakeSwap蚕食。

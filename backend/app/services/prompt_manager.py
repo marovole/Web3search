@@ -59,20 +59,55 @@ class PromptManager:
         self._cache[full_filename] = data
         return data
 
+    def _validate_template(self, data: Dict[str, Any]) -> bool:
+        """
+        验证模板包含必需字段
+
+        Args:
+            data: YAML模板数据
+
+        Returns:
+            bool: 验证是否通过
+
+        Raises:
+            ValueError: 缺少必需字段时抛出
+        """
+        required_fields = ["name", "model", "system"]
+        missing = [f for f in required_fields if f not in data]
+
+        if missing:
+            raise ValueError(f"模板缺少必需字段: {', '.join(missing)}")
+
+        # 检查至少有一个用户模板字段
+        if "user_template" not in data and "user_prompt_template" not in data:
+            raise ValueError("模板必须包含 'user_template' 或 'user_prompt_template' 字段")
+
+        return True
+
     def _render_prompt(self, data: Dict[str, Any], **kwargs) -> str:
         """
-        Render the prompt using Jinja2
+        使用Jinja2渲染prompt
+        支持新旧两种模板格式
         """
+        # 验证模板
+        self._validate_template(data)
+
         env = jinja2.Environment(loader=jinja2.BaseLoader)
-        user_template = env.from_string(data["user_prompt_template"])
+
+        # 兼容新旧字段名
+        user_template_str = data.get("user_template") or data.get("user_prompt_template")
+        system_prompt_str = data.get("system") or data.get("system_prompt")
+
+        user_template = env.from_string(user_template_str)
         rendered_user = user_template.render(**kwargs)
 
-        full_prompt = data["system_prompt"] + "\n\n" + rendered_user
+        full_prompt = system_prompt_str + "\n\n" + rendered_user
 
-        # Append examples if present
-        if "examples" in data and data["examples"]:
+        # 兼容新旧示例字段名
+        examples = data.get("few_shot_examples") or data.get("examples")
+        if examples:
             full_prompt += "\n\n## Examples:\n"
-            for ex in data["examples"][:3]:  # Limit to 3 examples
+            for ex in examples[:3]:  # Limit to 3 examples
                 full_prompt += f"Input: {ex.get('input', 'N/A')}\nOutput: {ex.get('output', 'N/A')}\n\n"
 
         return full_prompt
@@ -106,97 +141,110 @@ class PromptManager:
     # ================================
 
     def get_tldr_prompt(self, **kwargs) -> str:
-        """
-        获取TL;DR生成提示词
-        """
+        """获取TL;DR生成提示词"""
         filename = f"{self.DEEP_RESEARCH_DIR}/tldr.yaml"
         data = self._load_yaml(filename)
         return self._render_prompt(data, **kwargs)
 
-    def get_timeframe_prompt(self, **kwargs) -> str:
-        """
-        获取时间窗分析提示词
-        """
-        filename = f"{self.DEEP_RESEARCH_DIR}/timeframe.yaml"
+    def get_fundamental_analysis_prompt(self, **kwargs) -> str:
+        """获取基本面分析提示词"""
+        filename = f"{self.DEEP_RESEARCH_DIR}/fundamental_analysis.yaml"
         data = self._load_yaml(filename)
         return self._render_prompt(data, **kwargs)
+
+    def get_technical_analysis_prompt(self, **kwargs) -> str:
+        """获取技术分析提示词"""
+        filename = f"{self.DEEP_RESEARCH_DIR}/technical_analysis.yaml"
+        data = self._load_yaml(filename)
+        return self._render_prompt(data, **kwargs)
+
+    def get_competitor_analysis_prompt(self, **kwargs) -> str:
+        """获取竞品对比分析提示词"""
+        filename = f"{self.DEEP_RESEARCH_DIR}/competitor_analysis.yaml"
+        data = self._load_yaml(filename)
+        return self._render_prompt(data, **kwargs)
+
+    def get_risk_assessment_prompt(self, **kwargs) -> str:
+        """获取风险评估提示词"""
+        filename = f"{self.DEEP_RESEARCH_DIR}/risk_assessment.yaml"
+        data = self._load_yaml(filename)
+        return self._render_prompt(data, **kwargs)
+
+    # Legacy methods for backward compatibility
+    def get_timeframe_prompt(self, **kwargs) -> str:
+        """获取时间窗分析提示词（如果存在）"""
+        try:
+            filename = f"{self.DEEP_RESEARCH_DIR}/timeframe.yaml"
+            data = self._load_yaml(filename)
+            return self._render_prompt(data, **kwargs)
+        except FileNotFoundError:
+            # Fallback to technical analysis
+            return self.get_technical_analysis_prompt(**kwargs)
 
     def get_technical_prompt(self, **kwargs) -> str:
-        """
-        获取技术面分析提示词
-        """
-        filename = f"{self.DEEP_RESEARCH_DIR}/technical.yaml"
-        data = self._load_yaml(filename)
-        return self._render_prompt(data, **kwargs)
+        """Legacy: 映射到技术分析"""
+        return self.get_technical_analysis_prompt(**kwargs)
 
     def get_tokenomics_prompt(self, **kwargs) -> str:
-        """
-        获取代币经济学分析提示词
-        """
-        filename = f"{self.DEEP_RESEARCH_DIR}/tokenomics.yaml"
-        data = self._load_yaml(filename)
-        return self._render_prompt(data, **kwargs)
+        """获取代币经济学分析提示词（如果存在）"""
+        try:
+            filename = f"{self.DEEP_RESEARCH_DIR}/tokenomics.yaml"
+            data = self._load_yaml(filename)
+            return self._render_prompt(data, **kwargs)
+        except FileNotFoundError:
+            # Fallback to fundamental analysis
+            return self.get_fundamental_analysis_prompt(**kwargs)
 
     def get_onchain_prompt(self, **kwargs) -> str:
-        """
-        获取链上数据分析提示词
-        """
-        filename = f"{self.DEEP_RESEARCH_DIR}/onchain.yaml"
-        data = self._load_yaml(filename)
-        return self._render_prompt(data, **kwargs)
+        """获取链上数据分析提示词（如果存在）"""
+        try:
+            filename = f"{self.DEEP_RESEARCH_DIR}/onchain.yaml"
+            data = self._load_yaml(filename)
+            return self._render_prompt(data, **kwargs)
+        except FileNotFoundError:
+            # Fallback to fundamental analysis
+            return self.get_fundamental_analysis_prompt(**kwargs)
 
     def get_sentiment_prompt(self, **kwargs) -> str:
-        """
-        获取社媒情绪分析提示词
-        """
-        filename = f"{self.DEEP_RESEARCH_DIR}/sentiment.yaml"
-        data = self._load_yaml(filename)
-        return self._render_prompt(data, **kwargs)
+        """获取社媒情绪分析提示词（如果存在）"""
+        try:
+            filename = f"{self.DEEP_RESEARCH_DIR}/sentiment.yaml"
+            data = self._load_yaml(filename)
+            return self._render_prompt(data, **kwargs)
+        except FileNotFoundError:
+            # Placeholder for future implementation
+            return "社媒情绪分析暂未实现"
 
     def get_competitor_prompt(self, **kwargs) -> str:
-        """
-        获取竞品分析提示词
-        """
-        filename = f"{self.DEEP_RESEARCH_DIR}/competitor.yaml"
-        data = self._load_yaml(filename)
-        return self._render_prompt(data, **kwargs)
+        """Legacy: 映射到竞品分析"""
+        return self.get_competitor_analysis_prompt(**kwargs)
 
     def get_risk_prompt(self, **kwargs) -> str:
-        """
-        获取风险评估提示词
-        """
-        filename = f"{self.DEEP_RESEARCH_DIR}/risk.yaml"
-        data = self._load_yaml(filename)
-        return self._render_prompt(data, **kwargs)
+        """Legacy: 映射到风险评估"""
+        return self.get_risk_assessment_prompt(**kwargs)
 
     def get_conclusion_prompt(self, **kwargs) -> str:
-        """
-        获取结论合成提示词
-        """
-        filename = f"{self.DEEP_RESEARCH_DIR}/conclusion.yaml"
-        data = self._load_yaml(filename)
-        return self._render_prompt(data, **kwargs)
+        """获取结论合成提示词（如果存在）"""
+        try:
+            filename = f"{self.DEEP_RESEARCH_DIR}/conclusion.yaml"
+            data = self._load_yaml(filename)
+            return self._render_prompt(data, **kwargs)
+        except FileNotFoundError:
+            # Placeholder for future implementation
+            return "结论合成分析暂未实现"
 
-    # Legacy methods - map to new
+    # Additional legacy mappings
     def get_overview_prompt(self, **kwargs) -> str:
-        """Legacy: Map to conclusion for overview"""
+        """Legacy: 映射到结论合成"""
         return self.get_conclusion_prompt(**kwargs)
 
     def get_market_analysis_prompt(self, **kwargs) -> str:
-        """Legacy: Map to tokenomics or onchain"""
-        return self.get_tokenomics_prompt(**kwargs)
+        """Legacy: 映射到基本面分析"""
+        return self.get_fundamental_analysis_prompt(**kwargs)
 
     def get_community_analysis_prompt(self, **kwargs) -> str:
-        """Legacy: Map to sentiment"""
+        """Legacy: 映射到社媒情绪分析"""
         return self.get_sentiment_prompt(**kwargs)
-
-    def get_risk_assessment_prompt(self, **kwargs) -> str:
-        """Legacy: Already matches"""
-        return self.get_risk_prompt(**kwargs)
-
-    def get_competitor_analysis_prompt(self, **kwargs) -> str:
-        """Legacy: Already matches"""
-        return self.get_competitor_prompt(**kwargs)
 
     def get_full_report_structure(self, **kwargs) -> str:
         """
@@ -213,6 +261,51 @@ class PromptManager:
     # ================================
     # 辅助方法
     # ================================
+
+    def get_template_metadata(self, template_name: str) -> Dict[str, Any]:
+        """
+        获取模板元数据（版本、模型配置等）
+
+        Args:
+            template_name: 模板名称（不含.yaml后缀）
+
+        Returns:
+            Dict: 包含版本、模型、温度等元数据
+        """
+        filename = f"{self.DEEP_RESEARCH_DIR}/{template_name}.yaml"
+        data = self._load_yaml(filename)
+
+        return {
+            "name": data.get("name"),
+            "version": data.get("version", "1.0.0"),
+            "description": data.get("description", ""),
+            "model": data.get("model"),
+            "temperature": data.get("temperature", 0.7),
+            "max_tokens": data.get("max_tokens", 500),
+        }
+
+    def get_template_with_config(self, template_name: str, **kwargs) -> Dict[str, Any]:
+        """
+        获取渲染后的prompt和模型配置
+
+        Args:
+            template_name: 模板名称（不含.yaml后缀）
+            **kwargs: 模板变量
+
+        Returns:
+            Dict: 包含prompt、model、temperature、max_tokens
+        """
+        filename = f"{self.DEEP_RESEARCH_DIR}/{template_name}.yaml"
+        data = self._load_yaml(filename)
+
+        rendered_prompt = self._render_prompt(data, **kwargs)
+
+        return {
+            "prompt": rendered_prompt,
+            "model": data.get("model", "qwen/qwen-2.5-72b-instruct:free"),
+            "temperature": data.get("temperature", 0.7),
+            "max_tokens": data.get("max_tokens", 500),
+        }
 
     def reload_cache(self):
         """清空缓存并重新加载"""
@@ -233,9 +326,10 @@ class PromptManager:
                 try:
                     data = self._load_yaml(f"{self.DEEP_RESEARCH_DIR}/{yaml_file.name}")
                     available[yaml_file.stem] = {
+                        "name": data.get("name", yaml_file.stem),
                         "version": data.get("version", "unknown"),
                         "description": data.get("description", "No description"),
-                        "variables": len(data.get("variables", []))
+                        "model": data.get("model", "N/A"),
                     }
                 except Exception as e:
                     print(f"⚠️ 加载 {yaml_file.name} 失败: {e}")
