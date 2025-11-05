@@ -13,9 +13,9 @@ from app.models.code_review import CodeReview, CodeReviewStatus
 from app.services.llm import LLMClient
 from .security_analyzer import SecurityVulnerabilityAnalyzer
 from .quality_analyzer import CodeQualityAnalyzer
-from .architecture_analyzer import ArchitectureAnalyzer
-from .gas_analyzer import GasEfficiencyAnalyzer
-from .compliance_analyzer import ComplianceAnalyzer
+# from .architecture_analyzer import ArchitectureAnalyzer  # TODO: Implement
+# from .gas_analyzer import GasEfficiencyAnalyzer  # TODO: Implement
+# from .compliance_analyzer import ComplianceAnalyzer  # TODO: Implement
 
 logger = logging.getLogger(__name__)
 
@@ -28,9 +28,9 @@ class CodeAnalysisOrchestrator:
         self.analyzers = {
             "security": SecurityVulnerabilityAnalyzer(self.llm_service),
             "quality": CodeQualityAnalyzer(self.llm_service),
-            "architecture": ArchitectureAnalyzer(self.llm_service),
-            "gas": GasEfficiencyAnalyzer(self.llm_service),
-            "compliance": ComplianceAnalyzer(self.llm_service)
+            # "architecture": ArchitectureAnalyzer(self.llm_service),  # TODO: Implement
+            # "gas": GasEfficiencyAnalyzer(self.llm_service),  # TODO: Implement
+            # "compliance": ComplianceAnalyzer(self.llm_service)  # TODO: Implement
         }
     
     async def run_analysis(self, code_review_id: str):
