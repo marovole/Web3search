@@ -805,7 +805,6 @@ class TechnicalAnalyzer:
             atl_price=support_resistance.get("atl_price", "N/A"),
             atl_distance=market_data.get("atl_change_percentage", "N/A"),
             # 成交量分析
-            volume_24h=volume_analysis.get("volume_24h", "N/A"),
             volume_strength=volume_analysis.get("volume_strength", "N/A"),
             volume_signal=volume_analysis.get("volume_signal", "N/A"),
             volume_anomalies=", ".join(volume_analysis.get("anomalies_detected", [])) or "无异常",
