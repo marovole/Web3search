@@ -464,6 +464,22 @@ class Settings(BaseSettings):
     VERCEL_ENV: str = Field(default="", description="Vercel环境")
 
     # ================================
+    # Loki 日志聚合配置（可选）
+    # ================================
+    LOKI_URL: str = Field(
+        default="http://localhost:3100",
+        description="Loki 服务URL（默认: http://localhost:3100）"
+    )
+    LOKI_USERNAME: str = Field(
+        default="",
+        description="Loki 认证用户名（可选）"
+    )
+    LOKI_PASSWORD: str = Field(
+        default="",
+        description="Loki 认证密码（可选）"
+    )
+
+    # ================================
     # 辅助方法
     # ================================
     def mask_sensitive(self, value: str) -> str:
