@@ -2,10 +2,10 @@
 聊天API端点
 提供Quick Chat和Deep Research功能
 """
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 import uuid
 import json
 
