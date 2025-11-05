@@ -29,11 +29,7 @@
     "deploy": "./scripts/deploy.sh",
     "deploy:prod": "./scripts/deploy.sh --prod",
     "vercel": "vercel",
-    "vercel:prod": "vercel --prod",
-    "cf:build": "vite build",
-    "cf:preview": "wrangler pages dev dist",
-    "cf:deploy": "wrangler pages deploy dist --project-name=web3search",
-    "cf:deploy:prod": "wrangler pages deploy dist --project-name=web3search --branch=main"
+    "vercel:prod": "vercel --prod"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -96,7 +92,6 @@
     "typescript": "^5.2.2",
     "vite": "^5.0.8",
     "web-streams-polyfill": "^4.2.0",
-    "whatwg-fetch": "^3.6.20",
-    "wrangler": "^3.80.0"
+    "whatwg-fetch": "^3.6.20"
   }
 }

@@ -137,4 +137,43 @@ Integration tests run automatically on:
 - Pull requests to `main` or `develop`
 - Push to `main` or `develop` branches
 
-See `docs/testing-guide.md` for detailed testing documentation.  
+See `docs/testing-guide.md` for detailed testing documentation.
+
+---
+
+### 🚀 Deployment
+
+The project is deployed using the following infrastructure:
+
+#### Frontend
+- **Platform**: Vercel
+- **Production URL**: https://web3search.vercel.app
+- **Deployment**: Automatic via GitHub Actions on push to `main`
+- **Configuration**: See `frontend/vercel.json`
+
+#### Backend API
+- **Platform**: Render
+- **Production URL**: https://web3search-api.onrender.com
+- **API Documentation**: https://web3search-api.onrender.com/docs
+- **Configuration**: See `backend/render.yaml`
+
+#### Database
+- **Service**: PostgreSQL on Render
+- **Plan**: Free tier
+
+#### Deployment Commands
+```bash
+# Frontend (deployed automatically via GitHub Actions)
+cd frontend
+npm run build
+
+# Or manually deploy to Vercel
+npm run vercel:prod
+
+# Backend (deployed automatically via Render)
+# No manual deployment needed - pushes to main trigger automatic deployment
+```
+
+For detailed deployment instructions, see `docs/DEPLOYMENT.md`.
+
+**Note**: Previous Cloudflare Pages deployment configuration has been archived to `docs/archive/cloudflare/`.
