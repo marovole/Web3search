@@ -299,6 +299,18 @@ class Settings(BaseSettings):
         description="BSCScan API基础URL"
     )
 
+    # PolygonScan
+    POLYGONSCAN_API_KEY: str = Field(
+        default="",
+        description="PolygonScan API密钥（可选）"
+    )
+
+    # Arbiscan
+    ARBISCAN_API_KEY: str = Field(
+        default="",
+        description="Arbiscan API密钥（可选）"
+    )
+
     # Twitter
     TWITTER_BEARER_TOKEN: str = Field(
         default="",
