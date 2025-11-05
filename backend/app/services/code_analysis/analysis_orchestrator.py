@@ -10,7 +10,7 @@ from uuid import UUID
 from app.core.database import get_db
 from app.core.redis_client import redis_client
 from app.models.code_review import CodeReview, CodeReviewStatus
-from app.services.llm import LLMService
+from app.services.llm import LLMClient
 from .security_analyzer import SecurityVulnerabilityAnalyzer
 from .quality_analyzer import CodeQualityAnalyzer
 from .architecture_analyzer import ArchitectureAnalyzer
@@ -24,7 +24,7 @@ class CodeAnalysisOrchestrator:
     """Orchestrates multiple code analyzers and manages the analysis pipeline"""
     
     def __init__(self):
-        self.llm_service = LLMService()
+        self.llm_service = LLMClient()
         self.analyzers = {
             "security": SecurityVulnerabilityAnalyzer(self.llm_service),
             "quality": CodeQualityAnalyzer(self.llm_service),

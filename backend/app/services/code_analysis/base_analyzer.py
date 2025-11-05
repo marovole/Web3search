@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 import logging
 from app.models.code_review import CodeReview, AnalysisResult
-from app.services.llm import LLMService
+from app.services.llm import LLMClient
 from app.core.redis_client import redis_client
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class BaseCodeAnalyzer(ABC):
     """Base class for all code analyzers"""
     
-    def __init__(self, llm_service: LLMService):
+    def __init__(self, llm_service: LLMClient):
         self.llm_service = llm_service
         self.name = self.__class__.__name__
         self.version = "1.0.0"
