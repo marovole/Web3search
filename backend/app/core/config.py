@@ -188,12 +188,12 @@ class Settings(BaseSettings):
         """验证Redis URL格式"""
         if not v:
             # 空字符串表示禁用 Redis
-            logger.warning("REDIS_URL 为空，Redis 功能将被禁用")
+            logging.warning("REDIS_URL 为空，Redis 功能将被禁用")
             return v
 
         # 允许 disabled:// 前缀来显式禁用 Redis
         if v.startswith("disabled://"):
-            logger.info("Redis 已通过 disabled:// 前缀显式禁用")
+            logging.info("Redis 已通过 disabled:// 前缀显式禁用")
             return v
 
         # 验证 Redis URL 必须以正确的 scheme 开头
