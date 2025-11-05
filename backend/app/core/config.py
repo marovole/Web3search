@@ -305,6 +305,12 @@ class Settings(BaseSettings):
         description="Twitter Bearer Token（可选）"
     )
 
+    # Telegram
+    TELEGRAM_BOT_TOKEN: str = Field(
+        default="",
+        description="Telegram Bot Token（可选）"
+    )
+
     # Reddit
     REDDIT_CLIENT_ID: str = Field(
         default="",
