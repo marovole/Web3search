@@ -156,7 +156,7 @@ class TrendingTopic(Base):
     trend_score = Column(Float, default=0.0)
     
     # 详细数据
-    metadata = Column(JSON)  # 额外的元数据
+    extra_metadata = Column(JSON)  # 额外的元数据
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
