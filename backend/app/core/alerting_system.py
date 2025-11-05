@@ -10,8 +10,8 @@ from typing import Dict, List, Any, Optional, Union, Callable
 from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
 from enum import Enum
-from email.mime.text import MimeText
-from email.mime.multipart import MimeMultipart
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import aiohttp
 import aiofiles
 from abc import ABC, abstractmethod
@@ -257,7 +257,7 @@ class EmailProvider(NotificationProvider):
         """发送邮件通知"""
         try:
             # 创建邮件消息
-            msg = MimeMultipart()
+            msg = MIMEMultipart()
             msg['From'] = self.from_email
             msg['To'] = ', '.join(self.to_emails)
             msg['Subject'] = f"[{alert.severity.value.upper()}] {alert.title}"
@@ -302,7 +302,7 @@ class EmailProvider(NotificationProvider):
             </html>
             """
             
-            msg.attach(MimeText(html_content, 'html'))
+            msg.attach(MIMEText(html_content, 'html'))
             
             # 发送邮件
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
