@@ -17,20 +17,38 @@ redis_client: Optional[Redis] = None
 async_redis_client: Optional[AsyncRedis] = None
 
 
-def get_redis() -> Redis:
+def get_redis() -> Optional[Redis]:
     """
     获取同步Redis客户端（单例模式）
 
+    返回 None 如果 Redis 被禁用或 URL 无效
+
     Returns:
-        Redis: 同步Redis客户端实例
+        Optional[Redis]: 同步Redis客户端实例，或 None 如果 Redis 不可用
     """
     global redis_client
+
+    # 如果 Redis 被禁用（disabled:// 或为空），返回 None
+    if not settings.REDIS_URL or settings.REDIS_URL.startswith("disabled://"):
+        return None
+
     if redis_client is None:
-        redis_client = Redis.from_url(
-            settings.REDIS_URL,
-            decode_responses=True,
-            encoding="utf-8",
-        )
+        try:
+            redis_client = Redis.from_url(
+                settings.REDIS_URL,
+                decode_responses=True,
+                encoding="utf-8",
+            )
+        except ValueError as e:
+            # Redis URL 格式错误，记录错误但不抛出异常
+            import logging
+            logging.error(f"Redis URL 格式错误: {e}. 请确保 REDIS_URL 以 redis://, rediss:// 或 unix:// 开头")
+            return None
+        except Exception as e:
+            # 其他错误记录日志
+            import logging
+            logging.error(f"Redis 连接错误: {e}")
+            return None
     return redis_client
 
 

@@ -182,6 +182,28 @@ class Settings(BaseSettings):
         description="Redis连接字符串"
     )
 
+    @field_validator("REDIS_URL")
+    @classmethod
+    def validate_redis_url(cls, v: str) -> str:
+        """验证Redis URL格式"""
+        if not v:
+            # 空字符串表示禁用 Redis
+            logger.warning("REDIS_URL 为空，Redis 功能将被禁用")
+            return v
+
+        # 允许 disabled:// 前缀来显式禁用 Redis
+        if v.startswith("disabled://"):
+            logger.info("Redis 已通过 disabled:// 前缀显式禁用")
+            return v
+
+        # 验证 Redis URL 必须以正确的 scheme 开头
+        if not v.startswith(("redis://", "rediss://", "unix://")):
+            raise ValueError(
+                f"REDIS_URL 必须以 redis://、rediss:// 或 unix:// 开头，当前值: {v[:50]}..."
+            )
+
+        return v
+
     # ================================
     # JWT认证配置
     # ================================

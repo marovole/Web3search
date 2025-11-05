@@ -697,16 +697,68 @@ class LogAnalyzer:
         return events
 
 
-# 全局日志聚合系统实例
-loki_client = LokiClient(
-    base_url=settings.LOKI_URL or "http://localhost:3100",
-    username=settings.LOKI_USERNAME,
-    password=settings.LOKI_PASSWORD
-)
+# 全局日志聚合系统实例（延迟初始化）
+_loki_client = None
+_log_aggregator = None
+_log_index_manager = None
+_log_analyzer = None
 
-log_aggregator = LogAggregator(loki_client)
-log_index_manager = LogIndexManager(get_redis_client())
-log_analyzer = LogAnalyzer(log_aggregator)
+
+def get_loki_client() -> LokiClient:
+    """获取 Loki 客户端实例（延迟初始化）"""
+    global _loki_client
+    if _loki_client is None:
+        _loki_client = LokiClient(
+            base_url=settings.LOKI_URL or "http://localhost:3100",
+            username=settings.LOKI_USERNAME,
+            password=settings.LOKI_PASSWORD
+        )
+    return _loki_client
+
+
+def get_log_aggregator() -> LogAggregator:
+    """获取日志聚合器实例（延迟初始化）"""
+    global _log_aggregator
+    if _log_aggregator is None:
+        _log_aggregator = LogAggregator(get_loki_client())
+    return _log_aggregator
+
+
+def get_log_index_manager() -> LogIndexManager:
+    """获取日志索引管理器实例（延迟初始化）"""
+    global _log_index_manager
+    if _log_index_manager is None:
+        redis_client = get_redis_client()
+        if redis_client is None:
+            # Redis 不可用时，使用空操作的实现（避免崩溃）
+            import logging
+            logging.warning("Redis 不可用，日志索引功能将被禁用")
+            # 返回一个占位实例，所有操作都是空操作
+            class NoOpLogIndexManager:
+                def __getattr__(self, name):
+                    def noop(*args, **kwargs):
+                        pass
+                    return noop
+            _log_index_manager = NoOpLogIndexManager()
+        else:
+            _log_index_manager = LogIndexManager(redis_client)
+    return _log_index_manager
+
+
+def get_log_analyzer() -> LogAnalyzer:
+    """获取日志分析器实例（延迟初始化）"""
+    global _log_analyzer
+    if _log_analyzer is None:
+        _log_analyzer = LogAnalyzer(get_log_aggregator())
+    return _log_analyzer
+
+
+# 初始化全局实例（保持向后兼容）
+# 通过 getter 函数初始化，确保 Redis 不可用时也能正常工作
+loki_client = get_loki_client()
+log_aggregator = get_log_aggregator()
+log_index_manager = get_log_index_manager()
+log_analyzer = get_log_analyzer()
 
 
 # 导入Counter用于统计分析
