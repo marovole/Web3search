@@ -65,6 +65,23 @@ class Base(DeclarativeBase):
     pass
 
 
+def get_async_session():
+    """
+    获取数据库会话的异步上下文管理器
+
+    用于需要直接使用数据库会话的场景（非FastAPI依赖注入）
+
+    使用方法:
+    async with get_async_session() as session:
+        result = await session.execute(select(Item))
+        await session.commit()
+
+    Returns:
+        AsyncSession: 异步数据库会话上下文管理器
+    """
+    return AsyncSessionLocal()
+
+
 # 依赖注入：获取数据库会话
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
