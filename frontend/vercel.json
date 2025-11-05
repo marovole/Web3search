@@ -15,7 +15,7 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://web3search-api.onrender.com/api/v1" },
+    { "source": "/api/(.*)", "destination": "https://web3search-api.onrender.com/api/v1/$1" },
     { "source": "/sw.js", "destination": "/sw.js" },
     { "source": "/manifest.webmanifest", "destination": "/manifest.webmanifest" },
     { "source": "/(.*)", "destination": "/index.html" }
