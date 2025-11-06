@@ -237,7 +237,7 @@ async def disable_recovery_rule(
 async def get_recovery_executions(
     start_time: Optional[str] = Query(None, description="开始时间 (ISO格式)"),
     end_time: Optional[str] = Query(None, description="结束时间 (ISO格式)"),
-    status: Optional[str] = Query(None, regex="^(pending|running|success|failed|cancelled)$", description="状态过滤"),
+    status: Optional[str] = Query(None, pattern="^(pending|running|success|failed|cancelled)$", description="状态过滤"),
     rule_id: Optional[str] = Query(None, description="规则ID过滤"),
     limit: int = Query(default=50, ge=1, le=200, description="返回数量限制"),
     current_user: User = Depends(require_admin)

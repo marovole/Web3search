@@ -693,8 +693,8 @@ async def get_storage_performance(
 
 @router.get("/alerts")
 async def get_network_storage_alerts(
-    status: Optional[str] = Query(None, regex="^(active|resolved|all)$", description="告警状态过滤"),
-    severity: Optional[str] = Query(None, regex="^(warning|critical|all)$", description="严重程度过滤"),
+    status: Optional[str] = Query(None, pattern="^(active|resolved|all)$", description="告警状态过滤"),
+    severity: Optional[str] = Query(None, pattern="^(warning|critical|all)$", description="严重程度过滤"),
     limit: int = Query(default=50, ge=1, le=100, description="返回数量限制"),
     current_user: User = Depends(require_admin)
 ) -> Dict[str, Any]:

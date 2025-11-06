@@ -51,7 +51,7 @@ class LogAnalysisRequest(BaseModel):
 class LogExportRequest(BaseModel):
     """日志导出请求"""
     query: LogQueryRequest
-    format: str = Field(default="json", regex="^(json|csv|xlsx)$", description="导出格式")
+    format: str = Field(default="json", pattern="^(json|csv|xlsx)$", description="导出格式")
     include_fields: List[str] = Field(default=["timestamp", "level", "message", "service", "source"], description="包含字段")
 
 
@@ -349,7 +349,7 @@ async def get_log_levels_distribution(
     start_time: datetime = Query(..., description="开始时间"),
     end_time: datetime = Query(..., description="结束时间"),
     service: Optional[str] = Query(None, description="服务过滤"),
-    interval: str = Query(default="hour", regex="^(minute|hour|day)$", description="时间间隔"),
+    interval: str = Query(default="hour", pattern="^(minute|hour|day)$", description="时间间隔"),
     current_user: User = Depends(require_admin)
 ) -> Dict[str, Any]:
     """
@@ -424,7 +424,7 @@ async def detect_log_anomalies(
     start_time: datetime = Query(..., description="检测开始时间"),
     end_time: datetime = Query(..., description="检测结束时间"),
     service: Optional[str] = Query(None, description="服务过滤"),
-    sensitivity: str = Query(default="medium", regex="^(low|medium|high)$", description="敏感度"),
+    sensitivity: str = Query(default="medium", pattern="^(low|medium|high)$", description="敏感度"),
     current_user: User = Depends(require_admin)
 ) -> Dict[str, Any]:
     """

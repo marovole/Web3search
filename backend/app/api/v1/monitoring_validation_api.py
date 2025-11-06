@@ -196,7 +196,7 @@ async def get_validation_report(
 @router.get("/validation-history")
 async def get_validation_history(
     days: int = Query(default=30, ge=1, le=90, description="查询天数"),
-    status: Optional[str] = Query(None, regex="^(passed|failed|warning|all)$", description="状态过滤"),
+    status: Optional[str] = Query(None, pattern="^(passed|failed|warning|all)$", description="状态过滤"),
     limit: int = Query(default=20, ge=1, le=100, description="返回数量限制"),
     current_user: User = Depends(require_admin)
 ) -> Dict[str, Any]:
