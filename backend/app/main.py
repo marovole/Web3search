@@ -3,6 +3,7 @@ FastAPI主应用
 Web3 Search - 加密货币AI搜索引擎
 """
 from contextlib import asynccontextmanager
+from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -793,6 +794,27 @@ app.add_middleware(RateLimitMiddleware)
 # ================================
 
 from app.api.v1 import api_router
+
+# 添加简单的根路径健康检查（在复杂路由之前）
+@app.get("/")
+async def root_health():
+    """简单健康检查端点，用于验证应用是否启动成功"""
+    return {
+        "status": "healthy",
+        "service": "web3search_backend",
+        "version": "1.0.0",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.get("/health")
+async def simple_health():
+    """简单健康检查端点，不依赖复杂系统"""
+    return {
+        "status": "healthy",
+        "service": "web3search_backend",
+        "version": "1.0.0",
+        "timestamp": datetime.now().isoformat()
+    }
 
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
