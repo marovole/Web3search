@@ -1,16 +1,1 @@
-# Cloudflare Pages Redirects Configuration
-# https://developers.cloudflare.com/pages/configuration/redirects/
-
-# API Proxy - 转发所有API请求到Render后端
-# 注意：Cloudflare Pages的_redirects不支持:splat，使用*代替
-/api/* https://web3search-api.onrender.com/api/v1/:splat 200
-
-# Health check endpoint
-/health https://web3search-api.onrender.com/health 200
-
-# API Documentation
-/docs https://web3search-api.onrender.com/docs 200
-/openapi.json https://web3search-api.onrender.com/openapi.json 200
-
-# SPA Fallback - 所有其他路由返回index.html
-/* /index.html 200
+/api/v1/*  https://web3search-api.onrender.com/api/v1/:splat  200

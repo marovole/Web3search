@@ -6,7 +6,7 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: './', // 设置为相对路径，确保在Netlify子目录部署时资源路径正确
+  base: '/web3search/', // GitHub Pages部署路径
   plugins: [
     react(),
     // Bundle分析插件
