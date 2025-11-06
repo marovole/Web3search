@@ -2,7 +2,7 @@
 监控体系验证API
 提供监控系统验证、健康检查和验证报告查询的REST API接口
 """
-from fastapi import APIRouter, HTTPException, Query, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Query, Depends, BackgroundTasks, Body
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 from pydantic import BaseModel, Field
