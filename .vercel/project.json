@@ -9,7 +9,7 @@
     "installCommand": null,
     "buildCommand": "npm run build",
     "outputDirectory": "dist",
-    "rootDirectory": "frontend",
+    "rootDirectory": null,
     "directoryListing": false,
     "nodeVersion": "22.x"
   }
