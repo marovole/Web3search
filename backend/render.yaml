@@ -1,33 +1,22 @@
 services:
-  # PostgreSQL Database
-  - type: pserv
-    name: web3search-postgres
-    plan: free
-    region: oregon
-    ipAllowList: []
-    postgresMajorVersion: 15
-
-  # Redis Cache
-  - type: redis
-    name: web3search-redis
-    plan: free
-    region: oregon
-    ipAllowList: []
-
-  # FastAPI Web Service
+  # 极简 FastAPI Web Service
   - type: web
     name: web3search-api
     runtime: python
-    plan: starter
+    plan: free
     region: oregon
-    buildCommand: >
-      pip install --no-cache-dir -r requirements.txt &&
-      python -m pip install --no-cache-dir gunicorn
-    startCommand: >
-      gunicorn app.main:app
-      --workers 2
-      --worker-class uvicorn.workers.UvicornWorker
-      --bind 0.0.0.0:8000
+    buildCommand: pip install --no-cache-dir fastapi uvicorn
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.9.6"
+      - key: ENVIRONMENT
+        value: "production"
+
+# 暂时禁用数据库和缓存服务
+# databases: []
+# redis: []
       --timeout 120
       --access-logfile -
       --error-logfile -
