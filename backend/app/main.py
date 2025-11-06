@@ -33,9 +33,10 @@ from app.core.logging_config import setup_logging
 # from app.core.infrastructure_recovery import infrastructure_recovery_manager
 # from app.core.monitoring_validator import monitoring_validator
 # from app.core.security_validator import security_validator
-from app.middleware.distributed_tracing import DistributedTracingMiddleware
-from app.api.middleware.required_auth import RequiredAuthMiddleware
-from app.api.middleware.request_signature import RequestSignatureMiddleware
+# 简化中间件导入，避免复杂依赖
+# from app.middleware.distributed_tracing import DistributedTracingMiddleware
+# from app.api.middleware.required_auth import RequiredAuthMiddleware
+# from app.api.middleware.request_signature import RequestSignatureMiddleware
 
 # 初始化日志系统
 setup_logging(level=settings.LOG_LEVEL)
@@ -582,9 +583,10 @@ async def list_tables():
 # 速率限制中间件
 # ================================
 
-from app.api.middleware.rate_limit import RateLimitMiddleware
+# 简化中间件配置，暂时禁用速率限制
+# from app.api.middleware.rate_limit import RateLimitMiddleware
 
-app.add_middleware(RateLimitMiddleware)
+# app.add_middleware(RateLimitMiddleware)
 
 
 # ================================
