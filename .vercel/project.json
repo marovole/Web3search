@@ -1,0 +1,16 @@
+{
+  "projectId": "prj_og4Fb9yBRC6l2P7uSXZoo1e3WlAM",
+  "orgId": "team_r1gTkbRKy7Od2s1a66YdiYTR",
+  "projectName": "web3search",
+  "settings": {
+    "createdAt": 1761485988895,
+    "framework": "vite",
+    "devCommand": null,
+    "installCommand": null,
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist",
+    "rootDirectory": "frontend",
+    "directoryListing": false,
+    "nodeVersion": "22.x"
+  }
+}
