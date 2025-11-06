@@ -49,5 +49,13 @@
   ],
   "redirects": [
     { "source": "/chat", "destination": "/", "permanent": false }
-  ]
+  ],
+  "env": {
+    "VITE_ENVIRONMENT": "production"
+  },
+  "build": {
+    "env": {
+      "VITE_ENVIRONMENT": "production"
+    }
+  }
 }
