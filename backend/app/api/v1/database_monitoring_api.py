@@ -408,7 +408,7 @@ async def get_active_queries(
                     "active_queries": active_queries,
                     "total_count": len(active_queries),
                     "timestamp": datetime.now().isoformat()
-                })
+                }
         
         return {"active_queries": [], "total_count": 0}
     
