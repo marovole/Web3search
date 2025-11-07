@@ -29,7 +29,6 @@ class RequiredAuthMiddleware(BaseHTTPMiddleware):
             "/api/v1/auth/register",
             "/api/v1/auth/refresh",
             "/api/v1/github/search",
-            "/api/v1/gitlab/search",
             "/api/v1/chat/quick-chat",
             "/docs",
             "/redoc",
