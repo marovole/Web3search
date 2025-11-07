@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { visualizer } from 'rollup-plugin-visualizer'
+import tsconfigPaths from 'vite-tsconfig-paths'
 import fs from 'fs'
 import path from 'path'
 
@@ -9,6 +10,7 @@ export default defineConfig({
   base: '/', // Vercel 部署到根路径
   plugins: [
     react(),
+    tsconfigPaths(), // 支持 TypeScript 路径别名解析
     // Bundle分析插件
     visualizer({
       filename: 'dist/stats.html',

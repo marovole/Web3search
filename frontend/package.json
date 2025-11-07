@@ -93,6 +93,7 @@
     "ts-jest": "^29.4.5",
     "typescript": "^5.2.2",
     "vite": "^5.0.8",
+    "vite-tsconfig-paths": "^5.1.4",
     "web-streams-polyfill": "^4.2.0",
     "whatwg-fetch": "^3.6.20"
   }
