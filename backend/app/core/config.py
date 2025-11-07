@@ -279,6 +279,26 @@ class Settings(BaseSettings):
         description="CoinGecko API基础URL"
     )
 
+    # GitHub
+    GITHUB_TOKEN: str = Field(
+        default="your_github_token_here",
+        description="GitHub个人访问令牌（PAT），从 https://github.com/settings/tokens 获取"
+    )
+    GITHUB_BASE_URL: str = Field(
+        default="https://api.github.com",
+        description="GitHub API基础URL"
+    )
+
+    # GitLab
+    GITLAB_TOKEN: str = Field(
+        default="your_gitlab_token_here",
+        description="GitLab个人访问令牌（PAT），从 https://gitlab.com/-/profile/personal_access_tokens 获取"
+    )
+    GITLAB_BASE_URL: str = Field(
+        default="https://gitlab.com/api/v4",
+        description="GitLab API基础URL"
+    )
+
     # Etherscan
     ETHERSCAN_API_KEY: str = Field(
         default="",
