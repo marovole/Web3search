@@ -1,0 +1,10 @@
+# Netlify SPA 路由支持
+# 所有非 API 路由都重定向到 index.html
+/*    /index.html   200
+
+# API 请求代理到后端
+/api/v1/*    https://web3search-api.onrender.com/api/v1/:splat    200
+
+# 聊天页面重定向
+/chat    /    302
+

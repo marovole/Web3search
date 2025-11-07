@@ -84,16 +84,44 @@ class DeepResearchEngine:
         if progress_callback:
             await progress_callback("📊 正在收集市场数据、链上数据和社交媒体数据...", 25)
 
-        aggregated_data = await self.data_aggregator.aggregate_project_data(symbol)
+        try:
+            aggregated_data = await self.data_aggregator.aggregate_project_data(symbol)
+        except Exception as data_error:
+            error_type = type(data_error).__name__
+            error_msg = str(data_error)
+            print(f"❌ 数据聚合失败 [{error_type}]: {error_msg}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "error": f"数据采集失败: {error_msg}",
+                "symbol": symbol,
+                "error_type": error_type,
+            }
 
         if "error" in aggregated_data:
+            error_msg = aggregated_data.get("error", "未知错误")
+            print(f"⚠️ 数据聚合返回错误: {error_msg}")
+            print(f"   聚合数据详情: {aggregated_data}")
             return {
-                "error": aggregated_data["error"],
+                "error": error_msg,
                 "symbol": symbol,
+                "aggregated_data": aggregated_data,  # 包含部分数据，便于调试
             }
 
         # 步骤2: 格式化数据为LLM可读格式
-        formatted_data = self.data_aggregator.format_for_llm(aggregated_data)
+        try:
+            formatted_data = self.data_aggregator.format_for_llm(aggregated_data)
+        except Exception as format_error:
+            error_type = type(format_error).__name__
+            error_msg = str(format_error)
+            print(f"❌ 数据格式化失败 [{error_type}]: {error_msg}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "error": f"数据格式化失败: {error_msg}",
+                "symbol": symbol,
+                "error_type": error_type,
+            }
 
         # 步骤3: 三阶段分析
         print("  🤖 生成分析...")

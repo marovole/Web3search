@@ -17,6 +17,7 @@ from app.core.funnel_analyzer import funnel_analyzer, FunnelType, FunnelStage
 from app.core.conversion_monitor import conversion_monitor, ConversionEventType, ConversionEvent
 from app.api.middleware.auth import optional_auth
 from app.models.user import User
+from app.core.config import settings
 from app.schemas.chat import (
     QuickChatRequest,
     QuickChatResponse,
@@ -492,7 +493,25 @@ async def deep_research(
             error_msg = str(research_error)
             print(f"❌ Deep Research引擎调用失败 [{error_type}]: {error_msg}")
             import traceback
-            traceback.print_exc()
+            traceback_str = traceback.format_exc()
+            print(f"   完整堆栈跟踪:\n{traceback_str}")
+            
+            # 记录到日志系统（如果可用）
+            try:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(
+                    f"Deep Research引擎调用失败",
+                    extra={
+                        "error_type": error_type,
+                        "error_message": error_msg,
+                        "query": request.query,
+                        "symbol": request.symbol,
+                        "traceback": traceback_str,
+                    }
+                )
+            except Exception:
+                pass  # 日志系统不可用时忽略
             
             # 根据错误类型返回不同的错误信息
             if "timeout" in error_msg.lower() or "timed out" in error_msg.lower():
@@ -506,9 +525,15 @@ async def deep_research(
                     detail=f"未找到相关信息: {error_msg}"
                 )
             else:
+                # 生产环境隐藏详细错误，但保留错误类型
+                detail_msg = (
+                    f"研究引擎调用失败 [{error_type}]" 
+                    if settings.DEBUG 
+                    else "服务暂时不可用，请稍后重试"
+                )
                 raise HTTPException(
                     status_code=500,
-                    detail=f"研究引擎调用失败: {error_msg if 'DEBUG' in str(research_error) else '服务暂时不可用，请稍后重试'}"
+                    detail=detail_msg
                 )
 
         # 检查是否有错误
