@@ -154,9 +154,6 @@ export default defineConfig({
       },
       // 外部依赖优化（如果有CDN版本）
       external: [],
-      commonjsOptions: {
-        esmExternals: true
-      },
     },
     // 压缩配置 - 使用esbuild替代terser以避免React初始化问题
     minify: 'esbuild',
