@@ -50,8 +50,12 @@ class DistributedTracingMiddleware(BaseHTTPMiddleware):
         # 使用OpenTelemetry追踪
         with trace_span(
             f"http.{request.method.lower()}.{request.url.path.replace('/', '.')}",
-            "http.request",
-            lambda span: self._enrich_span(span, request, trace_context)
+            {
+                "type": "http.request",
+                "method": request.method,
+                "path": request.url.path,
+                **trace_context
+            }
         ) if trace_span else trace_operation(
             f"http_{request.method.lower()}_{request.url.path.replace('/', '_')}",
             {"method": request.method, "path": request.url.path}
