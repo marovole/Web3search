@@ -30,6 +30,9 @@ class RequiredAuthMiddleware(BaseHTTPMiddleware):
             "/api/v1/auth/refresh",
             "/api/v1/github/search",
             "/api/v1/chat/quick-chat",
+            "/api/v1/search",  # 搜索API（公共端点）
+            "/api/v1/reports",  # 报告API（支持匿名访问）
+            "/api/v1/trending",  # 热点API（公共端点）
             "/docs",
             "/redoc",
             "/openapi.json",
