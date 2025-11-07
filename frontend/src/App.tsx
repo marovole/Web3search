@@ -61,13 +61,15 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       />
 
       <div className={cn(
-        "transition-all duration-300 ease-in-out",
+        "transition-all duration-300 ease-in-out min-h-screen",
         // Add padding for desktop sidebar
         !isMobile && "md:ml-72 lg:ml-80"
       )}>
         <div className="relative flex min-h-screen flex-col">
           <main className="flex-1 overflow-hidden">
-            {children}
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-full">
+              {children}
+            </div>
           </main>
         </div>
       </div>

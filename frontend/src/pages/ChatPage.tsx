@@ -47,7 +47,7 @@ const ChatPage: React.FC = () => {
 
       {/* Main Content - 优化的响应式布局 */}
       <main className="flex-1 overflow-hidden">
-        <div className="h-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-4 sm:py-6">
+        <div className="h-full px-2 sm:px-4 lg:px-6 py-4 sm:py-6">
           <ChatInterface />
         </div>
       </main>
