@@ -6,7 +6,7 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/web3search/', // GitHub Pages部署路径
+  base: '/', // Vercel 部署到根路径
   plugins: [
     react(),
     // Bundle分析插件
