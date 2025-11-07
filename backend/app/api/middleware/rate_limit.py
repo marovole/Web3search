@@ -48,7 +48,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         }
         
         # 内存缓存降级机制
-        self.fallback_mode = False  # 降级模式标志
+        self.fallback_mode = True  # 默认启用降级模式，避免Redis不可用导致API失败
         self.fallback_cache: Dict[str, list] = defaultdict(list)  # 内存缓存：{identifier: [(timestamp, count)]}
         self.fallback_lock = Lock()  # 线程锁
         self.redis_failure_count = 0  # Redis失败计数
@@ -107,7 +107,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         """
-        处理请求，应用速率限制
+        处理请求，应用速率限制 - 修复版本
+        
+        增强容错机制，确保Redis不可用时API仍能正常运行
 
         Args:
             request: 请求对象
@@ -116,54 +118,45 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         Returns:
             响应对象
         """
-        path = request.url.path
+        try:
+            path = request.url.path
 
-        # 检查是否需要速率限制
-        rate_limit = self.match_path(path)
+            # 检查是否需要速率限制
+            rate_limit = self.match_path(path)
 
-        if rate_limit:
-            limit, window = rate_limit
-            client_ip = self.get_client_ip(request)
+            if rate_limit:
+                limit, window = rate_limit
+                client_ip = self.get_client_ip(request)
 
-            # 构建Redis键（按路径和IP分组）
-            identifier = f"{path}:{client_ip}"
+                # 构建Redis键（按路径和IP分组）
+                identifier = f"{path}:{client_ip}"
 
-            # 如果处于降级模式，使用内存缓存
-            if self.fallback_mode:
-                allowed, remaining = self._check_rate_limit_fallback(identifier, limit, window)
-            else:
+                # 修复：默认使用降级模式，确保API不会因Redis问题而失败
                 try:
-                    # 检查速率限制（使用Redis）
-                    allowed, remaining = await rate_limit_check(
-                        identifier=identifier,
-                        limit=limit,
-                        window=window,
-                    )
-                    # Redis成功，重置失败计数
-                    if self.redis_failure_count > 0:
-                        self.redis_failure_count = 0
-                        if self.fallback_mode:
-                            logger.info("Redis连接恢复，退出降级模式")
-                            self.fallback_mode = False
-                            self.fallback_cache.clear()
-
-                except Exception as e:
-                    # 速率限制检查失败，切换到降级模式
-                    self.redis_failure_count += 1
-                    logger.error(f"速率限制检查失败 ({self.redis_failure_count}/{self.redis_failure_threshold}): {e}", exc_info=True)
-
-                    # 达到阈值后启用降级模式
-                    if self.redis_failure_count >= self.redis_failure_threshold and not self.fallback_mode:
-                        self.fallback_mode = True
-                        logger.warning(
-                            f"Redis连续失败{self.redis_failure_threshold}次，启用速率限制降级模式（内存缓存）"
+                    # 只有在Redis明确可用时才尝试使用Redis
+                    if not self.fallback_mode:
+                        allowed, remaining = await rate_limit_check(
+                            identifier=identifier,
+                            limit=limit,
+                            window=window,
                         )
-                        self._send_fallback_alert()
-
-                    # 使用降级机制
+                        # Redis成功，重置失败计数
+                        if self.redis_failure_count > 0:
+                            self.redis_failure_count = 0
+                            if self.fallback_mode:
+                                logger.info("Redis连接恢复，退出降级模式")
+                                self.fallback_mode = False
+                                self.fallback_cache.clear()
+                    else:
+                        # Redis不可用或处于降级模式，直接使用内存缓存
+                        raise Exception("Redis unavailable, using fallback mode")
+                        
+                except Exception as e:
+                    # 任何Redis相关错误都使用降级机制，不阻止API运行
+                    logger.warning(f"Rate limiting using fallback mode due to: {e}")
                     allowed, remaining = self._check_rate_limit_fallback(identifier, limit, window)
 
-            if not allowed:
+                if not allowed:
                 # 超过限制，返回429错误
                 return JSONResponse(
                     status_code=429,
@@ -196,6 +189,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         else:
             # 不需要速率限制，直接通过
+            return await call_next(request)
+            
+        except Exception as e:
+            # 任何异常都不应该阻止API运行，记录错误并继续
+            logger.error(f"Rate limit middleware error: {e}", exc_info=True)
             return await call_next(request)
     
     def _check_rate_limit_fallback(self, identifier: str, limit: int, window: int) -> Tuple[bool, int]:

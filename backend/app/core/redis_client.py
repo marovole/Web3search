@@ -86,6 +86,32 @@ async def get_async_redis() -> AsyncRedis:
     return async_redis_client
 
 
+async def check_redis_availability() -> bool:
+    """
+    检查Redis是否可用 - API修复版本
+    
+    增强的Redis可用性检查，确保不会因Redis问题导致API失败
+    
+    Returns:
+        bool: Redis是否可用
+    """
+    try:
+        redis = await get_async_redis()
+        if redis is None:
+            # Redis被禁用或初始化失败
+            return False
+        
+        # 尝试执行简单的ping操作
+        await redis.ping()
+        return True
+        
+    except Exception as e:
+        # 任何异常都表示Redis不可用，记录但不抛出
+        import logging
+        logging.warning(f"Redis availability check failed: {e}")
+        return False
+
+
 async def close_redis() -> None:
     """关闭Redis连接"""
     global redis_client, async_redis_client

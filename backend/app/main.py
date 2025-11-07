@@ -780,12 +780,19 @@ async def list_tables():
 
 
 # ================================
-# 速率限制中间件
+# 速率限制中间件 - 修复版本
 # ================================
 
 from app.api.middleware.rate_limit import RateLimitMiddleware
 
-app.add_middleware(RateLimitMiddleware)
+# 修复：增加容错机制，确保Redis不可用时API仍能正常工作
+try:
+    app.add_middleware(RateLimitMiddleware)
+    print("✅ Rate limiting middleware initialized successfully")
+except Exception as e:
+    print(f"⚠️ Rate limiting middleware failed to initialize: {e}")
+    print("🔄 API will continue to work without rate limiting")
+    # 不添加中间件，确保API能正常运行
 
 
 # ================================
