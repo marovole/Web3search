@@ -46,10 +46,10 @@ interface SearchSectionProps {
 
 function SearchSection({ icon, title, count, results, isExpanded, onToggle }: SearchSectionProps) {
   return (
-    <div className="bg-card rounded-lg border border-border overflow-hidden">
+    <div className="bg-card dark:bg-card/90 rounded-lg border border-border dark:border-border/80 overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+        className="w-full flex items-center justify-between p-4 hover:bg-muted/50 dark:hover:bg-muted/40 transition-colors"
       >
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/10 rounded-lg text-primary">
@@ -77,9 +77,9 @@ function SearchSection({ icon, title, count, results, isExpanded, onToggle }: Se
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="p-4 border-t border-border space-y-3">
+            <div className="p-4 border-t border-border dark:border-border/80 space-y-3">
               {results.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-muted-foreground dark:text-muted-foreground/90">
                   <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p>暂无搜索结果</p>
                 </div>
@@ -89,7 +89,7 @@ function SearchSection({ icon, title, count, results, isExpanded, onToggle }: Se
                     key={result.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                    className="p-3 bg-muted/50 dark:bg-muted/40 rounded-lg hover:bg-muted dark:hover:bg-muted/60 transition-colors cursor-pointer"
                   >
                     <div className="flex items-start gap-3">
                       <div className="p-1.5 bg-primary/10 rounded text-primary">
@@ -98,11 +98,11 @@ function SearchSection({ icon, title, count, results, isExpanded, onToggle }: Se
                         {result.type === 'watchlist' && <BarChart3 size={14} />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm truncate">{result.title}</h4>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        <h4 className="font-medium text-sm truncate text-foreground dark:text-foreground/90">{result.title}</h4>
+                        <p className="text-xs text-muted-foreground dark:text-muted-foreground/90 mt-1 line-clamp-2">
                           {result.excerpt}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-2">
+                        <p className="text-xs text-muted-foreground dark:text-muted-foreground/80 mt-2">
                           {new Date(result.timestamp).toLocaleString()}
                         </p>
                       </div>

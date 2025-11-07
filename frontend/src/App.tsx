@@ -9,6 +9,7 @@ import { LoadingProvider, AdaptiveSkeleton } from './components/ui/loading'
 import { KeyboardShortcutsProvider } from './contexts/KeyboardShortcutsContext'
 import { UserPreferencesProvider } from './contexts/UserPreferencesContext'
 import { SearchHistoryProvider } from './contexts/SearchHistoryContext'
+import { SearchFavoritesProvider } from './contexts/SearchFavoritesContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { GlobalSearchDialog } from './components/Search/GlobalSearchDialog'
 import { useSidebar } from './hooks/useSidebar'
@@ -148,7 +149,8 @@ function App() {
         <LoadingProvider>
           <UserPreferencesProvider>
             <SearchHistoryProvider>
-              <KeyboardShortcutsProvider>
+              <SearchFavoritesProvider>
+                <KeyboardShortcutsProvider>
                 <Router>
                   <ThemeProvider defaultTheme="system" storageKey="web3search-theme">
                     <ToastProvider>
@@ -224,6 +226,7 @@ function App() {
                   </ThemeProvider>
                 </Router>
               </KeyboardShortcutsProvider>
+              </SearchFavoritesProvider>
             </SearchHistoryProvider>
           </UserPreferencesProvider>
         </LoadingProvider>

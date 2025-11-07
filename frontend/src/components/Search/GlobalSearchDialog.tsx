@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Clock, ArrowRight } from 'lucide-react'
+import { Search, Clock, ArrowRight, Loader2, TrendingUp } from 'lucide-react'
 import { useSearchHistory } from '../../contexts/SearchHistoryContext'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '../../lib/utils'
+import { getSearchSuggestions, type SearchSuggestion } from '../../services/api'
 
 interface GlobalSearchDialogProps {
   isOpen: boolean
@@ -22,16 +23,35 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const recentHistory = getRecentHistory(5)
+  const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([])
+  const [popularSearches, setPopularSearches] = useState<string[]>([])
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
 
-  // 获取搜索建议（这里使用模拟数据，实际应该从API获取）
-  const searchSuggestions = query
-    ? [
-        { id: '1', title: 'Web3技术趋势', type: 'report' },
-        { id: '2', title: 'DeFi协议对比', type: 'report' },
-        { id: '3', title: 'NFT市场分析', type: 'chat' },
-        { id: '4', title: 'Bitcoin价格监控', type: 'watchlist' }
-      ].filter(item => item.title.toLowerCase().includes(query.toLowerCase()))
-    : []
+  // 防抖获取搜索建议
+  useEffect(() => {
+    if (!query.trim()) {
+      setSearchSuggestions([])
+      return
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setLoadingSuggestions(true)
+      try {
+        const response = await getSearchSuggestions(query)
+        setSearchSuggestions(response.suggestions || [])
+        if (response.popular) {
+          setPopularSearches(response.popular)
+        }
+      } catch (error) {
+        console.error('获取搜索建议失败:', error)
+        setSearchSuggestions([])
+      } finally {
+        setLoadingSuggestions(false)
+      }
+    }, 300) // 300ms 防抖
+
+    return () => clearTimeout(timeoutId)
+  }, [query])
 
   // 获取显示的列表项
   const displayItems = query ? searchSuggestions : recentHistory
@@ -154,7 +174,12 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
 
               {/* 搜索结果 */}
               <div className="max-h-96 overflow-y-auto">
-                {displayItems.length > 0 ? (
+                {loadingSuggestions && query ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin opacity-50" />
+                    <p>加载搜索建议...</p>
+                  </div>
+                ) : displayItems.length > 0 ? (
                   <div className="p-2">
                     {displayItems.map((item, index) => {
                       const isSelected = index === selectedIndex
@@ -177,6 +202,7 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
                             type === 'chat' && "bg-blue-500/10 text-blue-500",
                             type === 'report' && "bg-purple-500/10 text-purple-500",
                             type === 'watchlist' && "bg-green-500/10 text-green-500",
+                            type === 'repository' && "bg-orange-500/10 text-orange-500",
                             type === 'history' && "bg-muted text-muted-foreground"
                           )}>
                             {'query' in item ? (
@@ -192,6 +218,11 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
                                 {new Date(item.timestamp).toLocaleString()}
                               </p>
                             )}
+                            {'description' in item && item.description && (
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                                {item.description}
+                              </p>
+                            )}
                           </div>
                           <ArrowRight size={16} className="text-muted-foreground opacity-0 group-hover:opacity-100" />
                         </motion.button>
@@ -202,6 +233,29 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
                   <div className="p-8 text-center text-muted-foreground">
                     <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     <p>未找到相关结果</p>
+                    {popularSearches.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-xs mb-2 flex items-center justify-center gap-1">
+                          <TrendingUp size={12} />
+                          热门搜索
+                        </p>
+                        <div className="flex flex-wrap gap-2 justify-center">
+                          {popularSearches.slice(0, 5).map((term, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => {
+                                setQuery(term)
+                                navigate(`/search?q=${encodeURIComponent(term)}`)
+                                onClose()
+                              }}
+                              className="px-2 py-1 text-xs bg-muted hover:bg-muted/80 rounded-md transition-colors"
+                            >
+                              {term}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="p-4">
