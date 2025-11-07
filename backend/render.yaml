@@ -1,28 +1,29 @@
+# Render 部署配置
+# 修复版本 - 解决 502 错误问题
+
 services:
-  # 极简 FastAPI Web Service
+  # FastAPI Web Service
   - type: web
     name: web3search-api
     runtime: python
     plan: free
     region: oregon
-    buildCommand: pip install --no-cache-dir fastapi uvicorn
+
+    # 修复：使用正确的依赖安装命令
+    buildCommand: cd backend && pip install -r requirements.txt
+
+    # 启动命令
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    healthCheckPath: /
+
+    # 健康检查
+    healthCheckPath: /health
+
+    # Python 版本
     envVars:
       - key: PYTHON_VERSION
-        value: "3.9.6"
-      - key: ENVIRONMENT
-        value: "production"
+        value: "3.11"
 
-# 暂时禁用数据库和缓存服务
-# databases: []
-# redis: []
-      --timeout 120
-      --access-logfile -
-      --error-logfile -
-    healthCheckPath: /health
-    envVars:
-      # Environment Configuration
+      # 环境配置
       - key: ENVIRONMENT
         value: production
       - key: DEBUG
@@ -30,92 +31,46 @@ services:
       - key: LOG_LEVEL
         value: INFO
 
-      # Security Configuration
+      # 安全配置 - 需要手动在 Render Dashboard 设置
       - key: JWT_SECRET_KEY
-        sync: false  # Must be set manually in Render Dashboard
-        description: "JWT Secret Key - Must be set manually in Render Dashboard (32+ characters)"
+        sync: false
+        description: "JWT Secret Key - Must be set manually (32+ characters)"
       - key: SIGNATURE_SECRET_KEY
-        sync: false  # Must be set manually in Render Dashboard
-        description: "API Signature Secret Key - Must be set manually in Render Dashboard (32+ characters)"
+        sync: false
+        description: "API Signature Secret Key - Must be set manually (32+ characters)"
       - key: ENABLE_SIGNATURE_VERIFICATION
         value: "true"
       - key: CORS_ORIGINS
-        value: "https://web3search.vercel.app,https://web3search.ai,https://www.web3search.ai,https://api.web3search.ai"
+        value: "https://web3search.vercel.app,https://www.web3search.vercel.app"
 
-      # Database Configuration
-      - key: DATABASE_URL
-        fromDatabase:
-          name: web3search-postgres
-          property: connectionString
-
-      # Redis Configuration
-      - key: REDIS_URL
-        fromService:
-          name: web3search-redis
-          type: redis
-          property: connectionString
-
-      # API Configuration
+      # API 配置 - 需要手动设置
       - key: OPENROUTER_API_KEY
-        sync: false  # Must be set manually in Render Dashboard
+        sync: false
+        description: "OpenRouter API Key - Required for AI functionality"
       - key: SENTRY_DSN
-        sync: false  # Optional, set manually if using Sentry
+        sync: false
+        description: "Optional: Sentry DSN for error tracking"
 
-      # Timeout Configuration
+      # 超时配置
       - key: CHAT_TIMEOUT
         value: "120"
       - key: RESEARCH_TIMEOUT
         value: "180"
-      - key: PDF_TIMEOUT
-        value: "60"
 
-      # Cache Configuration
+      # 缓存配置
       - key: CACHE_TTL_HOURS
         value: "24"
-      - key: CACHE_REPORT_DAYS
-        value: "7"
 
-      # Monitoring
-      - key: PROMETHEUS_PORT
-        value: "9090"
-
-    headers:
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
-      - path: /*
-        name: X-XSS-Protection
-        value: "1; mode=block"
-      - path: /*
-        name: Strict-Transport-Security
-        value: "max-age=31536000; includeSubDomains; preload"
-      - path: /*
-        name: Content-Security-Policy
-        value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.openrouter.ai https://api.coingecko.com"
-      - path: /*
-        name: Referrer-Policy
-        value: "strict-origin-when-cross-origin"
-      - path: /*
-        name: Permissions-Policy
-        value: "camera=(), microphone=(), geolocation=(), payment=()"
-
-    routes:
-      - path: /
-        matchType: prefix
-        name: app
-
+# 数据库服务（免费计划）
 databases:
   - name: web3search-postgres
-    database: web3search
+    databaseName: web3search_production
     plan: free
     region: oregon
     postgresMajorVersion: 15
 
-redis:
-  - name: web3search-redis
-    plan: free
-    region: oregon
-    ipAllowList: []
+# Redis 服务（如果需要）
+# redis:
+#   - name: web3search-redis
+#     plan: free
+#     region: oregon
