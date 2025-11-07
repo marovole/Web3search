@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, asc
 from typing import Optional
+from datetime import datetime
 import os
 
 from app.core.database import get_db
@@ -156,16 +157,24 @@ async def get_reports(
             query = query.where(Report.status == status)
 
         # 计算总数
-        count_query = select(func.count()).select_from(query.subquery())
-        total_result = await db.execute(count_query)
-        total = total_result.scalar()
+        try:
+            count_query = select(func.count()).select_from(query.subquery())
+            total_result = await db.execute(count_query)
+            total = total_result.scalar() or 0
+        except Exception as e:
+            print(f"⚠️ 计算报告总数时出错: {e}")
+            total = 0
 
         # 应用排序
-        order_column = getattr(Report, order_by, Report.created_at)
-        if order_desc:
-            query = query.order_by(desc(order_column))
-        else:
-            query = query.order_by(asc(order_column))
+        try:
+            order_column = getattr(Report, order_by, Report.created_at)
+            if order_desc:
+                query = query.order_by(desc(order_column))
+            else:
+                query = query.order_by(asc(order_column))
+        except Exception as e:
+            print(f"⚠️ 应用排序时出错，使用默认排序: {e}")
+            query = query.order_by(desc(Report.created_at))
 
         # 应用分页
         offset = (page - 1) * page_size
@@ -178,19 +187,61 @@ async def get_reports(
         # 构建摘要列表
         summaries = []
         for report in reports:
-            summary = ReportSummary(
-                id=report.id,
-                title=report.title or f"{report.symbol} 研究报告",
-                symbol=report.symbol or "Unknown",
-                query=report.query,
-                tldr=report.tldr[:200] if report.tldr else "暂无摘要",
-                report_type=report.report_type.value,
-                status=report.status.value,
-                quality_score=report.quality_score,
-                generation_time=report.generation_time_seconds,
-                created_at=report.created_at.isoformat(),
-            )
-            summaries.append(summary)
+            try:
+                # 验证必需字段
+                if report.id is None:
+                    print(f"⚠️ 跳过无效报告: ID为None")
+                    continue
+                
+                # 安全地处理可能为None的字段
+                title = report.title or (f"{report.symbol} 研究报告" if report.symbol else "研究报告")
+                symbol = report.symbol or "Unknown"
+                query_text = report.query or ""
+                
+                # 安全地截取tldr
+                tldr = ""
+                if report.tldr:
+                    try:
+                        tldr = report.tldr[:200] if len(report.tldr) > 200 else report.tldr
+                    except Exception:
+                        tldr = "暂无摘要"
+                else:
+                    tldr = "暂无摘要"
+                
+                # 验证枚举值
+                try:
+                    report_type_value = report.report_type.value if report.report_type else "unknown"
+                    status_value = report.status.value if report.status else "unknown"
+                except Exception as e:
+                    print(f"⚠️ 报告枚举值转换失败: {e}")
+                    report_type_value = "unknown"
+                    status_value = "unknown"
+                
+                # 验证时间字段
+                try:
+                    created_at_str = report.created_at.isoformat() if report.created_at else datetime.utcnow().isoformat()
+                except Exception as e:
+                    print(f"⚠️ 时间字段转换失败: {e}")
+                    created_at_str = datetime.utcnow().isoformat()
+                
+                summary = ReportSummary(
+                    id=report.id,
+                    title=title,
+                    symbol=symbol,
+                    query=query_text,
+                    tldr=tldr,
+                    report_type=report_type_value,
+                    status=status_value,
+                    quality_score=report.quality_score,
+                    generation_time=report.generation_time_seconds,
+                    created_at=created_at_str,
+                )
+                summaries.append(summary)
+            except Exception as e:
+                print(f"⚠️ 构建报告摘要时出错，跳过该报告: {e}")
+                import traceback
+                traceback.print_exc()
+                continue
 
         return ReportListResponse(
             reports=summaries,
@@ -199,13 +250,28 @@ async def get_reports(
             page_size=page_size,
         )
 
+    except HTTPException:
+        # 重新抛出HTTP异常
+        raise
     except Exception as e:
-        print(f"❌ 查询报告列表错误: {e}")
+        # 记录详细错误信息
+        error_msg = str(e)
+        error_type = type(e).__name__
+        print(f"❌ 查询报告列表错误 [{error_type}]: {error_msg}")
         import traceback
         traceback.print_exc()
+        
+        # 根据错误类型返回不同的错误信息
+        if "database" in error_msg.lower() or "connection" in error_msg.lower():
+            detail_msg = "数据库连接失败，请稍后重试"
+        elif "timeout" in error_msg.lower():
+            detail_msg = "查询超时，请稍后重试"
+        else:
+            detail_msg = f"查询失败: {error_msg if 'DEBUG' in str(e) else '服务内部错误'}"
+        
         raise HTTPException(
             status_code=500,
-            detail=f"查询失败: {str(e)}"
+            detail=detail_msg
         )
 
 

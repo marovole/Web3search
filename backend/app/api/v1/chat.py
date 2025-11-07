@@ -28,6 +28,7 @@ from app.services.research_engine import quick_chat_engine, deep_research_engine
 from app.services.report import report_generator
 from app.models.report import Report, ReportType, ReportStatus
 from app.models.conversation import Conversation, Message, MessageRole
+from datetime import datetime
 import time
 
 
@@ -481,79 +482,173 @@ async def deep_research(
         print(f"🔍 开始Deep Research: {request.query}")
 
         # 调用Deep Research引擎
-        research_result = await deep_research_engine.research(
-            query=request.query,
-            symbol=request.symbol,
-        )
+        try:
+            research_result = await deep_research_engine.research(
+                query=request.query,
+                symbol=request.symbol,
+            )
+        except Exception as research_error:
+            error_type = type(research_error).__name__
+            error_msg = str(research_error)
+            print(f"❌ Deep Research引擎调用失败 [{error_type}]: {error_msg}")
+            import traceback
+            traceback.print_exc()
+            
+            # 根据错误类型返回不同的错误信息
+            if "timeout" in error_msg.lower() or "timed out" in error_msg.lower():
+                raise HTTPException(
+                    status_code=504,
+                    detail="研究分析超时，请稍后重试"
+                )
+            elif "not found" in error_msg.lower() or "404" in error_msg.lower():
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"未找到相关信息: {error_msg}"
+                )
+            else:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"研究引擎调用失败: {error_msg if 'DEBUG' in str(research_error) else '服务暂时不可用，请稍后重试'}"
+                )
 
         # 检查是否有错误
         if "error" in research_result:
+            error_msg = research_result.get("error", "未知错误")
+            print(f"❌ Deep Research返回错误: {error_msg}")
             raise HTTPException(
                 status_code=404,
-                detail=research_result["error"]
+                detail=error_msg
+            )
+
+        # 验证研究结果必需字段
+        if not research_result.get("symbol"):
+            print(f"⚠️ Deep Research结果缺少symbol字段")
+            raise HTTPException(
+                status_code=500,
+                detail="研究结果数据不完整"
             )
 
         # 生成Markdown报告
-        markdown_content = report_generator.generate_markdown(research_result)
+        try:
+            markdown_content = report_generator.generate_markdown(research_result)
+        except Exception as e:
+            print(f"❌ 生成Markdown报告失败: {e}")
+            import traceback
+            traceback.print_exc()
+            markdown_content = f"# {research_result.get('symbol', 'Unknown')} 研究报告\n\n报告生成失败，请稍后重试。"
 
         # 生成标题
-        title = report_generator.generate_title(research_result)
+        try:
+            title = report_generator.generate_title(research_result)
+        except Exception as e:
+            print(f"⚠️ 生成标题失败: {e}")
+            title = f"{research_result.get('symbol', 'Unknown')} 研究报告"
 
         # 计算质量得分
-        quality_score = report_generator.calculate_quality_score(research_result)
+        try:
+            quality_score = report_generator.calculate_quality_score(research_result)
+        except Exception as e:
+            print(f"⚠️ 计算质量得分失败: {e}")
+            quality_score = None
 
         # 保存到数据库
-        report = Report(
-            symbol=research_result["symbol"],
-            query=request.query,
-            title=title,
-            report_type=ReportType.DEEP_RESEARCH,
-            status=ReportStatus.COMPLETED,
-            content_markdown=markdown_content,
-            tldr=research_result["tldr"],
-            sections=research_result["sections"],
-            data_sources=research_result["data_sources"],
-            models_used=research_result["models_used"],
-            generation_time_seconds=research_result["generation_time"],
-            quality_score=quality_score,
-            user_id=current_user.id if current_user else None,
-        )
+        try:
+            report = Report(
+                symbol=research_result.get("symbol", "Unknown"),
+                query=request.query,
+                title=title,
+                report_type=ReportType.DEEP_RESEARCH,
+                status=ReportStatus.COMPLETED,
+                content_markdown=markdown_content,
+                tldr=research_result.get("tldr", ""),
+                sections=research_result.get("sections", {}),
+                data_sources=research_result.get("data_sources", []),
+                models_used=research_result.get("models_used", []),
+                generation_time_seconds=research_result.get("generation_time", 0),
+                quality_score=quality_score,
+                user_id=current_user.id if current_user else None,
+            )
 
-        db.add(report)
-        await db.commit()
-        await db.refresh(report)
+            db.add(report)
+            await db.commit()
+            await db.refresh(report)
 
-        print(f"✅ Deep Research完成，报告ID: {report.id}")
+            print(f"✅ Deep Research完成，报告ID: {report.id}")
+        except Exception as db_error:
+            error_type = type(db_error).__name__
+            error_msg = str(db_error)
+            print(f"❌ 保存报告到数据库失败 [{error_type}]: {error_msg}")
+            import traceback
+            traceback.print_exc()
+            
+            # 即使数据库保存失败，也尝试返回结果
+            if "connection" in error_msg.lower() or "database" in error_msg.lower():
+                raise HTTPException(
+                    status_code=500,
+                    detail="数据库连接失败，无法保存报告"
+                )
+            else:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"保存报告失败: {error_msg if 'DEBUG' in str(db_error) else '服务内部错误'}"
+                )
 
         # 构建响应
-        response = DeepResearchResponse(
-            report_id=report.id,
-            symbol=research_result["symbol"],
-            query=request.query,
-            tldr=research_result["tldr"],
-            sections=research_result["sections"],
-            conclusion=research_result["conclusion"],
-            markdown_content=markdown_content,
-            data_sources=research_result["data_sources"],
-            models_used=research_result["models_used"],
-            generation_time=research_result["generation_time"],
-            quality_score=quality_score,
-            timestamp=research_result["timestamp"],
-            session_id=session_id,
-        )
-
-        return response
+        try:
+            response = DeepResearchResponse(
+                report_id=report.id,
+                symbol=research_result.get("symbol", "Unknown"),
+                query=request.query,
+                tldr=research_result.get("tldr", ""),
+                sections=research_result.get("sections", {}),
+                conclusion=research_result.get("conclusion", ""),
+                markdown_content=markdown_content,
+                data_sources=research_result.get("data_sources", []),
+                models_used=research_result.get("models_used", []),
+                generation_time=research_result.get("generation_time", 0),
+                quality_score=quality_score,
+                timestamp=research_result.get("timestamp", datetime.utcnow().isoformat()),
+                session_id=session_id,
+            )
+            return response
+        except Exception as response_error:
+            error_type = type(response_error).__name__
+            error_msg = str(response_error)
+            print(f"❌ 构建响应失败 [{error_type}]: {error_msg}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(
+                status_code=500,
+                detail=f"构建响应失败: {error_msg if 'DEBUG' in str(response_error) else '服务内部错误'}"
+            )
 
     except HTTPException:
+        # 重新抛出HTTP异常
         raise
     except Exception as e:
-        print(f"❌ Deep Research错误: {e}")
+        # 捕获所有未预期的异常
+        error_type = type(e).__name__
+        error_msg = str(e)
+        print(f"❌ Deep Research未预期错误 [{error_type}]: {error_msg}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Deep Research处理失败: {str(e)}"
-        )
+        
+        # 根据错误类型返回不同的错误信息
+        if "timeout" in error_msg.lower():
+            raise HTTPException(
+                status_code=504,
+                detail="请求超时，请稍后重试"
+            )
+        elif "connection" in error_msg.lower() or "database" in error_msg.lower():
+            raise HTTPException(
+                status_code=500,
+                detail="服务连接失败，请稍后重试"
+            )
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Deep Research处理失败: {error_msg if 'DEBUG' in str(e) else '服务暂时不可用，请稍后重试'}"
+            )
 
 
 @router.get(

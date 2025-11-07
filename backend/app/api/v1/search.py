@@ -2,7 +2,7 @@
 搜索API端点
 提供加密货币搜索和自动补全功能
 """
-from fastapi import APIRouter, Query, Depends
+from fastapi import APIRouter, Query, Depends, HTTPException
 from typing import List
 from pydantic import BaseModel
 
@@ -16,6 +16,7 @@ from app.models.user import User
 from app.core.redis_client import get_redis_client
 import time
 from datetime import datetime
+import traceback
 
 # 创建router
 router = APIRouter()
@@ -142,16 +143,29 @@ async def autocomplete_search(
     """
     start_time = time.time()
     
-    # 调用CoinGecko搜索
-    results = await coingecko_collector.search_coins(q)
-    
-    # 转换为响应格式
-    items = [AutocompleteItem(**item) for item in results]
-    
-    # 追踪搜索业务指标
-    if current_user:
-        try:
-            await tracker.track_search_query(
+    try:
+        # 调用CoinGecko搜索
+        results = await coingecko_collector.search_coins(q)
+        
+        # 处理空结果
+        if not results:
+            return AutocompleteResponse(results=[], count=0)
+        
+        # 转换为响应格式，过滤无效数据
+        items = []
+        for item in results:
+            try:
+                # 确保必需字段存在
+                if item.get("coingecko_id") and item.get("symbol") and item.get("name"):
+                    items.append(AutocompleteItem(**item))
+            except Exception as e:
+                print(f"⚠️ 跳过无效搜索结果项: {e}")
+                continue
+        
+        # 追踪搜索业务指标
+        if current_user:
+            try:
+                await tracker.track_search_query(
                 user_id=current_user.id,
                 query=q,
                 results_count=len(items),
@@ -202,9 +216,25 @@ async def autocomplete_search(
                     "query": q,
                     "results_count": len(items)
                 }
-            )
-            
-        except Exception as e:
-            print(f"⚠️ 搜索业务指标追踪失败: {e}")
+                )
+                
+            except Exception as e:
+                print(f"⚠️ 搜索业务指标追踪失败: {e}")
 
-    return AutocompleteResponse(results=items, count=len(items))
+        return AutocompleteResponse(results=items, count=len(items))
+    
+    except HTTPException:
+        # 重新抛出HTTP异常
+        raise
+    except Exception as e:
+        # 记录详细错误信息
+        error_msg = str(e)
+        print(f"❌ 搜索自动完成错误: {error_msg}")
+        import traceback
+        traceback.print_exc()
+        
+        # 返回友好的错误响应
+        raise HTTPException(
+            status_code=500,
+            detail=f"搜索服务暂时不可用，请稍后重试。错误: {error_msg if 'DEBUG' in str(e) else '服务内部错误'}"
+        )

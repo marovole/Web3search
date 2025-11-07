@@ -2,11 +2,12 @@
 热点/趋势API端点
 提供市场热点识别和趋势分析功能
 """
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, HTTPException
 from typing import List
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from app.services.hotspot_analyzer import hotspot_analyzer
+import traceback
 
 # 创建router
 router = APIRouter()
@@ -179,12 +180,53 @@ async def get_hotspots(
     """
     from datetime import datetime
 
-    # 获取热点数据
-    hotspots = await hotspot_analyzer.get_hotspots(limit=limit, force_refresh=force_refresh)
+    try:
+        # 获取热点数据
+        hotspots = await hotspot_analyzer.get_hotspots(limit=limit, force_refresh=force_refresh)
+        
+        # 处理空结果
+        if not hotspots:
+            return HotspotsResponse(
+                hotspots=[], count=0, updated_at=datetime.utcnow().isoformat()
+            )
 
-    # 转换为响应格式
-    items = [HotspotItem(**hotspot) for hotspot in hotspots]
+        # 转换为响应格式，过滤无效数据
+        items = []
+        for hotspot in hotspots:
+            try:
+                # 验证必需字段
+                if not hotspot.get("coin_id") or not hotspot.get("symbol") or not hotspot.get("name"):
+                    print(f"⚠️ 跳过无效热点项: 缺少必需字段")
+                    continue
+                
+                # 确保scores_breakdown存在
+                if "scores_breakdown" not in hotspot:
+                    print(f"⚠️ 跳过无效热点项: 缺少scores_breakdown")
+                    continue
+                
+                items.append(HotspotItem(**hotspot))
+            except ValidationError as e:
+                print(f"⚠️ 跳过无效热点项: {e}")
+                continue
+            except Exception as e:
+                print(f"⚠️ 处理热点项时出错: {e}")
+                continue
 
-    return HotspotsResponse(
-        hotspots=items, count=len(items), updated_at=datetime.utcnow().isoformat()
-    )
+        return HotspotsResponse(
+            hotspots=items, count=len(items), updated_at=datetime.utcnow().isoformat()
+        )
+    
+    except HTTPException:
+        # 重新抛出HTTP异常
+        raise
+    except Exception as e:
+        # 记录详细错误信息
+        error_msg = str(e)
+        print(f"❌ 获取热点数据错误: {error_msg}")
+        traceback.print_exc()
+        
+        # 返回友好的错误响应
+        raise HTTPException(
+            status_code=500,
+            detail=f"热点分析服务暂时不可用，请稍后重试。错误: {error_msg if 'DEBUG' in str(e) else '服务内部错误'}"
+        )
