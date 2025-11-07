@@ -1,15 +1,20 @@
 """
 速率限制中间件
 基于Redis实现IP级别的速率限制
+支持内存缓存降级机制
 """
 from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 import re
 import logging
+import time
+from collections import defaultdict
+from threading import Lock
 
 from app.core.redis_client import rate_limit_check
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +24,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     速率限制中间件
 
     根据不同的API端点应用不同的速率限制规则
+    支持Redis和内存缓存降级机制
     """
 
     def __init__(self, app, rate_limit_rules: Dict[str, Tuple[int, int]] = None):
@@ -40,6 +46,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             "/api/v1/deep-research": (3, 3600),  # Deep Research: 3次/小时
             "/api/v1/reports": (30, 60),  # 报告查询: 30次/分钟
         }
+        
+        # 内存缓存降级机制
+        self.fallback_mode = False  # 降级模式标志
+        self.fallback_cache: Dict[str, list] = defaultdict(list)  # 内存缓存：{identifier: [(timestamp, count)]}
+        self.fallback_lock = Lock()  # 线程锁
+        self.redis_failure_count = 0  # Redis失败计数
+        self.redis_failure_threshold = 5  # 连续失败5次后启用降级模式
+        self.last_fallback_alert_time = 0  # 上次降级告警时间
+        self.fallback_alert_interval = 300  # 降级告警间隔（5分钟）
 
     def get_client_ip(self, request: Request) -> str:
         """
@@ -113,54 +128,142 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             # 构建Redis键（按路径和IP分组）
             identifier = f"{path}:{client_ip}"
 
-            try:
-                # 检查速率限制
-                allowed, remaining = await rate_limit_check(
-                    identifier=identifier,
-                    limit=limit,
-                    window=window,
+            # 如果处于降级模式，使用内存缓存
+            if self.fallback_mode:
+                allowed, remaining = self._check_rate_limit_fallback(identifier, limit, window)
+            else:
+                try:
+                    # 检查速率限制（使用Redis）
+                    allowed, remaining = await rate_limit_check(
+                        identifier=identifier,
+                        limit=limit,
+                        window=window,
+                    )
+                    # Redis成功，重置失败计数
+                    if self.redis_failure_count > 0:
+                        self.redis_failure_count = 0
+                        if self.fallback_mode:
+                            logger.info("Redis连接恢复，退出降级模式")
+                            self.fallback_mode = False
+                            self.fallback_cache.clear()
+
+                except Exception as e:
+                    # 速率限制检查失败，切换到降级模式
+                    self.redis_failure_count += 1
+                    logger.error(f"速率限制检查失败 ({self.redis_failure_count}/{self.redis_failure_threshold}): {e}", exc_info=True)
+
+                    # 达到阈值后启用降级模式
+                    if self.redis_failure_count >= self.redis_failure_threshold and not self.fallback_mode:
+                        self.fallback_mode = True
+                        logger.warning(
+                            f"Redis连续失败{self.redis_failure_threshold}次，启用速率限制降级模式（内存缓存）"
+                        )
+                        self._send_fallback_alert()
+
+                    # 使用降级机制
+                    allowed, remaining = self._check_rate_limit_fallback(identifier, limit, window)
+
+            if not allowed:
+                # 超过限制，返回429错误
+                return JSONResponse(
+                    status_code=429,
+                    content={
+                        "error": "Rate Limit Exceeded",
+                        "message": f"请求过于频繁，请{window}秒后重试",
+                        "limit": limit,
+                        "window": window,
+                        "retry_after": window,
+                        "fallback_mode": self.fallback_mode,  # 指示是否使用降级模式
+                    },
+                    headers={
+                        "X-RateLimit-Limit": str(limit),
+                        "X-RateLimit-Remaining": "0",
+                        "X-RateLimit-Reset": str(window),
+                        "Retry-After": str(window),
+                        "X-RateLimit-Fallback": "true" if self.fallback_mode else "false",
+                    }
                 )
 
-                if not allowed:
-                    # 超过限制，返回429错误
-                    return JSONResponse(
-                        status_code=429,
-                        content={
-                            "error": "Rate Limit Exceeded",
-                            "message": f"请求过于频繁，请{window}秒后重试",
-                            "limit": limit,
-                            "window": window,
-                            "retry_after": window,
-                        },
-                        headers={
-                            "X-RateLimit-Limit": str(limit),
-                            "X-RateLimit-Remaining": "0",
-                            "X-RateLimit-Reset": str(window),
-                            "Retry-After": str(window),
-                        }
-                    )
+            # 允许请求，添加速率限制响应头
+            response = await call_next(request)
+            response.headers["X-RateLimit-Limit"] = str(limit)
+            response.headers["X-RateLimit-Remaining"] = str(remaining)
+            response.headers["X-RateLimit-Reset"] = str(window)
+            if self.fallback_mode:
+                response.headers["X-RateLimit-Fallback"] = "true"
 
-                # 允许请求，添加速率限制响应头
-                response = await call_next(request)
-                response.headers["X-RateLimit-Limit"] = str(limit)
-                response.headers["X-RateLimit-Remaining"] = str(remaining)
-                response.headers["X-RateLimit-Reset"] = str(window)
-
-                return response
-
-            except Exception as e:
-                # 速率限制检查失败，记录错误并允许请求通过（降级处理）
-                logger.error(f"速率限制检查失败: {e}", exc_info=True)
-
-                # 在生产环境中，可以考虑记录监控指标
-                if logger.isEnabledFor(logging.INFO):
-                    logger.info(f"速率限制降级 - IP: {client_ip}, 路径: {request.url.path}")
-
-                return await call_next(request)
+            return response
 
         else:
             # 不需要速率限制，直接通过
             return await call_next(request)
+    
+    def _check_rate_limit_fallback(self, identifier: str, limit: int, window: int) -> Tuple[bool, int]:
+        """
+        使用内存缓存检查速率限制（降级模式）
+        
+        Args:
+            identifier: 标识符
+            limit: 限制次数
+            window: 时间窗口（秒）
+            
+        Returns:
+            Tuple[bool, int]: (是否允许, 剩余次数)
+        """
+        current_time = time.time()
+        
+        with self.fallback_lock:
+            # 清理过期记录
+            if identifier in self.fallback_cache:
+                self.fallback_cache[identifier] = [
+                    (ts, count) for ts, count in self.fallback_cache[identifier]
+                    if current_time - ts < window
+                ]
+            
+            # 计算当前窗口内的请求数
+            requests_in_window = sum(
+                count for ts, count in self.fallback_cache[identifier]
+                if current_time - ts < window
+            )
+            
+            if requests_in_window >= limit:
+                # 超过限制
+                return False, 0
+            
+            # 未超过限制，添加当前请求
+            self.fallback_cache[identifier].append((current_time, 1))
+            
+            # 清理旧记录（保持缓存大小）
+            if len(self.fallback_cache[identifier]) > limit * 2:
+                self.fallback_cache[identifier] = self.fallback_cache[identifier][-limit:]
+            
+            remaining = limit - requests_in_window - 1
+            return True, max(0, remaining)
+    
+    def _send_fallback_alert(self):
+        """发送降级模式告警"""
+        current_time = time.time()
+        
+        # 避免过于频繁的告警
+        if current_time - self.last_fallback_alert_time < self.fallback_alert_interval:
+            return
+        
+        self.last_fallback_alert_time = current_time
+        
+        # 发送告警到监控系统
+        try:
+            from app.core.alerting import alert_manager
+            alert_manager.update_metric("rate_limit_fallback_enabled", 1.0)
+            logger.critical(
+                "速率限制降级模式已启用 - Redis不可用，使用内存缓存",
+                extra={
+                    "fallback_mode": True,
+                    "redis_failure_count": self.redis_failure_count,
+                    "alert": True,
+                }
+            )
+        except Exception as e:
+            logger.error(f"发送降级告警失败: {e}")
 
 
 # ================================

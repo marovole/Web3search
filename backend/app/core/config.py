@@ -281,8 +281,8 @@ class Settings(BaseSettings):
 
     # GitHub
     GITHUB_TOKEN: str = Field(
-        default="your_github_token_here",
-        description="GitHub个人访问令牌（PAT），从 https://github.com/settings/tokens 获取"
+        default="",
+        description="GitHub个人访问令牌（PAT），从 https://github.com/settings/tokens 获取（必须通过环境变量设置）"
     )
     GITHUB_BASE_URL: str = Field(
         default="https://api.github.com",
@@ -578,7 +578,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode='after')
     def validate_production_config(self) -> 'Settings':
-        """验证生产环境必须配置的字段"""
+        """验证生产环境必须配置的字段和格式"""
         if self.ENVIRONMENT in ('production', 'prod'):
             # 生产环境必须关闭DEBUG
             if self.DEBUG:
@@ -588,13 +588,18 @@ class Settings(BaseSettings):
             # 生产环境必须配置OpenRouter API Key
             if not self.OPENROUTER_API_KEY:
                 raise ValueError("生产环境必须配置OPENROUTER_API_KEY")
+            
+            # 验证OpenRouter API Key格式
+            if self.OPENROUTER_API_KEY and not self.OPENROUTER_API_KEY.startswith(('sk-or-v1-', 'sk-or-')):
+                logging.warning("OPENROUTER_API_KEY格式可能不正确，应以'sk-or-v1-'或'sk-or-'开头")
 
             # 生产环境必须配置安全的JWT密钥
             forbidden_keys = [
                 "temp_development_key_only_replace_in_production_32chars",
                 "change-me",
                 "default_secret_key_change_me",
-                "your-secret-key-here"
+                "your-secret-key-here",
+                "your_github_token_here",  # GitHub token默认值
             ]
 
             if not self.JWT_SECRET_KEY or len(self.JWT_SECRET_KEY) < 32:
@@ -602,15 +607,55 @@ class Settings(BaseSettings):
 
             if self.JWT_SECRET_KEY in forbidden_keys:
                 raise ValueError("生产环境不能使用默认或临时JWT密钥，请设置安全的JWT_SECRET_KEY环境变量")
+            
+            # 验证JWT密钥强度（至少包含字母和数字）
+            if len(self.JWT_SECRET_KEY) < 32 or not any(c.isalnum() for c in self.JWT_SECRET_KEY):
+                raise ValueError("JWT_SECRET_KEY强度不足，应包含字母和数字，长度至少32位")
+
+            # 生产环境必须配置签名密钥
+            if not self.SIGNATURE_SECRET_KEY or len(self.SIGNATURE_SECRET_KEY) < 32:
+                raise ValueError("生产环境必须通过环境变量设置SIGNATURE_SECRET_KEY，长度至少32位")
+            
+            if self.SIGNATURE_SECRET_KEY in forbidden_keys:
+                raise ValueError("生产环境不能使用默认或临时签名密钥")
 
             # 生产环境必须配置数据库连接
             if not self.DATABASE_URL:
                 raise ValueError("生产环境必须通过环境变量设置DATABASE_URL")
+            
+            # 验证数据库URL格式
+            if self.DATABASE_URL and not self.DATABASE_URL.startswith(('postgresql://', 'postgresql+asyncpg://')):
+                raise ValueError("DATABASE_URL格式不正确，应以postgresql://或postgresql+asyncpg://开头")
+            
+            # 验证数据库URL不包含默认凭据
+            if 'postgres:postgres@' in self.DATABASE_URL or ':postgres@' in self.DATABASE_URL:
+                logging.warning("检测到数据库URL可能包含默认凭据，建议使用强密码")
+
+            # 生产环境必须配置CORS来源
+            if not self.CORS_ORIGINS or self.CORS_ORIGINS.strip() == '':
+                raise ValueError("生产环境必须配置CORS_ORIGINS，指定允许的前端域名")
+            
+            # 验证CORS配置不包含通配符
+            if '*' in self.CORS_ORIGINS:
+                raise ValueError("生产环境CORS_ORIGINS不能包含通配符'*'，必须指定具体域名")
 
             # 生产环境不应该输出SQL日志
             if self.DATABASE_ECHO:
                 logging.warning("生产环境检测到DATABASE_ECHO=True，强制设置为False")
                 self.DATABASE_ECHO = False
+            
+            # 验证日志级别（生产环境不应使用DEBUG）
+            if self.LOG_LEVEL == "DEBUG":
+                logging.warning("生产环境检测到LOG_LEVEL=DEBUG，建议使用INFO或WARNING")
+                # 不强制修改，但给出警告
+            
+            # 验证GitHub Token（如果配置了）
+            if self.GITHUB_TOKEN and self.GITHUB_TOKEN == "your_github_token_here":
+                raise ValueError("生产环境不能使用默认GitHub Token，请设置有效的GITHUB_TOKEN环境变量")
+            
+            # 验证GitHub Token格式（如果配置了）
+            if self.GITHUB_TOKEN and not self.GITHUB_TOKEN.startswith(('ghp_', 'gho_', 'ghu_', 'ghs_', 'ghr_')):
+                logging.warning("GITHUB_TOKEN格式可能不正确，应以'ghp_', 'gho_', 'ghu_', 'ghs_'或'ghr_'开头")
 
         else:
             # 开发环境友好提示

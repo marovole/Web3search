@@ -6,6 +6,7 @@ import httpx
 from typing import Dict, Any, Optional
 from datetime import datetime
 import asyncio
+import json
 
 from app.core.config import settings
 from app.core.redis_client import get_redis_client
@@ -107,7 +108,11 @@ class GitHubService:
                         duration_ms=duration_ms,
                         response_size_bytes=len(cached)
                     )
-                    return {"cached": True, "data": eval(cached)}
+                    # 安全地反序列化JSON数据，而不是使用eval()
+                    data = json.loads(cached) if isinstance(cached, (str, bytes)) else cached
+                    return {"cached": True, "data": data}
+            except (json.JSONDecodeError, TypeError) as e:
+                logger.warning(f"缓存数据反序列化失败，将重新获取: {e}")
             except Exception as e:
                 logger.debug(f"缓存读取失败: {e}")
 
@@ -142,10 +147,12 @@ class GitHubService:
             # 缓存结果（5分钟）
             if self.redis_client:
                 try:
+                    # 使用JSON序列化而不是str()，确保安全
+                    cache_value = json.dumps(data, ensure_ascii=False)
                     await self.redis_client.setex(
                         cache_key,
                         300,  # 5分钟缓存
-                        str(data)
+                        cache_value
                     )
                 except Exception as e:
                     logger.debug(f"缓存写入失败: {e}")
@@ -202,7 +209,11 @@ class GitHubService:
                         duration_ms=duration_ms,
                         response_size_bytes=len(cached)
                     )
-                    return {"cached": True, "data": eval(cached)}
+                    # 安全地反序列化JSON数据，而不是使用eval()
+                    data = json.loads(cached) if isinstance(cached, (str, bytes)) else cached
+                    return {"cached": True, "data": data}
+            except (json.JSONDecodeError, TypeError) as e:
+                logger.warning(f"缓存数据反序列化失败，将重新获取: {e}")
             except Exception as e:
                 logger.debug(f"缓存读取失败: {e}")
 
@@ -243,10 +254,12 @@ class GitHubService:
             # 缓存结果（3分钟，提交记录变化较快）
             if self.redis_client:
                 try:
+                    # 使用JSON序列化而不是str()，确保安全
+                    cache_value = json.dumps(data, ensure_ascii=False)
                     await self.redis_client.setex(
                         cache_key,
                         180,  # 3分钟缓存
-                        str(data)
+                        cache_value
                     )
                 except Exception as e:
                     logger.debug(f"缓存写入失败: {e}")
@@ -303,7 +316,11 @@ class GitHubService:
                         duration_ms=duration_ms,
                         response_size_bytes=len(cached)
                     )
-                    return {"cached": True, "data": eval(cached)}
+                    # 安全地反序列化JSON数据，而不是使用eval()
+                    data = json.loads(cached) if isinstance(cached, (str, bytes)) else cached
+                    return {"cached": True, "data": data}
+            except (json.JSONDecodeError, TypeError) as e:
+                logger.warning(f"缓存数据反序列化失败，将重新获取: {e}")
             except Exception as e:
                 logger.debug(f"缓存读取失败: {e}")
 
@@ -337,10 +354,12 @@ class GitHubService:
             # 缓存结果（5分钟）
             if self.redis_client:
                 try:
+                    # 使用JSON序列化而不是str()，确保安全
+                    cache_value = json.dumps(data, ensure_ascii=False)
                     await self.redis_client.setex(
                         cache_key,
                         300,
-                        str(data)
+                        cache_value
                     )
                 except Exception as e:
                     logger.debug(f"缓存写入失败: {e}")

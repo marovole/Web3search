@@ -301,11 +301,62 @@ class AlertManager:
         
         # 安全的表达式评估（仅支持基本比较操作）
         try:
-            # 这里应该使用更安全的表达式解析器
-            # 为了简化，使用eval但限制作用域
-            allowed_names = {"__builtins__": None}
-            return eval(condition, allowed_names)
-        except:
+            # 使用更安全的表达式评估方法
+            # 只允许数字、运算符和比较符号，不允许函数调用
+            import re
+            import operator
+            
+            # 验证条件只包含安全的字符（数字、运算符、空格、括号）
+            safe_pattern = re.compile(r'^[\d\s+\-*/().><=!&|]+$')
+            if not safe_pattern.match(condition):
+                logger.warning(f"不安全的条件表达式被拒绝: {condition}")
+                return False
+            
+            # 使用 operator 模块进行安全的比较操作
+            # 解析简单的比较表达式，如 "value > 3000"
+            # 支持的操作符: >, <, >=, <=, ==, !=
+            operators = {
+                '>': operator.gt,
+                '<': operator.lt,
+                '>=': operator.ge,
+                '<=': operator.le,
+                '==': operator.eq,
+                '!=': operator.ne,
+            }
+            
+            # 尝试匹配比较表达式
+            for op_symbol, op_func in operators.items():
+                if op_symbol in condition:
+                    parts = condition.split(op_symbol, 1)
+                    if len(parts) == 2:
+                        try:
+                            left = float(parts[0].strip())
+                            right = float(parts[1].strip())
+                            return op_func(left, right)
+                        except (ValueError, TypeError):
+                            # 如果无法解析为数字，尝试使用 ast.literal_eval
+                            import ast
+                            try:
+                                left = ast.literal_eval(parts[0].strip())
+                                right = ast.literal_eval(parts[1].strip())
+                                return op_func(left, right)
+                            except (ValueError, SyntaxError):
+                                logger.warning(f"无法解析条件表达式: {condition}")
+                                return False
+            
+            # 如果没有匹配到比较操作符，尝试作为布尔表达式评估
+            # 但只允许简单的数字表达式
+            import ast
+            try:
+                # 使用 ast.literal_eval 评估简单的数字表达式
+                result = ast.literal_eval(condition)
+                return bool(result)
+            except (ValueError, SyntaxError):
+                logger.warning(f"无法解析条件表达式: {condition}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"评估条件时出错: {condition}, 错误: {e}")
             return False
     
     def _percentile(self, values: List[float], percentile: int) -> float:

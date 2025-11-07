@@ -8,15 +8,55 @@ interface Env {
   CACHE_TTL: string
   ENABLE_CACHE: string
   ENABLE_RATE_LIMIT: string
+  CORS_ORIGINS?: string // 允许的CORS来源，逗号分隔，例如: "https://web3search.vercel.app,https://www.web3search.vercel.app"
   CACHE?: KVNamespace // KV存储（可选）
 }
 
-// CORS头部
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Max-Age': '86400',
+/**
+ * 根据环境变量和请求来源生成CORS头部
+ */
+function getCorsHeaders(request: Request, env: Env): Record<string, string> {
+  const origin = request.headers.get('Origin')
+  const allowedOrigins = env.CORS_ORIGINS 
+    ? env.CORS_ORIGINS.split(',').map(o => o.trim())
+    : []
+  
+  // 如果没有配置允许的来源，默认拒绝（生产环境必须配置）
+  let allowOrigin = ''
+  
+  if (origin && allowedOrigins.length > 0) {
+    // 检查请求来源是否在允许列表中
+    if (allowedOrigins.includes(origin)) {
+      allowOrigin = origin
+    } else {
+      // 如果不在列表中，检查是否有匹配的域名模式（支持子域名）
+      for (const allowed of allowedOrigins) {
+        // 简单的子域名匹配：如果允许 "*.example.com"，则匹配 "app.example.com"
+        if (allowed.startsWith('*.')) {
+          const domain = allowed.slice(2)
+          if (origin.endsWith('.' + domain) || origin === 'https://' + domain) {
+            allowOrigin = origin
+            break
+          }
+        }
+      }
+    }
+  }
+  
+  // 开发环境：如果没有配置，允许本地开发
+  if (!allowOrigin && (!env.CORS_ORIGINS || env.CORS_ORIGINS === '')) {
+    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+      allowOrigin = origin
+    }
+  }
+  
+  return {
+    'Access-Control-Allow-Origin': allowOrigin || (allowedOrigins.length > 0 ? allowedOrigins[0] : ''),
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': allowOrigin ? 'true' : 'false',
+    'Access-Control-Max-Age': '86400',
+  }
 }
 
 // 安全头部
@@ -30,10 +70,11 @@ const SECURITY_HEADERS = {
 /**
  * 处理OPTIONS预检请求
  */
-function handleOptions(): Response {
+function handleOptions(request: Request, env: Env): Response {
+  const corsHeaders = getCorsHeaders(request, env)
   return new Response(null, {
     status: 204,
-    headers: CORS_HEADERS,
+    headers: corsHeaders,
   })
 }
 
@@ -141,8 +182,11 @@ async function proxyRequest(request: Request, env: Env): Promise<Response> {
     const responseHeaders = new Headers(response.headers)
     
     // 添加CORS和安全头部
-    Object.entries(CORS_HEADERS).forEach(([key, value]) => {
-      responseHeaders.set(key, value)
+    const corsHeaders = getCorsHeaders(request, env)
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      if (value) {
+        responseHeaders.set(key, value)
+      }
     })
     Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {
       responseHeaders.set(key, value)
@@ -164,7 +208,7 @@ async function proxyRequest(request: Request, env: Env): Promise<Response> {
         status: 503,
         headers: {
           'Content-Type': 'application/json',
-          ...CORS_HEADERS,
+          ...getCorsHeaders(request, env),
         },
       }
     )
@@ -178,7 +222,7 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     // 处理OPTIONS预检请求
     if (request.method === 'OPTIONS') {
-      return handleOptions()
+      return handleOptions(request, env)
     }
     
     // 速率限制检查
@@ -191,7 +235,7 @@ export default {
           headers: {
             'Content-Type': 'application/json',
             'Retry-After': '60',
-            ...CORS_HEADERS,
+            ...getCorsHeaders(request, env),
           },
         }
       )
