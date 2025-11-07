@@ -7,16 +7,23 @@
   NODE_VERSION = "18"
 
 [[redirects]]
-  from = "/api/v1/*"
-  to = "https://web3search-api.onrender.com/api/v1/:splat"
-  status = 200
-  force = true
+from = "/api/v1/*"
+to = "https://web3search-api.onrender.com/api/v1/:splat"
+status = 200
+force = true
 
 [[redirects]]
-  from = "/chat"
-  to = "/"
-  status = 302
-  force = false
+from = "/chat"
+to = "/"
+status = 302
+force = false
+
+# SPA 路由支持：所有非 API 路由都返回 index.html
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
+force = false
 
 [[headers]]
   for = "/*"
