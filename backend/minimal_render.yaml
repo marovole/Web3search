@@ -1,0 +1,24 @@
+# 最小化 Render 部署配置
+# 专门用于解决启动问题，只包含基本服务
+
+services:
+  # 极简 FastAPI Web Service
+  - type: web
+    name: web3search-api
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install --no-cache-dir fastapi uvicorn
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    
+    # 最小化环境变量
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.9.6"
+      - key: ENVIRONMENT
+        value: "production"
+
+# 禁用所有数据库和缓存服务，避免依赖问题
+# databases: []
+# redis: []

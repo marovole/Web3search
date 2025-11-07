@@ -693,7 +693,7 @@ class APMCollector:
     ):
         """
         记录CPU使用情况
-        
+
         Args:
             component: 组件名称
             cpu_percent: CPU使用率（百分比）
@@ -705,16 +705,43 @@ class APMCollector:
             "cpu_percent": round(cpu_percent, 2),
             "duration_ms": round(duration_ms, 2)
         }
-        
+
         self.logger.info("CPU usage metric", extra=metric)
-        
+
         # 发送到Sentry
         try:
             import sentry_sdk
             sentry_sdk.set_measurement(
-                f"cpu.{component}.usage", 
-                cpu_percent, 
+                f"cpu.{component}.usage",
+                cpu_percent,
                 "percent"
+            )
+        except ImportError:
+            pass
+
+    def record_business_metric(self, metric_name: str, value: float):
+        """
+        记录业务指标
+
+        Args:
+            metric_name: 指标名称
+            value: 指标值
+        """
+        metric = {
+            "metric": "business",
+            "metric_name": metric_name,
+            "value": value
+        }
+
+        self.logger.info("Business metric", extra=metric)
+
+        # 发送到Sentry
+        try:
+            import sentry_sdk
+            sentry_sdk.set_measurement(
+                f"business.{metric_name}",
+                value,
+                "none"
             )
         except ImportError:
             pass
