@@ -92,7 +92,14 @@ def add_logger_name(logger: Any, name: str, event_dict: Dict) -> Dict:
     Returns:
         添加了logger_name的事件字典
     """
-    event_dict["logger_name"] = logger.name
+    # 安全地获取logger名称
+    # PrintLogger没有name属性，需要使用getattr或使用传入的name参数
+    logger_name = getattr(logger, "name", None)
+    if logger_name is None:
+        # 如果logger没有name属性，尝试从event_dict中获取，或使用传入的name
+        logger_name = event_dict.get("logger", name)
+    
+    event_dict["logger_name"] = logger_name
     return event_dict
 
 
