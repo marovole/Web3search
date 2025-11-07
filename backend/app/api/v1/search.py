@@ -166,56 +166,56 @@ async def autocomplete_search(
         if current_user:
             try:
                 await tracker.track_search_query(
-                user_id=current_user.id,
-                query=q,
-                results_count=len(items),
-                duration_ms=(time.time() - start_time) * 1000
-            )
-            
-            # 检查是否是首次搜索
-            redis_client = get_redis_client()
-            search_history_key = f"search_history:{current_user.id}"
-            first_search = await redis_client.get(search_history_key) is None
-            
-            if first_search:
-                # 追踪首次搜索漏斗事件
-                await funnel_analyzer.track_funnel_event(
                     user_id=current_user.id,
-                    funnel_type=FunnelType.USER_ONBOARDING,
-                    stage=FunnelStage.FIRST_SEARCH,
-                    properties={
-                        "query": q,
-                        "results_count": len(items),
-                        "search_duration": (time.time() - start_time) * 1000
-                    }
+                    query=q,
+                    results_count=len(items),
+                    duration_ms=(time.time() - start_time) * 1000
                 )
                 
-                # 追踪首次搜索转化事件
-                conversion_event = ConversionEvent(
-                    event_type=ConversionEventType.FIRST_SEARCH,
+                # 检查是否是首次搜索
+                redis_client = get_redis_client()
+                search_history_key = f"search_history:{current_user.id}"
+                first_search = await redis_client.get(search_history_key) is None
+                
+                if first_search:
+                    # 追踪首次搜索漏斗事件
+                    await funnel_analyzer.track_funnel_event(
+                        user_id=current_user.id,
+                        funnel_type=FunnelType.USER_ONBOARDING,
+                        stage=FunnelStage.FIRST_SEARCH,
+                        properties={
+                            "query": q,
+                            "results_count": len(items),
+                            "search_duration": (time.time() - start_time) * 1000
+                        }
+                    )
+                    
+                    # 追踪首次搜索转化事件
+                    conversion_event = ConversionEvent(
+                        event_type=ConversionEventType.FIRST_SEARCH,
+                        user_id=current_user.id,
+                        timestamp=datetime.now(),
+                        properties={
+                            "query": q,
+                            "results_count": len(items),
+                            "search_duration": (time.time() - start_time) * 1000
+                        },
+                        conversion_value=0.5
+                    )
+                    await conversion_monitor.track_conversion_event(conversion_event)
+                
+                # 记录搜索历史
+                await redis_client.set(search_history_key, "1", ex=86400 * 30)  # 30天过期
+                
+                # 追踪搜索到聊天漏斗的起始阶段
+                await funnel_analyzer.track_funnel_event(
                     user_id=current_user.id,
-                    timestamp=datetime.now(),
+                    funnel_type=FunnelType.SEARCH_TO_CHAT,
+                    stage=FunnelStage.SEARCH_INITIATED,
                     properties={
                         "query": q,
-                        "results_count": len(items),
-                        "search_duration": (time.time() - start_time) * 1000
-                    },
-                    conversion_value=0.5
-                )
-                await conversion_monitor.track_conversion_event(conversion_event)
-            
-            # 记录搜索历史
-            await redis_client.set(search_history_key, "1", ex=86400 * 30)  # 30天过期
-            
-            # 追踪搜索到聊天漏斗的起始阶段
-            await funnel_analyzer.track_funnel_event(
-                user_id=current_user.id,
-                funnel_type=FunnelType.SEARCH_TO_CHAT,
-                stage=FunnelStage.SEARCH_INITIATED,
-                properties={
-                    "query": q,
-                    "results_count": len(items)
-                }
+                        "results_count": len(items)
+                    }
                 )
                 
             except Exception as e:
