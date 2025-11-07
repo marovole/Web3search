@@ -10,7 +10,7 @@ from app.schemas.github_schemas import (
     GitHubSearchRequest, GitHubSearchResponse, AIGeneratedSummary
 )
 from app.services.github_service import github_service
-from app.services.ai_service import ai_service
+from app.services.llm import llm_client
 from app.core.config import settings
 from app.core.monitoring import apm_collector
 from app.core.business_tracker import track_feature_usage
@@ -275,9 +275,9 @@ async def generate_insights_with_ai(query: str, items: list, search_type: str) -
         """
 
         # 调用AI服务生成洞察
-        response = await ai_service.chat_completion(
-            prompt=prompt,
-            model="anthropic/claude-3-haiku",
+        response = await llm_client.chat_completion(
+            messages=[{"role": "user", "content": prompt}],
+            model="qwen/qwen3-30b-a3b:free",  # 使用快速对话模型
             temperature=0.3,
             max_tokens=500
         )
