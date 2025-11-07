@@ -10,8 +10,9 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+# Only ignore Python lib directories, not frontend/src/lib
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -94,3 +95,6 @@ alembic/versions/__pycache__/
 
 # Sentry
 .sentryclirc
+
+# Local Netlify folder
+.netlify
