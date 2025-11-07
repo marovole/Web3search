@@ -74,7 +74,7 @@ export function PerformanceMonitor({
     const startTime = performance.now();
     try {
       // 发送ping消息并等待响应
-      const response = await fetch('/api/v1/health', {
+      const response = await fetch('/health', {
         method: 'GET',
         cache: 'no-cache'
       });
