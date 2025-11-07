@@ -128,7 +128,7 @@ export const deepResearch = apiConfig.useMock ? mockApi.deepResearch : deepResea
  * 获取报告详情 - Real API版本
  */
 const getReportReal = async (reportId: number): Promise<Report> => {
-  const response = await api.get<Report>(`/api/v1/reports/reports/${reportId}`)
+  const response = await api.get<Report>(`/api/v1/reports/${reportId}`)
   return response.data
 }
 
@@ -147,7 +147,7 @@ const getReportsReal = async (params?: {
   page?: number
   page_size?: number
 }) => {
-  const response = await api.get('/api/v1/reports/reports', { params })
+  const response = await api.get('/api/v1/reports', { params })
   return response.data
 }
 
@@ -212,7 +212,7 @@ const createShareLinkReal = async (
   request?: ShareReportRequest
 ): Promise<ShareReportResponse> => {
   const response = await api.post<ShareReportResponse>(
-    `/api/v1/reports/reports/${reportId}/share`,
+    `/api/v1/reports/${reportId}/share`,
     request || {}
   )
   return response.data
@@ -231,7 +231,7 @@ const getSharedReportReal = async (
   shareToken: string
 ): Promise<SharedReportResponse> => {
   const response = await api.get<SharedReportResponse>(
-    `/api/v1/reports/reports/shared/${shareToken}`
+    `/api/v1/reports/shared/${shareToken}`
   )
   return response.data
 }
@@ -246,7 +246,7 @@ export const getSharedReport = apiConfig.useMock ? mockApi.getSharedReport : get
  * 禁用分享链接 - Real API版本
  */
 const disableShareLinkReal = async (reportId: number): Promise<void> => {
-  await api.delete(`/api/v1/reports/reports/${reportId}/share`)
+  await api.delete(`/api/v1/reports/${reportId}/share`)
 }
 
 /**

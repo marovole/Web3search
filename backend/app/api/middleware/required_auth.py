@@ -29,7 +29,8 @@ class RequiredAuthMiddleware(BaseHTTPMiddleware):
             "/api/v1/auth/register",
             "/api/v1/auth/refresh",
             "/api/v1/github/search",
-            "/api/v1/chat/quick-chat",
+            "/api/v1/chat/quick-chat",  # Quick Chat（公共端点）
+            "/api/v1/chat/deep-research",  # Deep Research（公共端点，但有限流）
             "/api/v1/search",  # 搜索API（公共端点）
             "/api/v1/reports",  # 报告API（支持匿名访问）
             "/api/v1/trending",  # 热点API（公共端点）
@@ -93,9 +94,18 @@ class RequiredAuthMiddleware(BaseHTTPMiddleware):
 
     def _is_excluded_path(self, path: str) -> bool:
         """检查路径是否为排除路径"""
+        # 精确匹配或前缀匹配
         for exclude_path in self.exclude_paths:
-            if path.startswith(exclude_path):
+            # 精确匹配
+            if path == exclude_path:
                 return True
+            # 前缀匹配（确保是完整路径段）
+            if path.startswith(exclude_path):
+                # 确保是完整路径段，避免部分匹配
+                # 例如：/api/v1/search 应该匹配 /api/v1/search/autocomplete
+                # 但不应该匹配 /api/v1/search_other
+                if len(path) == len(exclude_path) or path[len(exclude_path)] == '/':
+                    return True
         return False
 
 

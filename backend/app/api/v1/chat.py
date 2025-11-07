@@ -284,19 +284,63 @@ async def quick_chat(
 
         return response
 
+    except HTTPException:
+        # 重新抛出HTTP异常（包括429限流错误）
+        raise
     except Exception as e:
         # 记录错误指标
+        error_type = type(e).__name__
+        error_msg = str(e)
+        
         metrics.record_error(
-            error_type=type(e).__name__,
-            error_message=str(e),
+            error_type=error_type,
+            error_message=error_msg,
             context={"endpoint": "/api/v1/chat/quick-chat", "query": request.query[:50]}
         )
 
-        print(f"❌ Quick Chat错误: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Quick Chat处理失败: {str(e)}"
-        )
+        print(f"❌ Quick Chat错误 [{error_type}]: {error_msg}")
+        import traceback
+        traceback.print_exc()
+        
+        # 根据错误类型返回不同的错误信息
+        error_lower = error_msg.lower()
+        
+        # API限流错误（429）
+        if "429" in error_msg or "rate limit" in error_lower or "too many requests" in error_lower:
+            raise HTTPException(
+                status_code=429,
+                detail="请求过于频繁，请稍后再试。Quick Chat限制为每分钟10次请求。",
+                headers={"Retry-After": "60"}
+            )
+        # 超时错误
+        elif "timeout" in error_lower or "timed out" in error_lower:
+            raise HTTPException(
+                status_code=504,
+                detail="请求超时，请稍后重试"
+            )
+        # API调用错误（外部服务）
+        elif "api" in error_lower or "http" in error_lower:
+            if "429" in error_msg:
+                raise HTTPException(
+                    status_code=503,
+                    detail="AI服务暂时限流，请稍后再试"
+                )
+            else:
+                raise HTTPException(
+                    status_code=502,
+                    detail="AI服务暂时不可用，请稍后重试"
+                )
+        # 其他错误
+        else:
+            detail_msg = (
+                f"Quick Chat处理失败 [{error_type}]: {error_msg[:200]}" 
+                if settings.DEBUG 
+                else "Quick Chat处理失败，请稍后重试"
+            )
+            raise HTTPException(
+                status_code=500,
+                detail=detail_msg
+            )
 
 
 @router.post(
@@ -333,8 +377,23 @@ async def quick_chat_stream(
             yield f"data: {data}\n\n"
 
         except Exception as e:
-            print(f"❌ Quick Chat Stream错误: {e}")
-            error_data = json.dumps({"error": str(e)}, ensure_ascii=False)
+            error_type = type(e).__name__
+            error_msg = str(e)
+            error_lower = error_msg.lower()
+            
+            print(f"❌ Quick Chat Stream错误 [{error_type}]: {error_msg}")
+            
+            # 根据错误类型返回不同的错误信息
+            if "429" in error_msg or "rate limit" in error_lower or "too many requests" in error_lower:
+                error_detail = "请求过于频繁，请稍后再试。Quick Chat限制为每分钟10次请求。"
+            elif "timeout" in error_lower or "timed out" in error_lower:
+                error_detail = "请求超时，请稍后重试"
+            elif "api" in error_lower or "http" in error_lower:
+                error_detail = "AI服务暂时不可用，请稍后重试"
+            else:
+                error_detail = "Quick Chat处理失败，请稍后重试"
+            
+            error_data = json.dumps({"error": error_detail, "error_type": error_type}, ensure_ascii=False)
             yield f"data: {error_data}\n\n"
 
     return StreamingResponse(
@@ -491,9 +550,23 @@ async def deep_research(
         except Exception as research_error:
             error_type = type(research_error).__name__
             error_msg = str(research_error)
-            print(f"❌ Deep Research引擎调用失败 [{error_type}]: {error_msg}")
             import traceback
             traceback_str = traceback.format_exc()
+            
+            # 详细的错误日志
+            error_context = {
+                "error_type": error_type,
+                "error_message": error_msg,
+                "query": request.query,
+                "symbol": request.symbol,
+                "session_id": session_id,
+                "user_id": current_user.id if current_user else None,
+                "timestamp": datetime.utcnow().isoformat(),
+                "traceback": traceback_str,
+            }
+            
+            print(f"❌ Deep Research引擎调用失败 [{error_type}]: {error_msg}")
+            print(f"   查询: {request.query}, 符号: {request.symbol}")
             print(f"   完整堆栈跟踪:\n{traceback_str}")
             
             # 记录到日志系统（如果可用）
@@ -502,32 +575,49 @@ async def deep_research(
                 logger = logging.getLogger(__name__)
                 logger.error(
                     f"Deep Research引擎调用失败",
-                    extra={
-                        "error_type": error_type,
-                        "error_message": error_msg,
-                        "query": request.query,
-                        "symbol": request.symbol,
-                        "traceback": traceback_str,
-                    }
+                    extra=error_context
                 )
             except Exception:
                 pass  # 日志系统不可用时忽略
             
             # 根据错误类型返回不同的错误信息
-            if "timeout" in error_msg.lower() or "timed out" in error_msg.lower():
+            error_lower = error_msg.lower()
+            
+            # 超时错误
+            if "timeout" in error_lower or "timed out" in error_lower:
                 raise HTTPException(
                     status_code=504,
-                    detail="研究分析超时，请稍后重试"
+                    detail="研究分析超时，请稍后重试。如果问题持续，请尝试简化查询或稍后再试。"
                 )
-            elif "not found" in error_msg.lower() or "404" in error_msg.lower():
+            # 未找到错误
+            elif "not found" in error_lower or "404" in error_lower:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"未找到相关信息: {error_msg}"
+                    detail=f"未找到相关信息: {error_msg[:200]}"
                 )
+            # 数据库连接错误
+            elif "database" in error_lower or "connection" in error_lower or "postgresql" in error_lower:
+                raise HTTPException(
+                    status_code=500,
+                    detail="数据库连接失败，请稍后重试"
+                )
+            # API调用错误（外部服务）
+            elif "api" in error_lower or "http" in error_lower or "429" in error_lower:
+                if "429" in error_lower:
+                    raise HTTPException(
+                        status_code=503,
+                        detail="外部服务限流，请稍后重试"
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=502,
+                        detail="外部服务不可用，请稍后重试"
+                    )
+            # 其他错误
             else:
                 # 生产环境隐藏详细错误，但保留错误类型
                 detail_msg = (
-                    f"研究引擎调用失败 [{error_type}]" 
+                    f"研究引擎调用失败 [{error_type}]: {error_msg[:200]}" 
                     if settings.DEBUG 
                     else "服务暂时不可用，请稍后重试"
                 )
@@ -602,20 +692,51 @@ async def deep_research(
         except Exception as db_error:
             error_type = type(db_error).__name__
             error_msg = str(db_error)
-            print(f"❌ 保存报告到数据库失败 [{error_type}]: {error_msg}")
             import traceback
-            traceback.print_exc()
+            traceback_str = traceback.format_exc()
+            
+            print(f"❌ 保存报告到数据库失败 [{error_type}]: {error_msg}")
+            print(f"   查询: {request.query}, 符号: {request.symbol}")
+            print(f"   完整堆栈跟踪:\n{traceback_str}")
+            
+            # 记录到日志系统
+            try:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(
+                    f"保存Deep Research报告到数据库失败",
+                    extra={
+                        "error_type": error_type,
+                        "error_message": error_msg,
+                        "query": request.query,
+                        "symbol": request.symbol,
+                        "traceback": traceback_str,
+                    }
+                )
+            except Exception:
+                pass
             
             # 即使数据库保存失败，也尝试返回结果
-            if "connection" in error_msg.lower() or "database" in error_msg.lower():
+            error_lower = error_msg.lower()
+            if "connection" in error_lower or "database" in error_lower or "postgresql" in error_lower:
                 raise HTTPException(
                     status_code=500,
-                    detail="数据库连接失败，无法保存报告"
+                    detail="数据库连接失败，无法保存报告。报告已生成但未保存。"
+                )
+            elif "constraint" in error_lower or "unique" in error_lower:
+                raise HTTPException(
+                    status_code=409,
+                    detail="报告已存在，无法重复保存"
                 )
             else:
+                detail_msg = (
+                    f"保存报告失败 [{error_type}]: {error_msg[:200]}" 
+                    if settings.DEBUG 
+                    else "保存报告失败，请稍后重试"
+                )
                 raise HTTPException(
                     status_code=500,
-                    detail=f"保存报告失败: {error_msg if 'DEBUG' in str(db_error) else '服务内部错误'}"
+                    detail=detail_msg
                 )
 
         # 构建响应
@@ -654,25 +775,57 @@ async def deep_research(
         # 捕获所有未预期的异常
         error_type = type(e).__name__
         error_msg = str(e)
-        print(f"❌ Deep Research未预期错误 [{error_type}]: {error_msg}")
         import traceback
-        traceback.print_exc()
+        traceback_str = traceback.format_exc()
+        
+        print(f"❌ Deep Research未预期错误 [{error_type}]: {error_msg}")
+        print(f"   查询: {request.query}, 符号: {request.symbol}")
+        print(f"   完整堆栈跟踪:\n{traceback_str}")
+        
+        # 记录到日志系统
+        try:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(
+                f"Deep Research未预期错误",
+                extra={
+                    "error_type": error_type,
+                    "error_message": error_msg,
+                    "query": request.query,
+                    "symbol": request.symbol,
+                    "traceback": traceback_str,
+                }
+            )
+        except Exception:
+            pass
         
         # 根据错误类型返回不同的错误信息
-        if "timeout" in error_msg.lower():
+        error_lower = error_msg.lower()
+        
+        if "timeout" in error_lower or "timed out" in error_lower:
             raise HTTPException(
                 status_code=504,
                 detail="请求超时，请稍后重试"
             )
-        elif "connection" in error_msg.lower() or "database" in error_msg.lower():
+        elif "connection" in error_lower or "database" in error_lower:
             raise HTTPException(
                 status_code=500,
                 detail="服务连接失败，请稍后重试"
             )
+        elif "api" in error_lower or "http" in error_lower:
+            raise HTTPException(
+                status_code=502,
+                detail="外部服务不可用，请稍后重试"
+            )
         else:
+            detail_msg = (
+                f"Deep Research处理失败 [{error_type}]: {error_msg[:200]}" 
+                if settings.DEBUG 
+                else "服务暂时不可用，请稍后重试"
+            )
             raise HTTPException(
                 status_code=500,
-                detail=f"Deep Research处理失败: {error_msg if 'DEBUG' in str(e) else '服务暂时不可用，请稍后重试'}"
+                detail=detail_msg
             )
 
 
