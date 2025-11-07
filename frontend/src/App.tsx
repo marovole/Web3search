@@ -25,6 +25,7 @@ const HistoryPage = React.lazy(() => import('./pages/HistoryPage'))
 const WatchlistPage = React.lazy(() => import('./pages/WatchlistPage'))
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'))
 const SearchPage = React.lazy(() => import('./pages/SearchPage'))
+const GitHubSearchPage = React.lazy(() => import('./pages/GitHubSearchPage'))
 
 // 懒加载认证页面组件
 const LoginPage = React.lazy(() => import('./pages/Auth/LoginPage'))
@@ -202,6 +203,11 @@ function App() {
                                 <Route path="/search" element={
                                   <Suspense fallback={<AdaptiveSkeleton pageType="search" />}>
                                     <SearchPage />
+                                  </Suspense>
+                                } />
+                                <Route path="/github" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="search" />}>
+                                    <GitHubSearchPage />
                                   </Suspense>
                                 } />
                                 <Route path="/settings" element={

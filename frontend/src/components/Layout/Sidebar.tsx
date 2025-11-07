@@ -11,7 +11,8 @@ import {
   Home,
   BarChart3,
   FileText,
-  Command
+  Command,
+  Code
 } from 'lucide-react'
 import { useKeyboardShortcutsContext } from '@/contexts/KeyboardShortcutsContext'
 
@@ -153,6 +154,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       label: '搜索',
       href: '/search',
       isActive: currentPath === '/search'
+    },
+    {
+      icon: <Code size={18} />,
+      label: 'GitHub搜索',
+      href: '/github',
+      isActive: currentPath === '/github'
     },
     {
       icon: <FileText size={18} />,
