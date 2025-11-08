@@ -3,13 +3,8 @@
   "version": "1.0.0",
   "description": "Web3 项目智能搜索和分析平台",
   "private": true,
-  "workspaces": [
-    "frontend"
-  ],
   "scripts": {
-    "install:frontend": "cd frontend && npm ci",
-    "build": "cd frontend && npm run build",
-    "build:frontend": "cd frontend && npm run build",
+    "build": "cd frontend && npm ci && npm run build",
     "test": "cd frontend && npm test",
     "lint": "cd frontend && npm run lint",
     "smoke-test": "node scripts/smoke-test.js"
