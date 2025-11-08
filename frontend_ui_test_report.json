@@ -1,0 +1,49 @@
+{
+  "timestamp": "2025-11-07T21:36:56.925573",
+  "frontend_url": "https://web3search.vercel.app",
+  "summary": {
+    "total": 5,
+    "passed": 1,
+    "failed": 3,
+    "warning": 1,
+    "skipped": 0,
+    "pass_rate": 20.0
+  },
+  "results": [
+    {
+      "name": "页面加载",
+      "status": "failed",
+      "duration": 20.02779507637024,
+      "details": "页面加载失败: Page.goto: net::ERR_CONNECTION_CLOSED at https://web3search.vercel.app/\nCall log:\n  - navigating to \"https://web3search.vercel.app/\", waiting until \"networkidle\"\n",
+      "error": "Page.goto: net::ERR_CONNECTION_CLOSED at https://web3search.vercel.app/\nCall log:\n  - navigating to \"https://web3search.vercel.app/\", waiting until \"networkidle\"\n"
+    },
+    {
+      "name": "UI元素检查",
+      "status": "failed",
+      "duration": 15.01228404045105,
+      "details": "未找到任何关键UI元素",
+      "error": "页面结构异常"
+    },
+    {
+      "name": "控制台错误检查",
+      "status": "failed",
+      "duration": 20.02918815612793,
+      "details": "检查异常: Page.reload: net::ERR_CONNECTION_CLOSED\nCall log:\n  - waiting for navigation until \"networkidle\"\n",
+      "error": "Page.reload: net::ERR_CONNECTION_CLOSED\nCall log:\n  - waiting for navigation until \"networkidle\"\n"
+    },
+    {
+      "name": "响应式设计",
+      "status": "passed",
+      "duration": 1.5496537685394287,
+      "details": "测试了3种屏幕尺寸: 桌面: 正常, 平板: 正常, 移动端: 正常",
+      "error": null
+    },
+    {
+      "name": "API连通性",
+      "status": "warning",
+      "duration": 0.002713918685913086,
+      "details": "未检测到API调用（可能页面未触发）",
+      "error": null
+    }
+  ]
+}

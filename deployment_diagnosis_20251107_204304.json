@@ -1,0 +1,55 @@
+{
+  "backend_health": true,
+  "api_docs": true,
+  "deep_research": {
+    "status_code": 500,
+    "success": false,
+    "headers": {
+      "Date": "Fri, 07 Nov 2025 12:43:01 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "keep-alive",
+      "CF-RAY": "99ace9f37c24fd98-SIN",
+      "rndr-id": "afdb274d-e1d6-4864",
+      "vary": "Accept-Encoding",
+      "x-render-origin-server": "uvicorn",
+      "cf-cache-status": "DYNAMIC",
+      "Server": "cloudflare",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "response": {
+      "error": {
+        "code": "INTERNAL_ERROR",
+        "message": "服务暂时不可用，请稍后重试",
+        "status": 500
+      }
+    }
+  },
+  "frontend_routes": {
+    "/": {
+      "status_code": 200,
+      "success": true,
+      "url": "https://web3search.netlify.app/"
+    },
+    "/chat": {
+      "status_code": 404,
+      "success": false,
+      "url": "https://web3search.netlify.app/chat"
+    },
+    "/history": {
+      "status_code": 404,
+      "success": false,
+      "url": "https://web3search.netlify.app/history"
+    },
+    "/watchlist": {
+      "status_code": 404,
+      "success": false,
+      "url": "https://web3search.netlify.app/watchlist"
+    },
+    "/settings": {
+      "status_code": 404,
+      "success": false,
+      "url": "https://web3search.netlify.app/settings"
+    }
+  }
+}
