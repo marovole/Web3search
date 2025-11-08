@@ -157,25 +157,25 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     allowed, remaining = self._check_rate_limit_fallback(identifier, limit, window)
 
                 if not allowed:
-                # 超过限制，返回429错误
-                return JSONResponse(
-                    status_code=429,
-                    content={
-                        "error": "Rate Limit Exceeded",
-                        "message": f"请求过于频繁，请{window}秒后重试",
-                        "limit": limit,
-                        "window": window,
-                        "retry_after": window,
-                        "fallback_mode": self.fallback_mode,  # 指示是否使用降级模式
-                    },
-                    headers={
-                        "X-RateLimit-Limit": str(limit),
-                        "X-RateLimit-Remaining": "0",
-                        "X-RateLimit-Reset": str(window),
-                        "Retry-After": str(window),
-                        "X-RateLimit-Fallback": "true" if self.fallback_mode else "false",
-                    }
-                )
+                    # 超过限制，返回429错误
+                    return JSONResponse(
+                        status_code=429,
+                        content={
+                            "error": "Rate Limit Exceeded",
+                            "message": f"请求过于频繁，请{window}秒后重试",
+                            "limit": limit,
+                            "window": window,
+                            "retry_after": window,
+                            "fallback_mode": self.fallback_mode,  # 指示是否使用降级模式
+                        },
+                        headers={
+                            "X-RateLimit-Limit": str(limit),
+                            "X-RateLimit-Remaining": "0",
+                            "X-RateLimit-Reset": str(window),
+                            "Retry-After": str(window),
+                            "X-RateLimit-Fallback": "true" if self.fallback_mode else "false",
+                        }
+                    )
 
             # 允许请求，添加速率限制响应头
             response = await call_next(request)
