@@ -1,0 +1,38 @@
+{
+  "name": "web3search",
+  "version": "1.0.0",
+  "description": "Web3 项目智能搜索和分析平台",
+  "private": true,
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "install:frontend": "cd frontend && npm ci",
+    "build": "cd frontend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "test": "cd frontend && npm test",
+    "lint": "cd frontend && npm run lint",
+    "smoke-test": "node scripts/smoke-test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marovole/Web3search.git"
+  },
+  "keywords": [
+    "web3",
+    "blockchain",
+    "ai",
+    "search",
+    "cryptocurrency"
+  ],
+  "author": "marovole",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/marovole/Web3search/issues"
+  },
+  "homepage": "https://github.com/marovole/Web3search#readme",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
