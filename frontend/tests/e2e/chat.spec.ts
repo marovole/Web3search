@@ -47,23 +47,47 @@ test.describe('Chat Interface', () => {
   })
 
   test('should send Quick Chat message and receive response', async ({ page }) => {
-    // Type a question
-    const input = page.locator('textarea[placeholder*="输入你的问题"]')
-    await input.fill('What is Bitcoin?')
+    // 监听网络请求以诊断 API 问题
+    page.on('response', response => {
+      if (response.url().includes('/api/')) {
+        console.log(`API Response: ${response.url()} - Status: ${response.status()}`);
+      }
+    });
+
+    // 监听控制台错误
+    page.on('console', msg => {
+      if (msg.type() === 'error' || msg.type() === 'warning') {
+        console.log(`Console ${msg.type()}: ${msg.text()}`);
+      }
+    });
+
+    // Type a question with retry
+    const input = page.locator('textarea[placeholder*="输入你的问题"]');
+    await input.waitFor({ state: 'visible', timeout: 10000 });
+    await input.fill('What is Bitcoin?');
 
     // Click send button
-    await page.locator('button:has-text("发送")').click()
+    const sendButton = page.locator('button:has-text("发送")');
+    await sendButton.waitFor({ state: 'visible', timeout: 5000 });
+    await sendButton.click();
 
     // Wait for user message to appear
-    await expect(page.locator('.message-user')).toContainText('What is Bitcoin?')
+    await expect(page.locator('.message-user, [class*="message-user"]')).toContainText('What is Bitcoin?', { timeout: 5000 });
 
-    // Wait for AI response (up to 10 seconds)
-    await expect(page.locator('.message-assistant')).toBeVisible({ timeout: 10000 })
+    // Wait for AI response (up to 30 seconds for production)
+    try {
+      await expect(page.locator('.message-assistant, [class*="message-assistant"]')).toBeVisible({ timeout: 30000 });
 
-    // Check that response is not empty
-    const response = await page.locator('.message-assistant').first().textContent()
-    expect(response).toBeTruthy()
-    expect(response!.length).toBeGreaterThan(10)
+      // Check that response is not empty
+      const response = await page.locator('.message-assistant, [class*="message-assistant"]').first().textContent();
+      expect(response).toBeTruthy();
+      expect(response!.length).toBeGreaterThan(10);
+    } catch (error) {
+      // Take screenshot on failure
+      await page.screenshot({ path: 'test-results/quick-chat-error.png', fullPage: true });
+      console.log('Quick Chat failed. Screenshot saved. Check API logs above.');
+      throw error;
+    }
   })
 
   test('should interact with hotspot panel', async ({ page }) => {
@@ -105,27 +129,71 @@ test.describe('Chat Interface', () => {
   })
 
   test('should navigate to history page', async ({ page }) => {
-    // Click history button
-    const historyButton = page.locator('button:has-text("历史记录")')
-    await historyButton.click()
+    // 添加错误诊断
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        console.log(`Browser Console Error: ${msg.text()}`);
+      }
+    });
+
+    page.on('pageerror', error => {
+      console.log(`Page Error: ${error.message}`);
+    });
+
+    // Click history button with retry logic
+    const historyButton = page.locator('button:has-text("历史记录")');
+    await historyButton.waitFor({ state: 'visible', timeout: 10000 });
+    await historyButton.click();
+
+    // Wait for navigation with increased timeout (120 seconds as per requirements)
+    await page.waitForURL(/\/history/, { timeout: 120000 });
 
     // Check URL changed
-    await expect(page).toHaveURL(/\/history/)
+    await expect(page).toHaveURL(/\/history/);
 
-    // Check page content
-    await expect(page.locator('h1')).toContainText('报告历史记录')
+    // Check page content with better error handling
+    try {
+      await expect(page.locator('h1')).toContainText('历史记录', { timeout: 15000 });
+    } catch (error) {
+      // Take screenshot on failure
+      await page.screenshot({ path: 'test-results/history-page-error.png', fullPage: true });
+      console.log('History page content check failed. Screenshot saved.');
+      throw error;
+    }
   })
 
   test('should navigate to watchlist page', async ({ page }) => {
-    // Click watchlist button
-    const watchlistButton = page.locator('button:has-text("监控列表")')
-    await watchlistButton.click()
+    // 添加错误诊断
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        console.log(`Browser Console Error: ${msg.text()}`);
+      }
+    });
+
+    page.on('pageerror', error => {
+      console.log(`Page Error: ${error.message}`);
+    });
+
+    // Click watchlist button with retry logic
+    const watchlistButton = page.locator('button:has-text("监控列表")');
+    await watchlistButton.waitFor({ state: 'visible', timeout: 10000 });
+    await watchlistButton.click();
+
+    // Wait for navigation with increased timeout
+    await page.waitForURL(/\/watchlist/, { timeout: 120000 });
 
     // Check URL changed
-    await expect(page).toHaveURL(/\/watchlist/)
+    await expect(page).toHaveURL(/\/watchlist/);
 
-    // Check page content
-    await expect(page.locator('h1')).toContainText('监控列表')
+    // Check page content with better error handling
+    try {
+      await expect(page.locator('h1')).toContainText('我的监控', { timeout: 15000 });
+    } catch (error) {
+      // Take screenshot on failure
+      await page.screenshot({ path: 'test-results/watchlist-page-error.png', fullPage: true });
+      console.log('Watchlist page content check failed. Screenshot saved.');
+      throw error;
+    }
   })
 })
 

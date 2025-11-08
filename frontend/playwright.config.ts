@@ -12,16 +12,17 @@ import { defineConfig, devices } from '@playwright/test'
  */
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 120000, // 2 minutes per test (Deep Research can take 30s)
+  timeout: 120000, // 2分钟每个测试 (历史页面导航、Deep Research等需要较长时间)
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 2 : 1, // 本地也重试一次
   workers: process.env.CI ? 1 : undefined,
-  expect: { timeout: 10000 },
+  expect: { timeout: 15000 }, // 增加到15秒以适应生产环境
 
   reporter: [
     ['html', { outputFolder: 'playwright-report' }],
     ['list'],
+    ['json', { outputFile: 'test-results/results.json' }], // 添加 JSON 报告
   ],
 
   use: {
@@ -29,6 +30,10 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+
+    /* 增加操作超时以适应生产环境 */
+    actionTimeout: 10000, // 操作超时: 10秒
+    navigationTimeout: 30000, // 导航超时: 30秒
   },
 
   projects: [

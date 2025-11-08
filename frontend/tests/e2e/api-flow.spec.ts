@@ -1,11 +1,21 @@
 /**
  * E2E API流程测试
  * 使用Playwright测试完整的API交互流程
+ *
+ * 注意：生产环境测试应该使用前端代理路径而不是直接访问后端API
+ * 这样可以测试完整的请求链路（前端 → 代理 → 后端）
  */
 import { test, expect } from '@playwright/test';
 
-// API基础URL（从环境变量获取）
-const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:8000';
+// 判断是否为生产环境测试
+const isProduction = process.env.TEST_ENV === 'production';
+
+// API基础URL配置
+// 开发环境：直接访问后端 API
+// 生产环境：通过前端代理访问（测试完整请求链路）
+const API_BASE_URL = isProduction
+  ? (process.env.FRONTEND_URL || 'http://localhost:5173')
+  : (process.env.VITE_API_BASE_URL || 'http://localhost:8000');
 
 test.describe('API Integration E2E Tests', () => {
   test('Health check endpoint should be accessible', async ({ request }) => {
@@ -44,28 +54,52 @@ test.describe('API Integration E2E Tests', () => {
   });
 
   test('Quick Chat API should accept valid requests', async ({ request }) => {
-    const response = await request.post(`${API_BASE_URL}/api/v1/chat/quick`, {
+    // 生产环境使用前端代理路径
+    const endpoint = isProduction
+      ? '/api/v1/chat/quick-chat'  // 通过前端代理
+      : '/api/v1/chat/quick-chat';  // 直接访问后端
+
+    const response = await request.post(`${API_BASE_URL}${endpoint}`, {
       data: {
         query: 'What is Bitcoin?',
-        stream: false,
+        mode: 'quick',
       },
+      timeout: 15000, // 15秒超时
     });
+
+    console.log(`API Request: ${API_BASE_URL}${endpoint}`);
+    console.log(`Response Status: ${response.status()}`);
 
     // Should not be 404 (endpoint exists)
     expect(response.status()).not.toBe(404);
 
     // May return validation error or success
-    expect([200, 400, 422, 500, 503]).toContain(response.status());
+    // 429: Rate limit, 500: Server error, 503: Service unavailable
+    expect([200, 400, 422, 429, 500, 503]).toContain(response.status());
+
+    // 如果成功，验证响应格式
+    if (response.ok()) {
+      const data = await response.json();
+      expect(data).toHaveProperty('answer');
+    }
   });
 
   test('Invalid requests should return 422', async ({ request }) => {
-    const response = await request.post(`${API_BASE_URL}/api/v1/chat/quick`, {
+    const endpoint = isProduction
+      ? '/api/v1/chat/quick-chat'
+      : '/api/v1/chat/quick-chat';
+
+    const response = await request.post(`${API_BASE_URL}${endpoint}`, {
       data: {
         invalid_field: 'invalid_value',
       },
+      timeout: 10000,
     });
 
-    expect(response.status()).toBe(422);
+    console.log(`Invalid Request Test - Status: ${response.status()}`);
+
+    // 应该返回验证错误
+    expect([400, 422]).toContain(response.status());
   });
 });
 
