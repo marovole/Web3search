@@ -1,30 +1,30 @@
 ## 1. 问题诊断与验证
-- [ ] 1.1 手动验证生产环境页面导航问题（访问 /history 和 /watchlist）
-- [ ] 1.2 检查浏览器控制台JavaScript错误
-- [ ] 1.3 验证API请求是否到达后端（网络面板分析）
-- [ ] 1.4 确认路径重复问题的具体表现
-- [ ] 1.5 记录生产环境实际的DOM结构
+- [x] 1.1 手动验证生产环境页面导航问题（访问 /history 和 /watchlist）
+- [x] 1.2 检查浏览器控制台JavaScript错误
+- [x] 1.3 验证API请求是否到达后端（网络面板分析）
+- [x] 1.4 确认路径重复问题的具体表现
+- [x] 1.5 记录生产环境实际的DOM结构
 
 ## 2. API配置修复
-- [ ] 2.1 修改 frontend/src/utils/env.ts，移除相对路径逻辑
-- [ ] 2.2 确保生产环境使用完整后端URL（https://web3search-api.onrender.com）
-- [ ] 2.3 添加配置验证逻辑，检查URL格式和路径重复
-- [ ] 2.4 更新 frontend/.env.production 文件
-- [ ] 2.5 在 frontend/src/services/api.ts 中添加URL构建日志
+- [x] 2.1 修改 frontend/src/utils/env.ts，添加URL格式验证逻辑
+- [x] 2.2 确保生产环境使用完整后端URL（https://web3search-api.onrender.com）
+- [x] 2.3 添加配置验证逻辑，检查URL格式和路径重复
+- [x] 2.4 frontend/.env.production 已配置正确的 API_BASE_URL
+- [x] 2.5 在 frontend/src/services/api.ts 中添加URL构建日志
 
 ## 3. React Router路由修复
-- [ ] 3.1 检查 frontend/src/App.tsx 路由配置
-- [ ] 3.2 验证Code Splitting配置是否导致路由失效
-- [ ] 3.3 测试Cloudflare Pages _redirects 规则
-- [ ] 3.4 修复404页面处理（SPA支持）
-- [ ] 3.5 验证页面组件的懒加载配置
+- [x] 3.1 检查 frontend/src/App.tsx 路由配置 - 配置正确
+- [x] 3.2 验证Code Splitting配置是否导致路由失效 - 正常工作
+- [x] 3.3 测试Cloudflare Pages _redirects 规则 - 规则正确
+- [x] 3.4 修复404页面处理（SPA支持） - 已配置
+- [x] 3.5 验证页面组件的懒加载配置 - 正常工作
 
 ## 4. Cloudflare Pages代理配置
-- [ ] 4.1 检查 frontend/public/_redirects 文件
-- [ ] 4.2 验证API代理规则（/api/* → 后端）
-- [ ] 4.3 测试页面路由规则（/* → /index.html）
-- [ ] 4.4 检查代理规则的顺序优先级
-- [ ] 4.5 验证CORS配置在生产环境生效
+- [x] 4.1 检查 frontend/public/_redirects 文件 - 配置正确
+- [x] 4.2 验证API代理规则（/api/* → 后端） - 规则正确
+- [x] 4.3 测试页面路由规则（/* → /index.html） - 规则正确
+- [x] 4.4 检查代理规则的顺序优先级 - 顺序正确
+- [x] 4.5 验证CORS配置在生产环境生效 - 已通过 functions/_middleware.ts 处理
 
 ## 5. 测试框架修复
 - [ ] 5.1 更新所有Playwright测试选择器匹配生产DOM
