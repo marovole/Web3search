@@ -105,12 +105,14 @@ class Settings(BaseSettings):
                     if pattern in origin:
                         raise ValueError(f"生产环境不允许使用不安全的CORS配置: {origin}")
 
-            # 检查是否包含具体的生产域名（包括 Vercel 部署域名）
+            # 检查是否包含具体的生产域名（包括所有部署平台）
             production_domains = [
-                'web3search.ai',
-                'www.web3search.ai',
-                'api.web3search.ai',
-                'web3search.vercel.app'  # Vercel 前端部署域名
+                'web3search.ai',           # 主域名
+                'www.web3search.ai',       # WWW 子域名
+                'api.web3search.ai',       # API 子域名
+                'web3search.vercel.app',   # Vercel 前端部署域名
+                'web3search.pages.dev',    # Cloudflare Pages 前端部署域名
+                'web3-search.netlify.app'  # Netlify 前端部署域名
             ]
             has_valid_domain = any(domain in origin for origin in origins for domain in production_domains)
 
