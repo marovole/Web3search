@@ -177,20 +177,19 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                         }
                     )
 
-            # 允许请求，添加速率限制响应头
-            response = await call_next(request)
-            response.headers["X-RateLimit-Limit"] = str(limit)
-            response.headers["X-RateLimit-Remaining"] = str(remaining)
-            response.headers["X-RateLimit-Reset"] = str(window)
-            if self.fallback_mode:
-                response.headers["X-RateLimit-Fallback"] = "true"
+                # 允许请求，添加速率限制响应头
+                response = await call_next(request)
+                response.headers["X-RateLimit-Limit"] = str(limit)
+                response.headers["X-RateLimit-Remaining"] = str(remaining)
+                response.headers["X-RateLimit-Reset"] = str(window)
+                if self.fallback_mode:
+                    response.headers["X-RateLimit-Fallback"] = "true"
 
-            return response
-
-        else:
-            # 不需要速率限制，直接通过
-            return await call_next(request)
-            
+                return response
+            else:
+                # 不需要速率限制，直接通过
+                return await call_next(request)
+                
         except Exception as e:
             # 任何异常都不应该阻止API运行，记录错误并继续
             logger.error(f"Rate limit middleware error: {e}", exc_info=True)
