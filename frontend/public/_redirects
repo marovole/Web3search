@@ -1,13 +1,16 @@
-# Cloudflare Pages SPA 路由支持
-# 所有非 API 路由都重定向到 index.html
-/*    /index.html   200
+# Cloudflare Pages 重定向规则
+# 规则顺序很重要：从最具体到最通用
 
-# API 请求代理到后端
-/api/v1/*    https://web3search-api.onrender.com/api/v1/:splat    200
-/api/health    https://web3search-api.onrender.com/api/health    200
-/api/docs    https://web3search-api.onrender.com/api/docs    200
-/api/openapi.json    https://web3search-api.onrender.com/api/openapi.json    200
+# API 请求代理到后端 - 必须在最前面
+/api/v1/*           https://web3search-api.onrender.com/api/v1/:splat    200
+/api/health         https://web3search-api.onrender.com/api/health       200
+/api/docs           https://web3search-api.onrender.com/api/docs         200
+/api/openapi.json   https://web3search-api.onrender.com/api/openapi.json 200
 
 # 聊天页面重定向
-/chat    /    302
+/chat               /                                                     302
+
+# SPA 路由支持 - 仅对不存在的文件返回 index.html
+# 这样可以避免对静态资源（js/css/images）的重定向
+/*                  /index.html                                          200
 

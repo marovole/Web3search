@@ -1,0 +1,33 @@
+# Cloudflare Pages 配置文件
+# 这个文件不是官方支持的，但可以作为文档记录
+
+[build]
+  # 构建命令 - 在 Cloudflare Dashboard 中设置
+  command = "cd frontend && npm ci && npm run build"
+  
+  # 构建输出目录 - 相对于项目根目录
+  output_directory = "frontend/dist"
+  
+  # 根目录 - 留空表示使用项目根目录
+  root_directory = ""
+
+[build.environment]
+  # Node.js 版本
+  NODE_VERSION = "18"
+  
+  # 前端环境变量
+  VITE_API_BASE_URL = "/api"
+  VITE_ENVIRONMENT = "production"
+
+[deployment]
+  # 部署分支
+  production_branch = "main"
+  
+  # 预览分支
+  preview_branches = ["dev", "staging"]
+
+# 重要提示:
+# 1. 这个配置需要在 Cloudflare Dashboard 中手动设置
+# 2. 构建命令: cd frontend && npm ci && npm run build
+# 3. 构建输出目录: frontend/dist
+# 4. 环境变量在 Settings > Environment variables 中设置
