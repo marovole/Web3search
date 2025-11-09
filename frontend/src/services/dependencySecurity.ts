@@ -60,6 +60,8 @@ interface SecurityConfig {
   severityThreshold: 'low' | 'moderate' | 'high' | 'critical'
 }
 
+type LicenseListKey = 'allowedLicenses' | 'blockedLicenses'
+
 /**
  * 依赖安全管理器
  */
@@ -289,33 +291,65 @@ export class DependencySecurityManager {
   }
 
   /**
+   * 安全获取许可证列表，避免 undefined 覆盖默认值
+   */
+  private resolveLicenseList(key: LicenseListKey): string[] {
+    const partialConfig = this.config as Partial<Record<LicenseListKey, string[] | undefined>>
+    const configuredList = partialConfig[key]
+
+    if (Array.isArray(configuredList)) {
+      return configuredList
+    }
+
+    if (!this.isInitialized) {
+      console.warn(`依赖安全配置尚未初始化，${key} 使用默认值`)
+    }
+
+    const fallback = this.DEFAULT_CONFIG[key]
+    return Array.isArray(fallback) ? [...fallback] : []
+  }
+
+  /**
    * 检查许可证合规性
    */
   private checkLicenseCompliance(): void {
-    const issues: string[] = []
-
-    for (const dependency of this.dependencies.values()) {
-      const license = this.licenses.get(dependency.license)
-
-      if (!license) {
-        issues.push(`未知许可证: ${dependency.name} (${dependency.license})`)
-        continue
-      }
-
-      // 检查是否为阻止的许可证
-      if (this.config.blockedLicenses.includes(dependency.license)) {
-        issues.push(`禁止的许可证: ${dependency.name} 使用 ${dependency.license}`)
-      }
-
-      // 检查是否为允许的许可证
-      if (!this.config.allowedLicenses.includes(dependency.license)) {
-        issues.push(`未批准的许可证: ${dependency.name} 使用 ${dependency.license}`)
-      }
+    if (this.dependencies.size === 0) {
+      return
     }
 
-    if (issues.length > 0) {
-      console.warn('⚠️ 许可证合规性问题:', issues)
-      this.notifyLicenseIssues(issues)
+    const issues: string[] = []
+    const blockedLicenses = this.resolveLicenseList('blockedLicenses')
+    const allowedLicenses = this.resolveLicenseList('allowedLicenses')
+
+    try {
+      for (const dependency of this.dependencies.values()) {
+        const license = this.licenses.get(dependency.license)
+
+        if (!license) {
+          issues.push(`未知许可证: ${dependency.name} (${dependency.license})`)
+          continue
+        }
+
+        // 检查是否为阻止的许可证
+        if (blockedLicenses.includes(dependency.license)) {
+          issues.push(`禁止的许可证: ${dependency.name} 使用 ${dependency.license}`)
+        }
+
+        // 检查是否为允许的许可证
+        if (
+          allowedLicenses.length > 0 &&
+          !allowedLicenses.includes(dependency.license)
+        ) {
+          issues.push(`未批准的许可证: ${dependency.name} 使用 ${dependency.license}`)
+        }
+      }
+
+      if (issues.length > 0) {
+        console.warn('⚠️ 许可证合规性问题:', issues)
+        this.notifyLicenseIssues(issues)
+      }
+    } catch (error) {
+      console.error('许可证合规性检查失败:', error)
     }
   }
 
@@ -393,6 +427,7 @@ export class DependencySecurityManager {
     let outdatedDependencies = 0
 
     const dependencies: Dependency[] = []
+    const blockedLicenses = this.resolveLicenseList('blockedLicenses')
 
     for (const dependency of this.dependencies.values()) {
       dependencies.push(dependency)
@@ -407,7 +442,7 @@ export class DependencySecurityManager {
 
       // 检查许可证问题
       const license = this.licenses.get(dependency.license)
-      if (!license || this.config.blockedLicenses.includes(dependency.license)) {
+      if (!license || blockedLicenses.includes(dependency.license)) {
         licenseIssues++
       }
 

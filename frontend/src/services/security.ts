@@ -111,7 +111,10 @@ export class SecurityManager {
       if (this.config.dependencies?.enabled) {
         await dependencySecurity.initialize({
           autoScan: this.config.dependencies.autoScan,
-          allowedLicenses: this.config.dependencies.allowedLicenses,
+          // 只传递已定义的配置值，避免 undefined 覆盖默认值
+          ...(this.config.dependencies.allowedLicenses && {
+            allowedLicenses: this.config.dependencies.allowedLicenses
+          }),
           notifyOnVulnerabilities: true
         })
         console.log('📦 依赖安全管理已初始化')

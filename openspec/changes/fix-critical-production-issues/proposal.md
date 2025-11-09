@@ -20,9 +20,27 @@
 
 ### P1 - 高优先级问题
 3. **前端 JavaScript 运行时错误**
-   - 监控系统初始化失败：`Cannot read properties of undefined (reading 'isTracking')`
-   - 安全系统初始化失败：`Cannot read properties of undefined (reading 'includes')`
-   - 影响性能追踪和安全防护功能
+   - **监控系统初始化失败**：`Cannot read properties of undefined (reading 'isTracking')`
+     - **错误源头**：`frontend/src/services/userAnalytics.ts:98-123` 的 `startTracking()` 方法
+     - **调用链路**：`monitoring.ts:8` 导入解构函数 → `userAnalytics.ts:538-548` 导出解构 → `this` 上下文丢失
+     - **根本原因**：JavaScript `this` 绑定问题
+       - `userAnalytics.ts` 使用 `export const { startTracking, ... } = userAnalytics` 导出方法
+       - 解构导出丢失了实例上下文
+       - 调用 `startTracking()` 时，`this` 为 `undefined`，访问 `this.isTracking` 失败
+     - **触发场景**：任何调用 `startTracking()` 的地方（包括 `monitoring.ts` 初始化）
+
+   - **依赖安全系统初始化失败**：`Cannot read properties of undefined (reading 'includes')`
+     - **错误源头**：`frontend/src/services/dependencySecurity.ts:294-320` 的 `checkLicenseCompliance()` 方法
+     - **调用链路**：`security.ts:112-116` 传递配置 → `dependencySecurity.ts:146` 合并配置 → 默认值被覆盖
+     - **根本原因**：上游配置传递和合并策略问题
+       - `SecurityManager.initialize()` 在 `security.ts:114` 传递 `allowedLicenses: this.config.dependencies.allowedLicenses`
+       - 即使该值为 `undefined` 也会传递
+       - `DependencySecurityManager.initialize()` 在 `dependencySecurity.ts:146` 使用 `{ ...this.config, ...config }` 盲目合并
+       - `undefined` 值覆盖了 `DEFAULT_CONFIG` 中的默认数组
+       - 后续 `checkLicenseCompliance()` 调用 `this.config.allowedLicenses.includes()` 时失败
+     - **触发场景**：`SecurityManager` 初始化时未提供 `allowedLicenses` 配置
+
+   - **影响范围**：性能追踪和安全防护功能降级，但不影响用户核心功能
 
 4. **测试基础设施问题**
    - 烟雾测试脚本与实际组件不同步
@@ -357,10 +375,128 @@
   - CSP/XSS 防护可能降级
   - Sentry 错误追踪可能不工作
 
-**修复计划**：
-- 优先级：P1（高优先级但非阻塞）
-- 时间：Phase 3（Day 4-5）
-- 策略：添加错误边界和降级处理，失败时使用浏览器原生 API
+**修复方案**（基于 Codex 深度代码分析）：
+
+#### 修复 1: 用户分析 `this` 绑定问题 (`userAnalytics.ts`)
+**问题**：解构导出丢失实例上下文，导致 `this` 为 `undefined`
+
+**解决方案**（三选一）：
+
+**方案 A（推荐）：改用绑定包装函数导出**
+```typescript
+// userAnalytics.ts:538-549
+export const startTracking = (userId?: string) => userAnalytics.startTracking(userId)
+export const stopTracking = () => userAnalytics.stopTracking()
+export const trackEvent = (
+  eventName: string,
+  eventType: UserEvent['eventType'],
+  properties?: Record<string, any>
+) => userAnalytics.trackEvent(eventName, eventType, properties)
+export const trackPageView = (pagePath?: string, pageTitle?: string) =>
+  userAnalytics.trackPageView(pagePath, pageTitle)
+export const trackSearch = (search: SearchEvent) => userAnalytics.trackSearch(search)
+export const trackFeatureUsage = (featureName: string, action?: string, duration?: number) =>
+  userAnalytics.trackFeatureUsage(featureName, action, duration)
+export const trackPerformance = (name: string, value: number, unit?: string) =>
+  userAnalytics.trackPerformance(name, value, unit)
+export const trackError = (error: Error, context?: string) =>
+  userAnalytics.trackError(error, context)
+export const getCurrentSession = () => userAnalytics.getCurrentSession()
+export const getSessionStats = () => userAnalytics.getSessionStats()
+```
+
+**方案 B：在所有调用点使用实例方法**
+```typescript
+// monitoring.ts:8
+import { userAnalytics } from './userAnalytics'
+
+// 调用时
+userAnalytics.startTracking()
+userAnalytics.trackEvent(...)
+```
+
+**方案 C：在类方法中显式绑定 `this`**
+```typescript
+// userAnalytics.ts 构造函数中
+this.startTracking = this.startTracking.bind(this)
+this.trackEvent = this.trackEvent.bind(this)
+// ... 其他方法同理
+```
+
+**推荐**：方案 A，兼顾便捷性和类型安全，不影响现有调用代码
+
+**修改位置**：
+- `frontend/src/services/userAnalytics.ts:538-549` - 重写导出函数为包装函数
+
+**可选增强**：添加 Performance API 降级逻辑（虽然不是当前错误的根源）
+- 在 `monitoring.ts` 中添加 `safeGetPageLoadTime()` 方法处理 Performance API 缺失场景
+
+#### 修复 2: 依赖安全配置合并策略 (`dependencySecurity.ts` + `security.ts`)
+**问题**：上游传递 `undefined` 配置值，合并时覆盖默认数组
+
+**解决方案（双管齐下）**：
+
+**修复 2.1：上游过滤 undefined 值 (`security.ts`)**
+```typescript
+// security.ts:112-116
+await dependencySecurity.initialize({
+  autoScan: this.config.dependencies.autoScan,
+  ...(this.config.dependencies.allowedLicenses && {
+    allowedLicenses: this.config.dependencies.allowedLicenses
+  }),
+  notifyOnVulnerabilities: true
+})
+```
+
+**修复 2.2：下游添加安全读取器 (`dependencySecurity.ts`)**
+1. **新增 `resolveLicenseList()` 辅助方法**（防御性编程）：
+   ```typescript
+   private resolveLicenseList(key: 'allowedLicenses' | 'blockedLicenses'): string[] {
+     const value = this.config[key]
+     if (Array.isArray(value)) return value
+
+     if (!this.isInitialized) {
+       console.warn(`依赖安全配置尚未初始化，${key} 使用默认值`)
+     }
+
+     return Array.isArray(this.DEFAULT_CONFIG[key]) ? [...this.DEFAULT_CONFIG[key]] : []
+   }
+   ```
+
+2. **在所有读取点使用安全读取器**：
+   - `checkLicenseCompliance()` - 使用 `resolveLicenseList()` 替代直接访问
+   - `generateSecurityReport()` - 同样使用安全读取器
+   - 添加 try-catch 错误边界防止异常传播
+
+**修改位置**：
+- `frontend/src/services/security.ts:112-116` - 过滤 undefined 配置值
+- `frontend/src/services/dependencySecurity.ts:52` - 新增类型定义和辅助方法
+- `frontend/src/services/dependencySecurity.ts:294-320` - 重构 `checkLicenseCompliance()`
+- `frontend/src/services/dependencySecurity.ts:392` - 更新 `generateSecurityReport()`
+
+**为什么需要双管齐下**：
+- 上游过滤避免污染默认配置（治本）
+- 下游防御避免未来其他调用点出现同样问题（防御）
+
+**修复影响评估**：
+- ✅ **向后兼容**：完全不影响现有功能
+- ✅ **稳定性提升**：异步初始化环境下更稳定
+- ✅ **优雅降级**：失败时输出警告而非崩溃
+- ✅ **性能无损**：仅添加轻量级逻辑
+
+**实施计划**：
+- **优先级**：P1（高优先级但非阻塞）
+- **预计工时**：
+  - 修复 1（`this` 绑定）：1 小时（修改 8-10 个导出函数）
+  - 修复 2（配置合并）：1.5 小时（上游过滤 + 下游防御）
+  - 单元测试：1 小时
+  - E2E 测试验证：0.5 小时
+  - **总计**：4 小时
+- **验证方式**：
+  1. 单元测试验证 `this` 绑定和配置降级逻辑
+  2. E2E 测试确保不影响现有流程
+  3. 手动测试异步初始化场景
+  4. 检查浏览器控制台无新错误
 
 ## Approval Checklist
 - [ ] 技术负责人审核提案和架构迁移计划

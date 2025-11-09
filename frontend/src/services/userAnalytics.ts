@@ -534,18 +534,24 @@ export class UserAnalytics {
 // 导出全局实例
 export const userAnalytics = UserAnalytics.getInstance()
 
-// 便捷函数
-export const {
-  startTracking,
-  stopTracking,
-  trackEvent,
-  trackPageView,
-  trackSearch,
-  trackFeatureUsage,
-  trackPerformance,
-  trackError,
-  getCurrentSession,
-  getSessionStats,
-} = userAnalytics
+// 便捷函数（使用包装函数保持 this 上下文）
+export const startTracking = (userId?: string) => userAnalytics.startTracking(userId)
+export const stopTracking = () => userAnalytics.stopTracking()
+export const trackEvent = (
+  eventName: string,
+  eventType: UserEvent['eventType'],
+  properties?: Record<string, any>
+) => userAnalytics.trackEvent(eventName, eventType, properties)
+export const trackPageView = (pagePath?: string, pageTitle?: string) =>
+  userAnalytics.trackPageView(pagePath, pageTitle)
+export const trackSearch = (search: SearchEvent) => userAnalytics.trackSearch(search)
+export const trackFeatureUsage = (featureName: string, action: string = 'use', duration?: number) =>
+  userAnalytics.trackFeatureUsage(featureName, action, duration)
+export const trackPerformance = (name: string, value: number, unit?: string) =>
+  userAnalytics.trackPerformance(name, value, unit)
+export const trackError = (error: Error, context?: string) =>
+  userAnalytics.trackError(error, context)
+export const getCurrentSession = () => userAnalytics.getCurrentSession()
+export const getSessionStats = () => userAnalytics.getSessionStats()
 
 export type { UserEvent, UserSession, SearchEvent, FeatureUsage, DeviceInfo, PageInfo }
