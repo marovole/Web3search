@@ -24,6 +24,14 @@ SUPABASE_HEALTH_TABLE = "projects"
 # 机密变量需通过 wrangler secret put 设置：
 # wrangler secret put SUPABASE_ANON_KEY
 # wrangler secret put SUPABASE_SERVICE_ROLE_KEY (可选)
+# wrangler secret put OPENROUTER_API_KEY
+
+# Cron Triggers（定时任务）
+[triggers]
+crons = [
+  "*/5 * * * *",  # 每 5 分钟：健康检查
+  "0 * * * *",    # 每小时：KV 缓存清理
+]
 
 # 生产环境配置
 [env.production]

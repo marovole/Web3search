@@ -1,6 +1,7 @@
 /**
  * Web3 Search Cloudflare Worker
  * 基于 Hono 框架，连接 Supabase 数据库
+ * 支持定时任务（Cron Triggers）
  */
 import { Hono } from 'hono'
 import { cors } from './middlewares/cors'
@@ -8,6 +9,7 @@ import { logger } from './middlewares/logger'
 import healthRouter from './routes/health'
 import searchRouter from './routes/search'
 import chatRouter from './routes/chat'
+import { handleScheduled } from './cron'
 import type { Env } from './types/env'
 
 // 创建 Hono 应用实例
@@ -52,4 +54,11 @@ app.onError((error, c) => {
   )
 })
 
-export default app
+// 导出 Worker
+export default {
+  // HTTP 请求处理
+  fetch: app.fetch,
+
+  // 定时任务处理
+  scheduled: handleScheduled,
+}
