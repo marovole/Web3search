@@ -215,13 +215,17 @@ npm run build  # 或直接在IDE中查看
 
 ## 🚀 部署
 
-### Vercel部署（推荐）
+### Cloudflare Pages 部署（推荐）
 
-1. 在Vercel导入GitHub仓库
-2. 配置环境变量：`VITE_API_BASE_URL`
-3. 构建命令：`npm run build`
-4. 输出目录：`dist`
-5. 点击部署
+1. 连接 GitHub 仓库到 Cloudflare Pages
+2. 配置构建设置：
+   - 构建命令：`npm run build`
+   - 输出目录：`dist`
+   - Root 目录：`frontend`
+3. 配置环境变量：`VITE_API_BASE_URL`
+4. 部署自动触发
+
+**生产环境**: https://web3search.pages.dev
 
 ### 手动部署
 
@@ -229,8 +233,9 @@ npm run build  # 或直接在IDE中查看
 # 1. 构建
 npm run build
 
-# 2. 上传dist/目录到静态托管服务
-#    - Vercel / Netlify / Cloudflare Pages
+# 2. 上传 dist/ 目录到静态托管服务
+#    - Cloudflare Pages (推荐)
+#    - Netlify
 #    - GitHub Pages
 #    - Nginx / Apache
 ```
@@ -253,7 +258,7 @@ VITE_API_BASE_URL=https://your-backend-api.com
 # backend/app/main.py
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://your-frontend.vercel.app"],
+    allow_origins=["http://localhost:3000", "https://web3search.pages.dev"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

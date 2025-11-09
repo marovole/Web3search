@@ -27,9 +27,7 @@
     "test:e2e:debug": "playwright test --debug",
     "build:analyze": "tsc && vite build && npx vite-bundle-analyzer dist/stats.html",
     "deploy": "./scripts/deploy.sh",
-    "deploy:prod": "./scripts/deploy.sh --prod",
-    "vercel": "vercel",
-    "vercel:prod": "vercel --prod"
+    "deploy:prod": "./scripts/deploy.sh --prod"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

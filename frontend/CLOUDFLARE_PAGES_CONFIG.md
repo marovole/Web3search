@@ -77,7 +77,7 @@ Cloudflare Pages 会自动检测到 push 并重新部署。
 
 ### 3. CORS 验证
 - 确认前端域名在 Workers CORS 配置中
-- 当前配置: `https://web3search.pages.dev,https://web3search.vercel.app`
+- 当前配置: `https://web3search.pages.dev`
 
 ## 问题排查
 
@@ -86,7 +86,7 @@ Cloudflare Pages 会自动检测到 push 并重新部署。
 检查 Workers 的 CORS 配置（`workers/wrangler.toml`）:
 ```toml
 [env.production.vars]
-CORS_ORIGINS = "https://web3search.pages.dev,https://web3search.vercel.app"
+CORS_ORIGINS = "https://web3search.pages.dev"
 ```
 
 ### 如果 API 请求失败
