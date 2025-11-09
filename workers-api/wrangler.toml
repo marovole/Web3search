@@ -64,13 +64,9 @@ command = ""
 # ============================================
 # Scheduled Events (Cron Triggers)
 # ============================================
-# Health checks every 5 minutes
-[[triggers]]
-crons = ["*/5 * * * *"]
-
-# KV cache cleanup every hour
-[[triggers]]
-crons = ["0 * * * *"]
+[triggers]
+# Health checks every 5 minutes + KV cache cleanup every hour
+crons = ["*/5 * * * *", "0 * * * *"]
 
 # ============================================
 # Limits
