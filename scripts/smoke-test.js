@@ -18,7 +18,7 @@ const http = require('http');
 
 // 配置
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://web3search.pages.dev';
-const BACKEND_URL = process.env.BACKEND_URL || 'https://web3search-api.onrender.com';
+const BACKEND_URL = process.env.BACKEND_URL || 'https://web3search-api.marovole.workers.dev';
 const TIMEOUT = 30000; // 30秒超时
 
 // 测试结果
@@ -119,7 +119,7 @@ async function testFrontendAccessibility() {
  * 测试2: 后端健康检查
  */
 async function testBackendHealth() {
-  const response = await request(`${BACKEND_URL}/api/health`, { timeout: 10000 });
+  const response = await request(`${BACKEND_URL}/api/v1/health`, { timeout: 10000 });
 
   if (response.status !== 200) {
     throw new Error(`Health check failed with status ${response.status}`);
@@ -177,7 +177,7 @@ async function testQuickChatEndpoint() {
  * 测试5: CORS 配置
  */
 async function testCorsConfiguration() {
-  const response = await request(`${BACKEND_URL}/api/health`, {
+  const response = await request(`${BACKEND_URL}/api/v1/health`, {
     headers: {
       'Origin': FRONTEND_URL,
       'Access-Control-Request-Method': 'POST',

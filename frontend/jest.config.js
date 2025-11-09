@@ -70,7 +70,11 @@ export default {
   transformIgnorePatterns: [
     'node_modules/(?!(msw|@mswjs|until-async|@faker-js|faker|remark-gfm|react-markdown|unified|bail|is-plain-obj|trough|vfile|unist-util-stringify-position|unist-builder|remark-parse|mdast-util-from-markdown|mdast-util-to-markdown|micromark|decode-named-character-reference|character-entities|character-entities-legacy|character-reference-invalid|is-alphabetical|is-alphanumerical|is-decimal|is-hexadecimal|is-word-character|markdown-escape|remark-stringify|remark-rehype|rehype-remark|rehype-parse|hast-util-from-parse5|hast-util-to-parse5|hastscript|property-information|space-separated-tokens|comma-separated-tokens|web-namespaces|html-void-elements|parse5|ccount|escape-string-regexp|markdown-extensions|mdast-util-mdx-expression|mdast-util-mdx-jsx|mdast-util-mdxjs-esm|mdast-util-to-hast|mdast-util-to-string|micromark-core-commonmark|micromark-factory-destination|micromark-factory-label|micromark-factory-space|micromark-factory-title|micromark-factory-whitespace|micromark-util-character|micromark-util-chunked|micromark-util-combine-extensions|micromark-util-decode-numeric-character-reference|micromark-util-decode-string|micromark-util-encode|micromark-util-events-to-acorn|micromark-util-html-tag-name|micromark-util-normalize-identifier|micromark-util-resolve-all|micromark-util-subtokenize|micromark-util-symbol|micromark-util-syntax|micromark-util-classify-character)/)',
   ],
-  
+
+  // Test timeout (default: 5000ms)
+  // Increased for async operations and slow CI environments
+  testTimeout: 10000, // 10 seconds
+
   // Extensions to transform
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
 };

@@ -12,7 +12,7 @@ on:
       backend_url:
         description: '后端 URL'
         required: false
-        default: 'https://web3search-api.onrender.com'
+        default: 'https://web3search-api.marovole.workers.dev'
 
   # 在部署 workflow 完成后自动触发
   workflow_run:
@@ -44,7 +44,7 @@ jobs:
       - name: Run smoke tests
         env:
           FRONTEND_URL: ${{ github.event.inputs.frontend_url || 'https://web3search.pages.dev' }}
-          BACKEND_URL: ${{ github.event.inputs.backend_url || 'https://web3search-api.onrender.com' }}
+          BACKEND_URL: ${{ github.event.inputs.backend_url || 'https://web3search-api.marovole.workers.dev' }}
         run: |
           node scripts/smoke-test.js
 

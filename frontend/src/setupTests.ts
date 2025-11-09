@@ -17,6 +17,14 @@ global.ReadableStream = ReadableStream;
 global.TransformStream = TransformStream;
 global.WritableStream = WritableStream;
 
+// Polyfill BroadcastChannel for jest/jsdom environment
+// This is required for components that use BroadcastChannel API
+// See: https://github.com/pubkey/broadcast-channel
+import { BroadcastChannel as BroadcastChannelPolyfill } from 'broadcast-channel';
+if (!global.BroadcastChannel) {
+  global.BroadcastChannel = BroadcastChannelPolyfill as any;
+}
+
 // Polyfill fetch and Response for Node.js environment
 import { fetch } from 'whatwg-fetch';
 
