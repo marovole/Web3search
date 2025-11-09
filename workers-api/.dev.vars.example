@@ -1,0 +1,14 @@
+# Development Environment Variables
+# Copy this file to .dev.vars and fill in your actual values
+# .dev.vars is gitignored for security
+
+# Supabase Configuration
+SUPABASE_URL=https://hxxnkbxyjhhorfeodiji.supabase.co
+SUPABASE_ANON_KEY=your-supabase-anon-key-here
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
+
+# OpenRouter API
+OPENROUTER_API_KEY=your-openrouter-api-key-here
+
+# Environment
+ENVIRONMENT=development
