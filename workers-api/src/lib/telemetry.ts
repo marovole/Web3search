@@ -102,7 +102,7 @@ function calculateCost(
 /**
  * Build telemetry data from request/response
  */
-export function buildTelemetryData(
+export async function buildTelemetryData(
   options: {
     request: OpenRouterPayload
     modelConfig: ModelConfig

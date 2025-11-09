@@ -68,7 +68,7 @@ function parseSSELine(line: string): StreamChunk | null {
 /**
  * Parse OpenRouter streaming response
  */
-export function* parseStreamResponse(
+export async function* parseStreamResponse(
   body: ReadableStream<Uint8Array>
 ): AsyncGenerator<StreamChunk, void, unknown> {
   const reader = body.getReader()
