@@ -37,7 +37,17 @@ export interface Env {
   APP_VERSION?: string
 
   /**
-   * Cloudflare KV 命名空间（可选，用于缓存）
+   * 环境标识
+   */
+  ENVIRONMENT?: 'production' | 'development'
+
+  /**
+   * OpenRouter API Key（用于 AI 聊天）
+   */
+  OPENROUTER_API_KEY: string
+
+  /**
+   * Cloudflare KV 命名空间（用于缓存和速率限制）
    */
   CACHE?: KVNamespace
 }

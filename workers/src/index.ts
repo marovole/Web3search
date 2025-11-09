@@ -7,6 +7,7 @@ import { cors } from './middlewares/cors'
 import { logger } from './middlewares/logger'
 import healthRouter from './routes/health'
 import searchRouter from './routes/search'
+import chatRouter from './routes/chat'
 import type { Env } from './types/env'
 
 // 创建 Hono 应用实例
@@ -19,6 +20,7 @@ app.use('*', cors())    // CORS 处理
 // 挂载路由
 app.route('/api/v1', healthRouter)
 app.route('/api/v1/search', searchRouter)
+app.route('/api/v1/chat', chatRouter)
 
 // 404 处理
 app.notFound((c) =>

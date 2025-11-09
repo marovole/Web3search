@@ -10,10 +10,9 @@ account_id = "b80eef96097fab92f15b574ed5fbb927"
 workers_dev = true
 
 # KV命名空间（用于边缘缓存）
-# 需要在Cloudflare Dashboard创建后取消注释
-# [[kv_namespaces]]
-# binding = "CACHE"
-# id = "your-kv-namespace-id"
+[[kv_namespaces]]
+binding = "CACHE"
+id = "31dbcabb88ca4f6f83585a592965c782"
 
 # 环境变量（非机密）
 [vars]
@@ -30,13 +29,18 @@ SUPABASE_HEALTH_TABLE = "projects"
 [env.production]
 name = "web3search-api"
 # route = "api.web3search.ai/*"  # 自定义域名路由
-workers_dev = false
+workers_dev = true  # 启用 workers.dev 子域名访问
+
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = "31dbcabb88ca4f6f83585a592965c782"
 
 [env.production.vars]
 APP_VERSION = "workers-2025.01.20"
 CORS_ORIGINS = "https://web3search.pages.dev,https://web3search.vercel.app"
 SUPABASE_URL = "https://hxxnkbxyjhhorfeodiji.supabase.co"
 SUPABASE_HEALTH_TABLE = "projects"
+ENVIRONMENT = "production"
 
 # 开发环境配置
 [env.development]
