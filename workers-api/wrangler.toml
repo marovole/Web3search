@@ -62,6 +62,17 @@ enabled = true
 command = ""
 
 # ============================================
+# Scheduled Events (Cron Triggers)
+# ============================================
+# Health checks every 5 minutes
+[[triggers]]
+crons = ["*/5 * * * *"]
+
+# KV cache cleanup every hour
+[[triggers]]
+crons = ["0 * * * *"]
+
+# ============================================
 # Limits
 # ============================================
 # Free tier: 100,000 requests/day, 10ms CPU time

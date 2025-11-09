@@ -164,6 +164,136 @@ const getReportsReal = async (params?: {
 export const getReports = apiConfig.useMock ? mockApi.getReports : getReportsReal
 
 // ================================
+// Report Generation API
+// ================================
+
+export interface ReportSection {
+  id: string
+  title: string
+  description?: string
+  focus_points?: string[]
+}
+
+export interface ReportGenerationRequest {
+  topic: string
+  sections: ReportSection[]
+  format?: 'markdown' | 'json'
+  save_to_database?: boolean
+}
+
+export interface ReportStreamChunk {
+  type: string
+  section_id?: string
+  section_title?: string
+  delta?: string
+  is_complete?: boolean
+  current_section?: number
+  total_sections?: number
+  completed_sections?: string[]
+  progress_percent?: number
+  report_id?: string
+  content?: Record<string, string>
+  generation_time_ms?: number
+  error?: string
+}
+
+/**
+ * 生成研究报告 - Real API版本（流式响应）
+ */
+const generateReportReal = async (request: ReportGenerationRequest) => {
+  const response = await fetch(`${apiConfig.baseUrl}/api/v1/reports/generate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': localStorage.getItem('web3search_access_token')
+        ? `Bearer ${localStorage.getItem('web3search_access_token')}`
+        : undefined,
+    },
+    body: JSON.stringify(request),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Report generation failed: ${response.statusText}`)
+  }
+
+  return response
+}
+
+/**
+ * Mock Report Generation
+ */
+const generateReportMock = async (request: ReportGenerationRequest) => {
+  // 模拟流式响应
+  return new Response(
+    new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder()
+
+        // 发送开始事件
+        const startEvent = {
+          type: 'report_start',
+          topic: request.topic,
+          sections: request.sections,
+          total_sections: request.sections.length
+        }
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(startEvent)}\n\n`))
+
+        // 模拟生成每个部分
+        for (let i = 0; i < request.sections.length; i++) {
+          const section = request.sections[i]
+
+          // 发送进度
+          const progress = {
+            type: 'progress_update',
+            current_section: i + 1,
+            total_sections: request.sections.length,
+            progress_percent: Math.round(((i + 1) / request.sections.length) * 100)
+          }
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(progress)}\n\n`))
+
+          // 发送内容
+          const content = {
+            type: 'section_complete',
+            section_id: section.id,
+            section_title: section.title,
+            delta: `Mock content for ${section.title}...`,
+            is_complete: true
+          }
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(content)}\n\n`))
+
+          // 模拟延迟
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+
+        // 发送完成事件
+        const completeEvent = {
+          type: 'report_complete',
+          topic: request.topic,
+          content: Object.fromEntries(request.sections.map(s => [s.id, `Mock content for ${s.title}`]))
+        }
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(completeEvent)}\n\n`))
+        controller.enqueue(encoder.encode('event: done\ndata: {"status":"completed"}\n\n'))
+
+        controller.close()
+      }
+    }),
+    {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      }
+    }
+  )
+}
+
+/**
+ * 生成研究报告
+ * 根据环境变量自动选择Mock或真实API
+ */
+export const generateReport = apiConfig.useMock ? generateReportMock : generateReportReal
+
+// ================================
 // Search Suggestions API
 // ================================
 
