@@ -1,0 +1,18 @@
+{
+  "topic": "Bitcoin Mining",
+  "sections": [
+    {
+      "id": "overview",
+      "title": "Mining Overview",
+      "description": "Introduction to Bitcoin mining",
+      "focus_points": ["definition", "process", "importance"]
+    },
+    {
+      "id": "technical",
+      "title": "Technical Details",
+      "description": "Mining technology and equipment",
+      "focus_points": ["hardware", "software", "networking"]
+    }
+  ],
+  "save_to_database": false
+}

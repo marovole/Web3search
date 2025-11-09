@@ -11,6 +11,7 @@ import healthRoutes from './routes/health'
 import searchRoutes from './routes/search'
 import chatRoutes from './routes/chat'
 import reportRoutes from './routes/reports'
+import trendingRoutes from './routes/trending'
 
 // Create main Hono app
 const app = new Hono<{ Bindings: Env }>()
@@ -35,6 +36,7 @@ app.get('/', (c) => {
       search: '/api/v1/search/autocomplete',
       chat: '/api/v1/chat/quick-chat',
       reports: '/api/v1/reports/generate',
+      trending: '/api/v1/trending/hotspots',
     },
   })
 })
@@ -46,6 +48,7 @@ app.route('/api/v1/health', healthRoutes)
 app.route('/api/v1/search', searchRoutes)
 app.route('/api/v1/chat', chatRoutes)
 app.route('/api/v1/reports', reportRoutes)
+app.route('/api/v1/trending', trendingRoutes)
 
 // ============================================
 // 404 Handler

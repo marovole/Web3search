@@ -1,0 +1,33 @@
+{
+  "timestamp": 1762685719.714627,
+  "test_results": {
+    "Health Check": {
+      "avg_ms": 367.5503730773926,
+      "p95_ms": 1818.7872290611267,
+      "max_ms": 1338.2470607757568,
+      "requests": 10
+    },
+    "Search API": {
+      "avg_ms": 962.1858358383179,
+      "p95_ms": 1449.4279861450195,
+      "max_ms": 1379.0030479431152,
+      "requests": 10
+    },
+    "Load Test 5 users": {
+      "throughput_rps": 6.5,
+      "error_rate": 64.1025641025641,
+      "avg_ms": 2924.54342964368,
+      "p95_ms": 9365.436792373657,
+      "max_ms": 10673.244953155518,
+      "min_ms": 62.574148178100586,
+      "total_requests": 195,
+      "error_count": 125
+    }
+  },
+  "errors": [],
+  "summary": {
+    "total_tests": 3,
+    "passed_tests": 3,
+    "overall_status": "GOOD"
+  }
+}
