@@ -251,7 +251,7 @@ Content:`
  * Generate content for a single section using OpenRouter
  */
 async function generateSectionContent(openrouter: any, prompt: string): Promise<string> {
-  const response = await openrouter.chat.completions.create({
+  const payload = {
     model: DEFAULT_MODEL,
     messages: [
       {
@@ -266,9 +266,21 @@ async function generateSectionContent(openrouter: any, prompt: string): Promise<
     max_tokens: MAX_TOKENS_PER_SECTION,
     temperature: 0.7,
     stream: false
-  })
+  }
 
-  return response.choices[0]?.message?.content || ''
+  const response = await openrouter.request(payload)
+
+  if (!response.ok) {
+    throw new Error(`OpenRouter API request failed: ${response.status}`)
+  }
+
+  const data = await response.json()
+
+  if (!data || !data.choices || data.choices.length === 0) {
+    throw new Error('OpenRouter API returned invalid response')
+  }
+
+  return data.choices[0]?.message?.content || ''
 }
 
 /**
