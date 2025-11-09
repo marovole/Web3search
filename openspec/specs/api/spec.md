@@ -1,7 +1,9 @@
 # API Specification
 
 ## Purpose
-定义完整的API安全架构和端点保护机制，确保所有API请求都经过适当的身份验证和授权检查。
+Define comprehensive API security architecture and endpoint protection mechanisms. Ensure all API requests undergo proper authentication and authorization checks to protect system resources from unauthorized access.
+
+定义完整的API安全架构和端点保护机制，确保所有API请求都经过适当的身份验证和授权检查，保护系统资源免受未授权访问。
 ## Requirements
 ### Requirement: API密钥验证
 所有API请求**MUST**通过有效的API密钥进行身份验证，确保只有授权的客户端可以访问系统资源。

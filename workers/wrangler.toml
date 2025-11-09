@@ -15,24 +15,28 @@ workers_dev = true
 # binding = "CACHE"
 # id = "your-kv-namespace-id"
 
-# 环境变量
+# 环境变量（非机密）
 [vars]
-BACKEND_API_URL = "https://web3search-api.onrender.com"
-CACHE_TTL = "3600"
-ENABLE_CACHE = "true"
-ENABLE_RATE_LIMIT = "true"
+APP_VERSION = "workers-dev"
+CORS_ORIGINS = "http://localhost:5173,http://localhost:3000"
+SUPABASE_URL = "https://hxxnkbxyjhhorfeodiji.supabase.co"
+SUPABASE_HEALTH_TABLE = "projects"
+
+# 机密变量需通过 wrangler secret put 设置：
+# wrangler secret put SUPABASE_ANON_KEY
+# wrangler secret put SUPABASE_SERVICE_ROLE_KEY (可选)
 
 # 生产环境配置
 [env.production]
-name = "web3search-api-proxy"
+name = "web3search-api"
 # route = "api.web3search.ai/*"  # 自定义域名路由
 workers_dev = false
 
 [env.production.vars]
-BACKEND_API_URL = "https://web3search-api.onrender.com"
-CACHE_TTL = "7200"
-ENABLE_CACHE = "true"
-ENABLE_RATE_LIMIT = "true"
+APP_VERSION = "workers-2025.01.20"
+CORS_ORIGINS = "https://web3search.pages.dev,https://web3search.vercel.app"
+SUPABASE_URL = "https://hxxnkbxyjhhorfeodiji.supabase.co"
+SUPABASE_HEALTH_TABLE = "projects"
 
 # 开发环境配置
 [env.development]
@@ -40,7 +44,7 @@ name = "web3search-worker-dev"
 workers_dev = true
 
 [env.development.vars]
-BACKEND_API_URL = "http://localhost:8000"
-CACHE_TTL = "60"
-ENABLE_CACHE = "false"
-ENABLE_RATE_LIMIT = "false"
+APP_VERSION = "workers-dev"
+CORS_ORIGINS = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"
+SUPABASE_URL = "https://hxxnkbxyjhhorfeodiji.supabase.co"
+SUPABASE_HEALTH_TABLE = "projects"
