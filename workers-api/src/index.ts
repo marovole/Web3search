@@ -10,6 +10,7 @@ import { corsMiddleware } from './middlewares/cors'
 import healthRoutes from './routes/health'
 import searchRoutes from './routes/search'
 import chatRoutes from './routes/chat'
+import chatV2Routes from './routes/chat-v2'
 import reportRoutes from './routes/reports'
 import trendingRoutes from './routes/trending'
 
@@ -35,6 +36,7 @@ app.get('/', (c) => {
       health: '/api/v1/health',
       search: '/api/v1/search/autocomplete',
       chat: '/api/v1/chat/quick-chat',
+      chatV2: '/api/v2/chat/quick-chat (Enhanced with model routing)',
       reports: '/api/v1/reports/generate',
       trending: '/api/v1/trending/hotspots',
     },
@@ -47,6 +49,7 @@ app.get('/', (c) => {
 app.route('/api/v1/health', healthRoutes)
 app.route('/api/v1/search', searchRoutes)
 app.route('/api/v1/chat', chatRoutes)
+app.route('/api/v2/chat', chatV2Routes)
 app.route('/api/v1/reports', reportRoutes)
 app.route('/api/v1/trending', trendingRoutes)
 
