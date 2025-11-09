@@ -64,7 +64,7 @@ export class CSPManager {
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "https:"],
     "font-src": ["'self'", "data:", "https:"],
-    "connect-src": ["'self'", "https://web3search-api.onrender.com"],
+    "connect-src": ["'self'", "https://web3search-api.marovole.workers.dev"],
     "frame-src": ["'none'"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
