@@ -684,25 +684,34 @@
 - [ ] 找到 Web3search 前端项目
 - [ ] 删除 Vercel 项目（Settings → Advanced → Delete Project）
 - [ ] 确认删除
+- **注**：Vercel 项目已失效（404），可选择性删除
 
 #### Vercel 配置文件清理
-- [ ] 删除 `vercel.json` 文件
-- [ ] 删除 `.vercelignore` 文件（如果存在）
-- [ ] 搜索代码中的 Vercel 相关引用：`grep -r "vercel" .`
-- [ ] 移除代码中的 Vercel 特定配置
+- [x] 检查 `vercel.json` 文件（不存在）
+- [x] 检查 `.vercelignore` 文件（不存在）
+- [x] 搜索代码中的 Vercel 相关引用
+- [x] 移除代码中的 Vercel 特定配置
+  - ✅ `package.json`: 删除 vercel 和 vercel:prod 脚本
 
 #### CI/CD 清理
-- [ ] 检查 `.github/workflows/` 中的 Vercel 部署步骤
-- [ ] 移除 Vercel 部署 workflow（如果有独立文件）
-- [ ] 或注释/删除 Vercel 部署步骤
-- [ ] 移除 Vercel 相关的 GitHub Secrets（VERCEL_TOKEN 等）
-- [ ] 提交更改
+- [x] 检查 `.github/workflows/` 中的 Vercel 部署步骤（无 Vercel workflow）
+- [x] 确认无需移除 Vercel 部署 workflow
+- [ ] 移除 Vercel 相关的 GitHub Secrets（VERCEL_TOKEN 等）- 可选
 
 #### 文档更新
-- [ ] 更新 README.md，移除 Vercel 部署说明
-- [ ] 更新部署文档（如 `docs/deployment.md`）
-- [ ] 添加 Cloudflare Pages 作为唯一部署平台的说明
-- [ ] 提交文档更改
+- [x] 更新 README.md，移除 Vercel 部署说明
+  - ✅ 将 "Vercel部署" 改为 "Cloudflare Pages 部署"
+  - ✅ 更新 CORS 配置示例
+- [x] 完全重写 DEPLOYMENT_GUIDE.md
+  - ✅ 从 Vercel CLI 指南改为 Cloudflare Pages 指南
+  - ✅ 添加自动部署配置说明
+  - ✅ 添加环境变量配置指南
+  - ✅ 添加故障排除章节
+- [x] 更新 CLOUDFLARE_PAGES_CONFIG.md
+  - ✅ CORS 配置中移除 Vercel URL
+  - ✅ 仅保留 Cloudflare Pages URL
+- [x] 提交文档更改
+  - ✅ Git 提交：`ecf8b25` (2025-11-09)
 
 ### 测试基础设施改进
 
