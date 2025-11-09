@@ -9,6 +9,7 @@ import { loggerMiddleware } from './middlewares/logger'
 import { corsMiddleware } from './middlewares/cors'
 import healthRoutes from './routes/health'
 import searchRoutes from './routes/search'
+import chatRoutes from './routes/chat'
 
 // Create main Hono app
 const app = new Hono<{ Bindings: Env }>()
@@ -31,6 +32,7 @@ app.get('/', (c) => {
     endpoints: {
       health: '/api/v1/health',
       search: '/api/v1/search/autocomplete',
+      chat: '/api/v1/chat/quick-chat',
     },
   })
 })
@@ -40,9 +42,9 @@ app.get('/', (c) => {
 // ============================================
 app.route('/api/v1/health', healthRoutes)
 app.route('/api/v1/search', searchRoutes)
+app.route('/api/v1/chat', chatRoutes)
 
-// Future routes (to be implemented in Week 2):
-// app.route('/api/v1/chat', chatRoutes)
+// Future routes (to be implemented later):
 // app.route('/api/v1/reports', reportRoutes)
 
 // ============================================

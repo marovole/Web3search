@@ -5,47 +5,47 @@
 ### Day 1-2: Supabase 项目设置和数据库迁移
 
 #### Supabase 项目创建
-- [x] 创建 Supabase 账户（如果没有）
-- [x] 创建新的 Supabase 项目（选择最近的区域）
-- [x] 获取 Supabase 项目 URL 和 anon key
-- [x] 获取 Supabase 数据库连接字符串（PostgreSQL）
-- [x] 配置 Supabase 项目设置（时区、备份策略）
+- [ ] 创建 Supabase 账户（如果没有）
+- [ ] 创建新的 Supabase 项目（选择最近的区域）
+- [ ] 获取 Supabase 项目 URL 和 anon key
+- [ ] 获取 Supabase 数据库连接字符串（PostgreSQL）
+- [ ] 配置 Supabase 项目设置（时区、备份策略）
 
 #### 数据库 Schema 导出
-- [x] 连接到现有 Render PostgreSQL 数据库
-- [x] 导出数据库 schema（使用 `pg_dump --schema-only`）
-- [x] 导出数据库数据（使用 `pg_dump --data-only` 或 `COPY TO`）
-- [x] 检查导出文件的完整性和大小
-- [x] 备份导出文件到安全位置（本地 + 云存储）
+- [ ] 连接到现有 Render PostgreSQL 数据库
+- [ ] 导出数据库 schema（使用 `pg_dump --schema-only`）
+- [ ] 导出数据库数据（使用 `pg_dump --data-only` 或 `COPY TO`）
+- [ ] 检查导出文件的完整性和大小
+- [ ] 备份导出文件到安全位置（本地 + 云存储）
 
 #### Supabase 数据库迁移
-- [x] 在 Supabase 中创建数据库 schema（执行 schema.sql）
-- [x] 验证表结构、索引、约束是否正确
-- [x] 导入数据到 Supabase（使用 Supabase CLI 或 SQL）
-- [x] 验证数据完整性（行数、关键记录检查）
-- [x] 创建必要的数据库索引优化查询性能
-- [x] 配置 Row Level Security (RLS) 策略（如果需要）
+- [ ] 在 Supabase 中创建数据库 schema（执行 schema.sql）
+- [ ] 验证表结构、索引、约束是否正确
+- [ ] 导入数据到 Supabase（使用 Supabase CLI 或 SQL）
+- [ ] 验证数据完整性（行数、关键记录检查）
+- [ ] 创建必要的数据库索引优化查询性能
+- [ ] 配置 Row Level Security (RLS) 策略（如果需要）
 
 #### 数据验证
-- [x] 比对 Render 和 Supabase 数据库的表数量
-- [x] 比对关键表的行数（users、messages、reports 等）
-- [x] 抽样检查数据准确性（随机 100 条记录）
-- [x] 测试关键查询在 Supabase 上的性能
-- [x] 记录迁移报告（成功/失败的表、行数统计）
+- [ ] 比对 Render 和 Supabase 数据库的表数量
+- [ ] 比对关键表的行数（users、messages、reports 等）
+- [ ] 抽样检查数据准确性（随机 100 条记录）
+- [ ] 测试关键查询在 Supabase 上的性能
+- [ ] 记录迁移报告（成功/失败的表、行数统计）
 
 ### Day 3-4: Cloudflare Workers 项目搭建
 
 #### Cloudflare 账户和项目设置
-- [x] 确认 Cloudflare 账户管理员权限
-- [x] 在 Cloudflare Dashboard 中创建新 Workers 项目
-- [x] 安装 Wrangler CLI：`npm install -g wrangler`
-- [x] 登录 Wrangler：`wrangler login`
-- [x] 初始化 Workers 项目：`wrangler init web3search-api`
+- [ ] 确认 Cloudflare 账户管理员权限
+- [ ] 在 Cloudflare Dashboard 中创建新 Workers 项目
+- [ ] 安装 Wrangler CLI：`npm install -g wrangler`
+- [ ] 登录 Wrangler：`wrangler login`
+- [ ] 初始化 Workers 项目：`wrangler init web3search-api`
 
 #### 项目结构搭建
-- [x] 安装 Hono 框架：`npm install hono`
-- [x] 安装 Supabase 客户端：`npm install @supabase/supabase-js`
-- [x] 创建项目目录结构：
+- [ ] 安装 Hono 框架：`npm install hono`
+- [ ] 安装 Supabase 客户端：`npm install @supabase/supabase-js`
+- [ ] 创建项目目录结构：
   ```
   src/
     ├── index.ts          # 入口文件
@@ -55,84 +55,84 @@
     ├── utils/            # 工具函数
     └── types/            # TypeScript 类型定义
   ```
-- [x] 配置 TypeScript（tsconfig.json）
-- [x] 配置 ESLint 和 Prettier
+- [ ] 配置 TypeScript（tsconfig.json）
+- [ ] 配置 ESLint 和 Prettier
 
 #### Supabase 客户端配置
-- [x] 创建 Supabase 客户端初始化模块（`src/lib/supabase.ts`）
-- [x] 配置 Supabase 连接（使用环境变量）
-- [x] 实现数据库连接测试函数
-- [x] 添加错误处理和重试逻辑
+- [ ] 创建 Supabase 客户端初始化模块（`src/lib/supabase.ts`）
+- [ ] 配置 Supabase 连接（使用环境变量）
+- [ ] 实现数据库连接测试函数
+- [ ] 添加错误处理和重试逻辑
 
 #### 环境变量配置
-- [x] 在 Cloudflare Workers 中配置环境变量（通过 Dashboard 或 wrangler.toml）：
+- [ ] 在 Cloudflare Workers 中配置环境变量（通过 Dashboard 或 wrangler.toml）：
   - SUPABASE_URL
   - SUPABASE_ANON_KEY
   - SUPABASE_SERVICE_ROLE_KEY（如果需要）
   - OPENROUTER_API_KEY
   - ENVIRONMENT=production
-- [x] 创建 `.dev.vars` 文件用于本地开发
-- [x] 测试环境变量是否正确注入
+- [ ] 创建 `.dev.vars` 文件用于本地开发
+- [ ] 测试环境变量是否正确注入
 
 #### 健康检查端点实现
-- [x] 实现 `/api/v1/health` 端点（Hono 路由）
-- [x] 健康检查包含以下信息：
+- [ ] 实现 `/api/v1/health` 端点（Hono 路由）
+- [ ] 健康检查包含以下信息：
   - 服务状态（healthy/degraded/unhealthy）
   - Supabase 数据库连接状态
   - 响应时间戳
   - 服务版本号
   - 运行时间（uptime）
-- [x] 添加数据库连接验证（执行简单查询：`SELECT 1`）
-- [x] 实现错误处理（数据库连接失败返回 503）
+- [ ] 添加数据库连接验证（执行简单查询：`SELECT 1`）
+- [ ] 实现错误处理（数据库连接失败返回 503）
 
 #### 本地开发和测试
-- [x] 启动本地开发服务器：`wrangler dev`
-- [x] 测试健康检查端点：`curl http://localhost:8787/api/v1/health`
-- [x] 验证 Supabase 连接是否工作
-- [x] 测试错误场景（断开数据库连接）
+- [ ] 启动本地开发服务器：`wrangler dev`
+- [ ] 测试健康检查端点：`curl http://localhost:8787/api/v1/health`
+- [ ] 验证 Supabase 连接是否工作
+- [ ] 测试错误场景（断开数据库连接）
 
 #### 部署到 Cloudflare Workers
-- [x] 配置 wrangler.toml（路由、环境变量、兼容性设置）
-- [x] 首次部署：`wrangler deploy`
-- [x] 验证部署成功（检查 Workers Dashboard）
-- [x] 测试生产环境健康检查：`curl https://web3search-api.workers.dev/api/v1/health`
-- [x] 配置自定义域名（如果需要）
+- [ ] 配置 wrangler.toml（路由、环境变量、兼容性设置）
+- [ ] 首次部署：`wrangler deploy`
+- [ ] 验证部署成功（检查 Workers Dashboard）
+- [ ] 测试生产环境健康检查：`curl https://web3search-api.workers.dev/api/v1/health`
+- [ ] 配置自定义域名（如果需要）
 
 ### Day 5: 实现只读 API
 
 #### 搜索自动完成 API 迁移
-- [x] 分析现有 Python `/api/v1/search/autocomplete` 实现
-- [x] 创建 TypeScript 版本的路由处理器（`src/routes/search.ts`）
-- [x] 实现自动完成逻辑：
+- [ ] 分析现有 Python `/api/v1/search/autocomplete` 实现
+- [ ] 创建 TypeScript 版本的路由处理器（`src/routes/search.ts`）
+- [ ] 实现自动完成逻辑：
   - 从 Supabase 查询匹配的关键词
   - 支持模糊搜索（LIKE 或全文搜索）
   - 限制返回结果数量（最多 10 条）
-- [x] 添加输入验证（查询长度、特殊字符过滤）
-- [x] 实现错误处理（数据库查询失败、超时）
+- [ ] 添加输入验证（查询长度、特殊字符过滤）
+- [ ] 实现错误处理（数据库查询失败、超时）
 
 #### Cloudflare KV 缓存配置
-- [x] 在 Cloudflare Dashboard 创建 KV 命名空间：`web3search_cache`
-- [x] 绑定 KV 到 Workers（在 wrangler.toml 中配置）
-- [x] 创建缓存工具模块（`src/utils/cache.ts`）
-- [x] 实现缓存读取函数（带 TTL 检查）
-- [x] 实现缓存写入函数（设置过期时间）
+- [ ] 在 Cloudflare Dashboard 创建 KV 命名空间：`web3search_cache`
+- [ ] 绑定 KV 到 Workers（在 wrangler.toml 中配置）
+- [ ] 创建缓存工具模块（`src/utils/cache.ts`）
+- [ ] 实现缓存读取函数（带 TTL 检查）
+- [ ] 实现缓存写入函数（设置过期时间）
 
 #### 自动完成 API 缓存集成
-- [x] 在自动完成 API 中集成 KV 缓存
-- [x] 实现缓存策略：
+- [ ] 在自动完成 API 中集成 KV 缓存
+- [ ] 实现缓存策略：
   - 缓存热门查询（访问频率 > 10 次/小时）
   - TTL 设置为 1 小时
   - 缓存键格式：`autocomplete:{query}`
-- [x] 实现缓存命中统计（用于监控）
-- [x] 测试缓存性能（响应时间对比）
+- [ ] 实现缓存命中统计（用于监控）
+- [ ] 测试缓存性能（响应时间对比）
 
 #### API 测试和验证
-- [x] 单元测试：测试自动完成逻辑（使用 Vitest）
-- [x] 集成测试：测试 Supabase 查询
-- [x] 性能测试：测试缓存命中和未命中场景
-- [x] 边界测试：空查询、超长查询、特殊字符
-- [x] 部署到生产环境
-- [x] 验证生产环境功能：`curl https://web3search-api.workers.dev/api/v1/search/autocomplete?q=bitcoin`
+- [ ] 单元测试：测试自动完成逻辑（使用 Vitest）
+- [ ] 集成测试：测试 Supabase 查询
+- [ ] 性能测试：测试缓存命中和未命中场景
+- [ ] 边界测试：空查询、超长查询、特殊字符
+- [ ] 部署到生产环境
+- [ ] 验证生产环境功能：`curl https://web3search-api.workers.dev/api/v1/search/autocomplete?q=bitcoin`
 
 #### Trending API 迁移（可选）
 - [ ] 分析现有 `/api/v1/trending` 实现

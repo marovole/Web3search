@@ -8,7 +8,7 @@ compatibility_flags = ["nodejs_compat"]
 
 # Account ID (replace with your Cloudflare account ID)
 # Get it from: https://dash.cloudflare.com/ → Workers & Pages → Overview
-# account_id = "YOUR_ACCOUNT_ID"
+account_id = "b80eef96097fab92f15b574ed5fbb927"
 
 # ============================================
 # Development Environment
@@ -22,21 +22,22 @@ vars = { ENVIRONMENT = "development" }
 # ============================================
 [env.production]
 name = "web3search-api"
-workers_dev = false
+workers_dev = true
 # route = "api.web3search.com/*"  # Uncomment when custom domain is ready
 vars = { ENVIRONMENT = "production" }
+
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = "edb34a61693d46ce8d0894534f0ce9b3"
 
 # ============================================
 # KV Namespaces (缓存)
 # ============================================
-# Create KV namespace: wrangler kv:namespace create CACHE
-# Then add the ID here:
+# Created with: wrangler kv namespace create CACHE
 
-# Uncomment after creating KV namespace
-# [[kv_namespaces]]
-# binding = "CACHE"
-# id = "YOUR_KV_NAMESPACE_ID"
-# preview_id = "preview_kv_id"
+[[kv_namespaces]]
+binding = "CACHE"
+id = "edb34a61693d46ce8d0894534f0ce9b3"
 
 # ============================================
 # Environment Variables (Secrets)

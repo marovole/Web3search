@@ -1,0 +1,22 @@
+{
+  "timestamp": "2025-11-08T15:08:50.057Z",
+  "summary": {
+    "passed": 1,
+    "failed": 1,
+    "warnings": 0,
+    "skipped": 0
+  },
+  "tests": [
+    {
+      "name": "Page Load",
+      "status": "passed",
+      "duration": 2015,
+      "details": "Title: Web3 AI Search Engine"
+    },
+    {
+      "name": "Smoke Tests",
+      "status": "failed",
+      "details": "Missing critical elements: header, [data-testid=\"search-input\"], [data-testid=\"theme-toggle\"]"
+    }
+  ]
+}

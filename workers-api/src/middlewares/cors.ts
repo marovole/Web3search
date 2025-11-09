@@ -25,12 +25,15 @@ export async function corsMiddleware(c: Context<{ Bindings: Env }>, next: Next) 
   // Handle preflight requests
   if (c.req.method === 'OPTIONS') {
     if (isAllowedOrigin) {
-      return c.text('', 204, {
-        'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Max-Age': '86400', // 24 hours
-        'Access-Control-Allow-Credentials': 'true',
+      return c.newResponse('', {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Max-Age': '86400', // 24 hours
+          'Access-Control-Allow-Credentials': 'true',
+        },
       })
     } else {
       return c.text('Forbidden', 403)
