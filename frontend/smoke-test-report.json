@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-11-09T14:15:09.335Z",
+  "timestamp": "2025-11-10T12:37:54.463Z",
   "summary": {
     "passed": 1,
     "failed": 1,
@@ -10,7 +10,7 @@
     {
       "name": "Page Load",
       "status": "passed",
-      "duration": 1403,
+      "duration": 2394,
       "details": "Title: Web3 AI Search Engine"
     },
     {
