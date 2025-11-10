@@ -1,5 +1,18 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const PROD_API_BASE_URL = 'https://web3search-api.marovole.workers.dev/api/v1'
+
+// Default to the production API unless a local backend is explicitly requested.
+if (!process.env.TEST_ENV) {
+  process.env.TEST_ENV = 'production'
+}
+
+if (process.env.TEST_ENV !== 'local') {
+  process.env.VITE_API_BASE_URL = process.env.VITE_API_BASE_URL || PROD_API_BASE_URL
+} else {
+  process.env.VITE_API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:8000'
+}
+
 /**
  * Playwright End-to-End Testing Configuration
  *

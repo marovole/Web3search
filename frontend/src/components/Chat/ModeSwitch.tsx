@@ -48,10 +48,12 @@ const ModeSwitch: React.FC<ModeSwitchProps> = ({ mode, onChange }) => {
         <div className="flex bg-muted rounded-lg p-1 relative z-10">
           {/* Quick Chat */}
           <Button
+            data-testid="mode-switch-quick"
             variant="ghost"
             size="sm"
             onClick={() => handleModeChange('quick')}
             disabled={isTransitioning}
+            aria-pressed={mode === 'quick'}
             className={`
               px-4 py-2 text-sm font-medium transition-all duration-200 relative z-20
               ${mode === 'quick' ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}
@@ -67,10 +69,12 @@ const ModeSwitch: React.FC<ModeSwitchProps> = ({ mode, onChange }) => {
 
           {/* Deep Research */}
           <Button
+            data-testid="mode-switch-deep"
             variant="ghost"
             size="sm"
             onClick={() => handleModeChange('deep')}
             disabled={isTransitioning}
+            aria-pressed={mode === 'deep'}
             className={`
               px-4 py-2 text-sm font-medium transition-all duration-200 relative z-20
               ${mode === 'deep' ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}

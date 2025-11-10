@@ -9,9 +9,14 @@ import { test, expect } from '@playwright/test'
 test.describe('Chat Interface', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
+    await page.waitForLoadState('networkidle')
+
+    const quickModeButton = page.getByTestId('mode-switch-quick')
+    const deepModeButton = page.getByTestId('mode-switch-deep')
+
     // Wait for ModeSwitch buttons to ensure chat UI is ready
-    await expect(page.locator('button:has-text("Quick Chat")')).toBeVisible({ timeout: 15000 })
-    await expect(page.locator('button:has-text("Deep Research")')).toBeVisible({ timeout: 15000 })
+    await expect(quickModeButton).toBeVisible({ timeout: 15000 })
+    await expect(deepModeButton).toBeVisible({ timeout: 15000 })
   })
 
   test('should display welcome message and hotspot panel', async ({ page }) => {
@@ -19,8 +24,8 @@ test.describe('Chat Interface', () => {
     await expect(page.locator('h2:has-text("欢迎使用 Web3 AI 搜索引擎")')).toBeVisible()
 
     // Check mode switch is visible
-    await expect(page.locator('text=Quick Chat')).toBeVisible()
-    await expect(page.locator('text=Deep Research')).toBeVisible()
+    await expect(page.getByTestId('mode-switch-quick')).toBeVisible()
+    await expect(page.getByTestId('mode-switch-deep')).toBeVisible()
 
     // Check hotspot panel is visible
     await expect(page.locator('text=市场热点')).toBeVisible()
@@ -28,11 +33,14 @@ test.describe('Chat Interface', () => {
 
   test('should switch between Quick Chat and Deep Research modes', async ({ page }) => {
     // Check default mode is Quick Chat
-    const quickChatButton = page.locator('button:has-text("Quick Chat")')
-    const deepResearchButton = page.locator('button:has-text("Deep Research")')
+    const quickChatButton = page.getByTestId('mode-switch-quick')
+    const deepResearchButton = page.getByTestId('mode-switch-deep')
+
+    await expect(quickChatButton).toHaveAttribute('aria-pressed', 'true')
 
     // Switch to Deep Research
     await deepResearchButton.click()
+    await expect(deepResearchButton).toHaveAttribute('aria-pressed', 'true')
     await expect(page.locator('textarea')).toHaveAttribute(
       'placeholder',
       /输入加密货币项目名称/
@@ -40,6 +48,7 @@ test.describe('Chat Interface', () => {
 
     // Switch back to Quick Chat
     await quickChatButton.click()
+    await expect(quickChatButton).toHaveAttribute('aria-pressed', 'true')
     await expect(page.locator('textarea')).toHaveAttribute(
       'placeholder',
       /输入你的问题/
@@ -200,9 +209,10 @@ test.describe('Chat Interface', () => {
 test.describe('Deep Research', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
+    await page.waitForLoadState('networkidle')
 
     // Switch to Deep Research mode
-    await page.locator('button:has-text("Deep Research")').click()
+    await page.getByTestId('mode-switch-deep').click()
   })
 
   // Workers API 有 30 秒执行时间限制，Deep Research 会超时，跳过此测试

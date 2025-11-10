@@ -7,25 +7,38 @@
  */
 import { test, expect } from '@playwright/test';
 
+const PROD_API_BASE_URL = 'https://web3search-api.marovole.workers.dev/api/v1';
+
+const normalizeBaseUrl = (url: string) => url.replace(/\/$/, '');
+
+const resolveTestEnv = () => {
+  if (!process.env.TEST_ENV) {
+    return 'production';
+  }
+  return process.env.TEST_ENV;
+};
+
 // API基础URL配置
-// 生产环境测试：使用 Workers API
-// 开发环境测试：使用本地 API
-// 通过检测前端 baseURL 判断环境（更可靠）
+// 默认使用生产环境 Workers API，避免本地后端未启动导致测试失败
+// 只有显式设置 TEST_ENV=local 时才使用本地后端
 const getApiBaseUrl = () => {
-  // 如果环境变量明确指定了生产环境
-  if (process.env.TEST_ENV === 'production') {
-    return 'https://web3search-api.marovole.workers.dev/api/v1';
+  const envMode = resolveTestEnv();
+
+  // 默认使用生产Workers API，以避免本地后端未启动导致连接失败
+  if (envMode !== 'local') {
+    return normalizeBaseUrl(process.env.VITE_API_BASE_URL || PROD_API_BASE_URL);
   }
-  // 如果有明确的 API URL 配置
+
+  // 只有当明确设置 TEST_ENV=local 时才使用本地后端
   if (process.env.VITE_API_BASE_URL) {
-    return process.env.VITE_API_BASE_URL;
+    return normalizeBaseUrl(process.env.VITE_API_BASE_URL);
   }
-  // 默认本地开发环境
+
   return 'http://localhost:8000';
 };
 
 const API_BASE_URL = getApiBaseUrl();
-const isProduction = process.env.TEST_ENV === 'production';
+const isProduction = resolveTestEnv() !== 'local';
 
 test.describe('API Integration E2E Tests', () => {
   test('Health check endpoint should be accessible', async ({ request }) => {
