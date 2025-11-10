@@ -28,11 +28,6 @@ export default defineConfig({
     viewport: { width: 1920, height: 1080 },
   },
 
-  // Set environment variables for production testing
-  env: {
-    TEST_ENV: 'production',
-  },
-
   projects: [
     {
       name: 'chromium-production',

@@ -7,15 +7,24 @@
  */
 import { test, expect } from '@playwright/test';
 
-// 判断是否为生产环境测试
-const isProduction = process.env.TEST_ENV === 'production';
-
 // API基础URL配置
 // 生产环境测试：使用 Workers API
 // 开发环境测试：使用本地 API
-const API_BASE_URL = isProduction
-  ? 'https://web3search-api.marovole.workers.dev'
-  : (process.env.VITE_API_BASE_URL || 'http://localhost:8000');
+// 通过检测前端 baseURL 判断环境（更可靠）
+const getApiBaseUrl = () => {
+  // 如果环境变量明确指定了生产环境
+  if (process.env.TEST_ENV === 'production') {
+    return 'https://web3search-api.marovole.workers.dev';
+  }
+  // 如果有明确的 API URL 配置
+  if (process.env.VITE_API_BASE_URL) {
+    return process.env.VITE_API_BASE_URL;
+  }
+  // 默认本地开发环境
+  return 'http://localhost:8000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 test.describe('API Integration E2E Tests', () => {
   test('Health check endpoint should be accessible', async ({ request }) => {
