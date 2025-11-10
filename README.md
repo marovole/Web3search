@@ -46,12 +46,15 @@ All findings, if published, will focus on architectural design and performance i
 
 ---
 
-### ⚙️ Technical Stack  
+### ⚙️ Technical Stack
 
-- **Languages:** Python / TypeScript  
-- **Core Focus:** Web3 data querying, indexing, and analytics  
-- **Environment:** Local development only (no live data redistribution)  
-- **Research Tools:** Jupyter, Node.js, IPFS (for decentralized test setups)  
+- **Frontend:** React + TypeScript, Cloudflare Pages
+- **Backend API:** Cloudflare Workers (TypeScript)
+- **Database:** Supabase (PostgreSQL)
+- **AI Integration:** OpenRouter API
+- **Price Data:** CoinGecko API
+- **Core Focus:** Web3 data querying, indexing, and analytics
+- **Environment:** Cloudflare edge network for global low-latency access  
 
 ---
 
@@ -98,82 +101,52 @@ Only algorithmic concepts, architectures, and open methodologies are shared.
 
 ---
 
-### 🧪 Testing
-
-The project includes comprehensive integration tests to ensure API reliability and prevent production issues.
-
-#### Test Structure
-- **Backend Integration Tests**: `backend/tests/integration/`
-  - API endpoint tests
-  - Environment configuration validation
-  - Database and Redis integration
-
-- **Frontend Integration Tests**: `frontend/tests/integration/`
-  - API client testing
-  - Environment configuration
-  - Error handling validation
-
-- **End-to-End Tests**: `frontend/tests/e2e/`
-  - Complete API flow testing
-  - Cross-service integration
-
-#### Running Tests
-
-**Backend:**
-```bash
-cd backend
-pytest tests/integration/ -v --cov=app
-```
-
-**Frontend:**
-```bash
-cd frontend
-npm run test:integration
-npm run test:e2e
-```
-
-**CI/CD:**
-Integration tests run automatically on:
-- Pull requests to `main` or `develop`
-- Push to `main` or `develop` branches
-
-See `docs/testing-guide.md` for detailed testing documentation.
-
----
-
 ### 🚀 Deployment
 
-The project is deployed using the following infrastructure:
+The project uses a modern serverless architecture deployed on Cloudflare's edge network.
 
 #### Frontend
-- **Platform**: Vercel
-- **Production URL**: https://web3search.vercel.app
-- **Deployment**: Automatic via GitHub Actions on push to `main`
-- **Configuration**: See `frontend/vercel.json`
+- **Platform**: Cloudflare Pages
+- **Production URL**: https://web3search.pages.dev
+- **Deployment**: Automatic on push to `main`
+- **Build**: Vite + React
 
 #### Backend API
-- **Platform**: Render
-- **Production URL**: https://web3search-api.onrender.com
-- **API Documentation**: https://web3search-api.onrender.com/docs
-- **Configuration**: See `backend/render.yaml`
+- **Platform**: Cloudflare Workers
+- **Production URL**: https://web3search-api.marovole.workers.dev
+- **API Endpoints**:
+  - `/api/v1/chat/quick-chat` - AI chat with real-time price data
+  - `/api/v1/health` - Health check
+  - See `workers-api/src/routes/` for all endpoints
 
 #### Database
-- **Service**: PostgreSQL on Render
+- **Service**: Supabase (PostgreSQL)
 - **Plan**: Free tier
+- **Features**: Real-time subscriptions, Row Level Security
 
 #### Deployment Commands
 ```bash
-# Frontend (deployed automatically via GitHub Actions)
+# Frontend (Cloudflare Pages)
 cd frontend
 npm run build
+# Automatic deployment via Cloudflare Pages GitHub integration
 
-# Or manually deploy to Vercel
-npm run vercel:prod
-
-# Backend (deployed automatically via Render)
-# No manual deployment needed - pushes to main trigger automatic deployment
+# Backend API (Cloudflare Workers)
+cd workers-api
+npm run deploy
+# or: npx wrangler deploy
 ```
 
-For detailed deployment instructions, see `docs/DEPLOYMENT.md`.
+#### Environment Variables
 
-**Note**: Previous Cloudflare Pages deployment configuration has been archived to `docs/archive/cloudflare/`.
+**Cloudflare Workers** (set via `wrangler secret put`):
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `OPENROUTER_API_KEY`
+
+**Frontend** (Cloudflare Pages):
+- `VITE_API_BASE_URL` (set to Workers URL)
+
+For detailed deployment instructions, see `workers-api/README.md`.
+
+**Note**: Old backend architecture (FastAPI + Render) has been archived to `docs/archive/old-deployment-docs/`.
