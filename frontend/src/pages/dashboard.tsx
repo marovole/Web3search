@@ -124,7 +124,7 @@ export function DashboardPage() {
             </div>
             <div className="h-96">
               <StreamingChat
-                apiUrl={`${import.meta.env.VITE_API_BASE_URL || 'https://web3search-api.marovole.workers.dev'}/api/v1/chat`}
+                apiUrl={`${import.meta.env.VITE_API_BASE_URL || 'https://web3search-api.marovole.workers.dev'}/api/v1/chat/quick-chat`}
                 onMessageComplete={(message) => {
                   console.log('Chat message completed:', message)
                 }}

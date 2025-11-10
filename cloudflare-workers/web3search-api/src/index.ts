@@ -16,7 +16,13 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 // 中间件配置
 app.use('*', cors({
-  origin: ['https://web3search.pages.dev', 'http://localhost:5173'],
+  origin: (origin) => {
+    // 允许所有 web3search.pages.dev 子域名（包括预览部署）
+    if (origin.endsWith('.web3search.pages.dev') || origin === 'https://web3search.pages.dev' || origin === 'http://localhost:5173') {
+      return origin
+    }
+    return 'https://web3search.pages.dev'
+  },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
 }))
@@ -82,10 +88,8 @@ app.get('/api/v1/search/autocomplete', async (c) => {
     ].slice(0, 5)
 
     return c.json({
-      query: query.trim(),
-      suggestions,
-      count: suggestions.length,
-      timestamp: new Date().toISOString()
+      results: suggestions,
+      count: suggestions.length
     })
   } catch (error) {
     return c.json({
