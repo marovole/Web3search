@@ -72,8 +72,8 @@ const quickChatReal = async (
   request: QuickChatRequest
 ): Promise<QuickChatResponse> => {
   // 构建API路径：确保不会与baseURL重复
-  // 生产环境: baseURL = https://web3search-api.onrender.com, path = /api/v1/chat/quick-chat
-  // 结果: https://web3search-api.onrender.com/api/v1/chat/quick-chat
+  // 生产环境: baseURL = https://web3search-api.marovole.workers.dev, path = /api/v1/chat/quick-chat
+  // 结果: https://web3search-api.marovole.workers.dev/api/v1/chat/quick-chat
   const path = '/api/v1/chat/quick-chat'
   console.log(`[API] Quick Chat Request: ${api.defaults.baseURL}${path}`)
   const response = await api.post<QuickChatResponse>(path, request)

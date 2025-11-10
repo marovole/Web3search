@@ -409,7 +409,7 @@ The system SHALL provide seamless integration between frontend and backend APIs 
 #### Scenario: API Route Consistency
 - **WHEN** frontend makes API calls to backend
 - **THEN** all routes shall use correct base URL without path duplication
-- **AND** API requests shall be routed to `https://web3search-api.onrender.com/api/v1/...`
+- **AND** API requests shall be routed to `https://web3search-api.marovole.workers.dev/api/v1/...`
 - **AND** no 404 errors shall occur due to incorrect URL construction
 - **AND** environment configuration shall properly set API_BASE_URL
 

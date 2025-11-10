@@ -76,7 +76,7 @@ describe('DashboardPage', () => {
       const chatComponent = screen.getByTestId('streaming-chat')
       expect(chatComponent).toHaveAttribute(
         'data-api-url',
-        'https://web3search-api.onrender.com/api/v1/chat'
+        'https://web3search-api.marovole.workers.dev/api/v1/chat'
       )
     })
 

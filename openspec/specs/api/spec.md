@@ -262,7 +262,7 @@ JWT配置**MUST**使用安全的密钥管理，防止密钥泄露和 Token 伪�
 #### Scenario: URL路径验证
 - **WHEN** 前端构建API请求URL
 - **THEN** 不出现路径重复（如`/api/api/v1`）
-- **AND** 生产环境使用完整URL（`https://web3search-api.onrender.com/api/v1/...`）
+- **AND** 生产环境使用完整URL（`https://web3search-api.marovole.workers.dev/api/v1/...`）
 - **AND** 开发环境使用相对路径（`/api/v1/...`）配合代理
 - **AND** URL构建逻辑通过单元测试验证
 

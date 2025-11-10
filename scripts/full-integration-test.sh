@@ -11,8 +11,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # 配置
-BACKEND_URL="https://web3search-api.onrender.com"
-FRONTEND_URL="https://web3search.vercel.app"
+BACKEND_URL="https://web3search-api.marovole.workers.dev"
+FRONTEND_URL="https://web3search.pages.dev"
 TIMEOUT=15
 
 # 测试计数

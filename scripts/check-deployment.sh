@@ -32,7 +32,7 @@ echo ""
 
 # 3. 检查 API 健康状态
 echo "🔌 3. 检查后端 API..."
-API_HEALTH_URL="https://web3search-api.onrender.com/health"
+API_HEALTH_URL="https://web3search-api.marovole.workers.dev/api/v1/health"
 
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$API_HEALTH_URL")
 if [ "$HTTP_CODE" = "200" ]; then
@@ -144,5 +144,5 @@ echo "   前端应用:"
 echo "   $FRONTEND_URL"
 echo ""
 echo "   后端 API:"
-echo "   https://web3search-api.onrender.com"
+echo "   https://web3search-api.marovole.workers.dev"
 echo ""

@@ -10,12 +10,11 @@ Web3 Search 是一个专注于加密货币领域的AI驱动研究平台，对标
 ## Tech Stack
 
 ### 后端
-- **语言**: Python 3.11
-- **框架**: FastAPI（高性能异步API）
-- **数据库**: PostgreSQL 15（关系数据）、Redis 7（缓存）、ChromaDB（向量存储）
-- **任务队列**: Celery + Redis
-- **AI服务**: OpenRouter API（qwen3-235b, qwen3-30b, deepseek-r1, gpt-oss-20b）
-- **数据采集**: aiohttp, web3.py, tweepy, praw
+- **平台**: Cloudflare Workers（边缘计算，全球分布）
+- **语言**: TypeScript
+- **数据库**: Supabase PostgreSQL（关系数据）
+- **AI服务**: OpenRouter API（Claude Sonnet, GPT models）
+- **价格数据**: CoinGecko API（免费版）
 
 ### 前端
 - **语言**: TypeScript
@@ -26,9 +25,10 @@ Web3 Search 是一个专注于加密货币领域的AI驱动研究平台，对标
 - **Markdown渲染**: react-markdown
 
 ### 部署
-- **前端**: Vercel（全球CDN，免费）
-- **后端**: Railway（Python运行环境，$5-10/月）
-- **CI/CD**: GitHub Actions
+- **前端**: Cloudflare Pages（全球CDN，免费）
+- **后端**: Cloudflare Workers（边缘计算，免费）
+- **数据库**: Supabase（PostgreSQL，免费）
+- **CI/CD**: GitHub Actions + Cloudflare自动部署
 
 ## Project Conventions
 
@@ -44,12 +44,12 @@ Web3 Search 是一个专注于加密货币领域的AI驱动研究平台，对标
 - **类型提示**: Python使用type hints，TypeScript使用严格模式
 
 ### Architecture Patterns
-- **前后端分离**: React SPA + FastAPI RESTful API
-- **微服务思想**: 数据采集、AI分析、报告生成独立模块
-- **异步优先**: 使用asyncio并行处理，提升性能
-- **缓存策略**: Redis多级缓存（价格1分钟、报告24小时）
+- **前后端分离**: React SPA + Cloudflare Workers RESTful API
+- **边缘优先**: 利用Cloudflare全球边缘网络，降低延迟
+- **Serverless架构**: 无需服务器管理，按需扩展
+- **实时数据**: CoinGecko API实时价格 + OpenRouter流式响应
 - **错误处理**: 全局异常处理器 + 降级策略
-- **配置管理**: 环境变量 + YAML配置文件
+- **配置管理**: 环境变量 + Wrangler配置文件
 
 ### Testing Strategy
 - **单元测试**: pytest（Python）、Jest（TypeScript），覆盖率目标 > 80%
@@ -204,26 +204,29 @@ Web3 Search 是一个专注于加密货币领域的AI驱动研究平台，对标
 - ✅ 部署配置（Vercel + CI/CD）
 
 ### 部署状态
-**平台**: Render.com（从Railway迁移）
+**平台**: Cloudflare（边缘计算平台）
 
 **服务配置**:
-- 服务名: web3search-api
-- 运行时: Python 3.11.0
-- 数据库: PostgreSQL + Redis (Free Plan)
-- 区域: Oregon
-- 服务ID: srv-d3u1cifdiees73dto2bg
+- 后端服务: Cloudflare Workers (TypeScript)
+- 前端服务: Cloudflare Pages (React + Vite)
+- 数据库: Supabase PostgreSQL (Free Plan)
+- AI服务: OpenRouter API
+- 价格数据: CoinGecko API
+- 全球分布: 300+ 边缘节点
 
 **当前状态**: ✅ **LIVE**
-- 服务URL: https://web3search-api.onrender.com
-- API文档: https://web3search-api.onrender.com/docs
-- 部署ID: dep-d3udbbba67hc73dj31gg
-- 部署时间: 2025-10-25 14:07:19 UTC
-- 部署状态: Live（所有代码问题已修复）
+- 后端 API: https://web3search-api.marovole.workers.dev
+- 前端应用: https://web3search.pages.dev
+- API 健康检查: https://web3search-api.marovole.workers.dev/api/v1/health
+- 部署方式: GitHub push 自动部署
+- 最后更新: 2025-11-10
 
-**已修复的问题**（2025-10-25）:
-1. ✅ 修复8个UTF-8编码错误的__init__.py文件
-2. ✅ 简化启动脚本（直接使用uvicorn命令）
-3. ✅ 调整worker数量（2→1，适应内存限制）
+**架构优势**（2025-11-10迁移）:
+1. ✅ 全球边缘分布，低延迟访问
+2. ✅ Serverless 架构，自动扩展
+3. ✅ 零成本运营（Cloudflare 免费计划）
+4. ✅ 实时价格数据集成（CoinGecko）
+5. ✅ 流式 AI 响应（OpenRouter SSE）
 4. ✅ 修复SQLAlchemy metadata保留名称冲突
 
 **可用功能**:

@@ -367,9 +367,9 @@ The system SHALL support deployment across development, staging, and production 
 The system SHALL provide complete frontend deployment configuration for production use.
 
 #### Scenario: Environment Variable Management
-- **WHEN** deploying frontend to Vercel production
+- **WHEN** deploying frontend to Cloudflare Pages production
 - **THEN** VITE_API_BASE_URL shall be configured with complete backend URL
-- **AND** value shall be `https://web3search-api.onrender.com`
+- **AND** value shall be `https://web3search-api.marovole.workers.dev`
 - **AND** VITE_ENVIRONMENT shall be set to `production`
 - **AND** configuration shall prevent API path duplication errors
 
