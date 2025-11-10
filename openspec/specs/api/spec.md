@@ -1,330 +1,224 @@
 # API Specification
 
 ## Purpose
-Define comprehensive API security architecture and endpoint protection mechanisms. Ensure all API requests undergo proper authentication and authorization checks to protect system resources from unauthorized access.
+Define the API architecture, endpoints, and security mechanisms for the Web3search Cloudflare Workers backend. Focus on practical, production-ready features that are actually implemented.
 
-定义完整的API安全架构和端点保护机制，确保所有API请求都经过适当的身份验证和授权检查，保护系统资源免受未授权访问。
+定义 Web3search Cloudflare Workers 后端的 API 架构、端点和安全机制。专注于实际实现的、生产就绪的功能。
+
+## Current Implementation Status
+
+**Implemented Features** ✅:
+- CORS middleware with origin whitelisting
+- Rate limiting (KV-backed sliding window)
+- Request logging and monitoring
+- Error handling with structured responses
+- CoinGecko price data integration
+- OpenRouter AI integration with streaming
+- Supabase database integration
+
+**Planned for Future** 🔮:
+- API key authentication
+- JWT token-based user authentication
+- Request signature verification
+- Role-based access control (RBAC)
+
 ## Requirements
-### Requirement: API密钥验证
-所有API请求**MUST**通过有效的API密钥进行身份验证，确保只有授权的客户端可以访问系统资源。
 
-#### Scenario: API密钥格式验证
-- **WHEN** 客户端提交API请求时
-- **THEN** 系统必须验证API密钥格式正确性
-- **AND** API密钥必须符合标准格式：web3search_[32位随机字符]
-- **AND** 无效格式的API密钥必须被拒绝并返回401状态码
-- **AND** 验证失败必须记录安全日志
+### Requirement: CORS Configuration
+The system **SHALL** implement strict CORS policies to prevent unauthorized cross-origin requests.
 
-#### Scenario: API密钥有效性检查
-- **WHEN** API密钥格式验证通过后
-- **THEN** 系统必须在数据库中验证密钥有效性
-- **AND** 检查密钥是否处于活跃状态（未撤销或过期）
-- **AND** 验证密钥的权限范围是否足够访问请求的资源
-- **AND** 无效或权限不足的密钥必须返回403状态码
+#### Scenario: Origin Whitelist Validation
+- **WHEN** a request arrives with an Origin header
+- **THEN** the system must validate against the allowed origins list
+- **AND** allowed origins include:
+  - `https://web3search.pages.dev` (production)
+  - `*.web3search.pages.dev` (preview deployments)
+  - `http://localhost:*` (development only)
+- **AND** requests from unauthorized origins must be rejected with 403
+- **AND** preflight OPTIONS requests must be handled correctly
 
-### Requirement: 安全头配置
-所有API响应**MUST**包含完整的安全头部配置，保护客户端免受常见的Web安全威胁。
+**Implementation**: `workers-api/src/middlewares/cors.ts`
 
-#### Scenario: HTTP安全头部设置
-- **WHEN** API返回响应给客户端时
-- **THEN** 必须设置X-Content-Type-Options: nosniff
-- **AND** 必须设置X-Frame-Options: DENY
-- **AND** 必须设置X-XSS-Protection: "1; mode=block"
-- **AND** 必须设置Strict-Transport-Security强制HTTPS访问
-- **AND** 必须设置Content-Security-Policy限制资源加载源
+#### Scenario: CORS Headers Configuration
+- **WHEN** responding to allowed origin requests
+- **THEN** must set `Access-Control-Allow-Origin` to the specific origin
+- **AND** must set `Access-Control-Allow-Methods` to supported HTTP methods
+- **AND** must set `Access-Control-Allow-Headers` for Content-Type and Authorization
+- **AND** must set `Access-Control-Allow-Credentials: true`
+- **AND** must set `Access-Control-Max-Age: 86400` (24 hours)
 
-#### Scenario: CORS安全配置
-- **WHEN** 处理跨域API请求时
-- **THEN** 必须严格限制允许的源域名
-- **AND** 生产环境必须仅允许白名单中的域名访问
-- **AND** 必须禁止通配符配置（如*或.*）
-- **AND** 必须验证Origin头部防止CSRF攻击
+### Requirement: Rate Limiting
+All API endpoints **SHALL** implement rate limiting to prevent abuse and ensure fair usage.
 
-### Requirement: API端点保护
-所有敏感API端点**MUST**实施多层保护机制，包括认证、授权和速率限制。
+#### Scenario: KV-Backed Sliding Window
+- **WHEN** a request is received
+- **THEN** extract client identifier (IP address from `cf-connecting-ip` header)
+- **AND** calculate current time window ID
+- **AND** check request count in Cloudflare KV for this window
+- **AND** if count >= limit, return 429 with Retry-After header
+- **AND** if count < limit, increment counter and allow request
+- **AND** add rate limit headers to response:
+  - `X-RateLimit-Limit`: Maximum requests allowed
+  - `X-RateLimit-Remaining`: Requests remaining in window
 
-#### Scenario: 强制API认证
-- **WHEN** 客户端访问受保护的API端点时
-- **THEN** 系统必须验证有效的JWT Bearer Token
-- **AND** Token必须未过期且签名正确
-- **AND** 必须验证Token中的用户权限
-- **AND** 未认证的请求必须返回401状态码
+**Implementation**: `workers-api/src/middlewares/rate-limit.ts`
 
-#### Scenario: 请求签名验证
-- **WHEN** 处理关键操作API请求时
-- **THEN** 必须验证请求的HMAC-SHA256签名
-- **AND** 签名必须包含请求方法、路径、查询参数和请求体
-- **AND** 必须验证时间戳防止重放攻击（5分钟时间窗口）
-- **AND** 签名验证失败的请求必须被拒绝
+#### Scenario: Graceful Degradation
+- **WHEN** KV storage is unavailable or fails
+- **THEN** log warning and allow request to proceed
+- **AND** do not block legitimate requests due to infrastructure issues
+- **AND** rate limiting resumes when KV is restored
 
-#### Scenario: 错误响应安全化
-- **WHEN** API请求因安全原因被拒绝时
-- **THEN** 错误响应不得泄露敏感系统信息
-- **AND** 必须返回标准化的安全错误消息
-- **AND** 详细错误信息必须记录到安全日志
-- **AND** 客户端只能看到通用错误描述
+**Example Configuration**:
+```typescript
+createRateLimitMiddleware({
+  scope: 'chat-ip-hour',
+  limit: 10,
+  windowSeconds: 3600,
+})
+```
 
-### Requirement: 强制API认证
-系统**MUST**实施强制性的API认证机制，确保所有API调用都经过适当的身份验证。
+### Requirement: Error Handling
+The system **SHALL** provide consistent, secure error responses that don't leak sensitive information.
 
-#### Scenario: JWT Token验证
-- **WHEN** API请求包含Authorization头部时
-- **THEN** 必须验证JWT Token的格式和有效性
-- **AND** 必须检查Token签名和过期时间
-- **AND** 必须验证Token中的用户ID和权限声明
-- **AND** 无效Token必须触发安全日志记录
+#### Scenario: Structured Error Response
+- **WHEN** an error occurs during request processing
+- **THEN** return JSON response with standardized error structure:
+  ```json
+  {
+    "error": {
+      "code": "ERROR_CODE",
+      "message": "User-friendly message",
+      "status": 400
+    }
+  }
+  ```
+- **AND** HTTP status code must match error.status
+- **AND** error messages must be user-friendly, not technical
+- **AND** sensitive information (stack traces, DB errors) must be logged only
 
-#### Scenario: Token刷新机制
-- **WHEN** JWT Token即将过期时
-- **THEN** 系统必须支持自动Token刷新
-- **AND** 刷新过程必须验证Refresh Token的有效性
-- **AND** 新Token必须继承原Token的权限设置
-- **AND** 恶意刷新尝试必须被检测和阻止
+**Implementation**: `workers-api/src/index.ts` (global error handler)
 
-### Requirement: 请求签名验证
-所有关键API操作**MUST**实现请求签名验证，确保请求在传输过程中未被篡改。
+#### Scenario: Common Error Codes
+- `INVALID_JSON`: Malformed JSON in request body (400)
+- `MISSING_QUERY`: Required field missing (400)
+- `QUERY_TOO_LONG`: Input exceeds maximum length (400)
+- `RATE_LIMITED`: Too many requests (429)
+- `NOT_FOUND`: Endpoint not found (404)
+- `INTERNAL_ERROR`: Unhandled server error (500)
+- `OPENROUTER_ERROR`: Upstream AI provider error (502)
 
-#### Scenario: 签名计算算法
-- **WHEN** 客户端构造API请求签名时
-- **THEN** 必须使用HMAC-SHA256算法
-- **AND** 签名消息必须包含：HTTP方法 + 路径 + 查询参数 + 请求体 + 时间戳
-- **AND** 必须使用与API密钥关联的签名密钥
-- **AND** 签名结果必须以十六进制格式传输
+### Requirement: Request Logging
+All API requests **SHALL** be logged with relevant metadata for monitoring and debugging.
 
-#### Scenario: 签名验证流程
-- **WHEN** 服务器接收到带签名的API请求时
-- **THEN** 必须重新计算请求签名
-- **AND** 必须使用安全的字符串比较验证签名匹配
-- **AND** 必须验证时间戳在允许的时间窗口内
-- **AND** 签名验证失败必须记录安全事件
+#### Scenario: Request Metadata Logging
+- **WHEN** a request is received
+- **THEN** log the following information:
+  - HTTP method and path
+  - Client IP address (`cf-connecting-ip`)
+  - Request ID (generated UUID)
+  - Timestamp
+  - Response status code
+  - Processing duration (ms)
+- **AND** use structured logging format (JSON)
+- **AND** log to console (visible in Cloudflare Workers logs)
 
-### Requirement: 基于角色的访问控制
-系统**MUST**实现基于角色的访问控制（RBAC），确保用户只能访问其权限范围内的资源。
+**Implementation**: `workers-api/src/middlewares/logger.ts`
 
-#### Scenario: 权限检查
-- **WHEN** 用户尝试访问API资源时
-- **THEN** 系统必须验证用户的角色权限
-- **AND** 必须检查资源访问权限映射
-- **AND** 必须验证操作类型权限（读取/写入/删除）
-- **AND** 权限不足必须返回403状态码
+### Requirement: API Route Consistency
+The system **SHALL** maintain consistent URL structure across all environments.
 
-#### Scenario: 角色继承
-- **WHEN** 用户具有多个角色时
-- **THEN** 系统必须支持角色权限继承机制
-- **AND** 高级角色必须包含低级角色的所有权限
-- **AND** 权限冲突必须以最严格的权限为准
-- **AND** 角色变更必须实时生效
+#### Scenario: URL Path Validation
+- **WHEN** frontend builds API request URLs
+- **THEN** no path duplication shall occur (e.g., `/api/api/v1`)
+- **AND** production environment uses complete URL (`https://web3search-api.marovole.workers.dev/api/v1/...`)
+- **AND** development environment uses relative paths (`/api/v1/...`) with proxy
+- **AND** URL construction logic verified through unit tests
 
-### Requirement: JWT密钥配置
-JWT配置**MUST**使用安全的密钥管理，防止密钥泄露和 Token 伪造。
+#### Scenario: Environment Configuration Testing
+- **WHEN** application loads environment configuration
+- **THEN** API_BASE_URL is correctly set based on runtime environment
+- **AND** production detection checks `window.location.hostname`
+- **AND** localhost/127.0.0.1 trigger development mode
+- **AND** all other hostnames trigger production mode with full backend URL
 
-#### Scenario: 密钥安全性
-- **WHEN** 配置JWT密钥时
-- **THEN** 密钥长度必须至少32位字符
-- **AND** 密钥必须包含字母、数字和特殊字符
-- **AND** 禁止使用默认或临时密钥
-- **AND** 密钥必须通过环境变量安全加载
+**Rationale**: 修复生产环境API URL配置错误，确保前端正确构建API请求路径，避免路径重复（`/api/api/v1`）导致的404错误。
 
-#### Scenario: 密钥轮换
-- **WHEN** 需要更新JWT密钥时
-- **THEN** 系统必须支持密钥轮换机制
-- **AND** 旧密钥必须能在过渡期内验证现有Token
-- **AND** 新Token必须使用新密钥签发
-- **AND** 密钥轮换必须记录审计日志
+## API Endpoints
 
-### Requirement: CORS配置
-跨域资源共享配置**MUST**严格限制允许的源，防止跨站请求伪造攻击。
+### Health Check
+- **Endpoint**: `GET /api/v1/health`
+- **Purpose**: Verify service status and dependencies
+- **Authentication**: None required
+- **Response**:
+  ```json
+  {
+    "status": "healthy",
+    "timestamp": "2025-01-10T12:00:00Z",
+    "services": {
+      "supabase": "healthy",
+      "openrouter": "healthy",
+      "kv_cache": "healthy"
+    }
+  }
+  ```
 
-#### Scenario: 生产环境限制
-- **WHEN** 应用运行在生产环境时
-- **THEN** CORS配置必须仅允许特定域名
-- **AND** 必须禁止通配符配置（如*）
-- **AND** 必须验证Origin头部的有效性
-- **AND** 非允许源的请求必须被拒绝
+### Quick Chat
+- **Endpoint**: `POST /api/v1/chat/quick-chat`
+- **Purpose**: AI-powered crypto question answering with real-time price data
+- **Authentication**: None (rate-limited by IP)
+- **Rate Limit**: 10 requests per hour per IP
+- **Request Body**:
+  ```json
+  {
+    "query": "What is the current price of Bitcoin?",
+    "conversation_id": "uuid-optional",
+    "model": "anthropic/claude-3.5-sonnet",
+    "stream": true
+  }
+  ```
+- **Response** (streaming):
+  - Content-Type: `text/event-stream`
+  - SSE format with `data:` events
+  - Real-time CoinGecko price data injected into context
 
-#### Scenario: 开发环境灵活性
-- **WHEN** 应用运行在开发环境时
-- **THEN** 可以允许本地开发域名（localhost）
-- **AND** 可以支持端口范围配置
-- **AND** 必须在部署到生产前更新配置
-- **AND** 开发配置不得影响生产安全
+**Implementation**: `workers-api/src/routes/chat.ts`
 
-### Requirement: 安全配置模板
-系统**MUST**提供不同环境的安全配置模板，确保配置的一致性和安全性。
+### Search Autocomplete
+- **Endpoint**: `GET /api/v1/search/autocomplete?q=bitcoin`
+- **Purpose**: Cryptocurrency search suggestions
+- **Authentication**: None
+- **Rate Limit**: 30 requests per minute per IP
 
-#### Scenario: 环境特定配置
-- **WHEN** 部署到不同环境时
-- **THEN** 必须提供开发、预发布、生产环境配置
-- **AND** 每个环境必须有适当的安全级别
-- **AND** 配置必须通过环境变量动态加载
-- **AND** 必须验证配置完整性
+### Deep Research (Future)
+- **Endpoint**: `POST /api/v1/deep-research`
+- **Purpose**: Comprehensive crypto research reports
+- **Status**: Planned for future implementation
 
-#### Scenario: 配置验证
-- **WHEN** 应用启动时
-- **THEN** 必须验证所有必需的安全配置
-- **AND** 配置错误必须阻止应用启动
-- **AND** 必须提供清晰的配置错误消息
-- **AND** 必须记录配置验证结果
+## Security Considerations
 
-### Requirement: 部署前安全检查
-部署流程**MUST**包含完整的安全检查，确保生产环境的安全性。
+### Transport Security
+- All communication over HTTPS (enforced by Cloudflare)
+- TLS 1.3 minimum version
+- HSTS headers recommended for frontend
 
-#### Scenario: 自动化安全扫描
-- **WHEN** 执行部署前检查时
-- **THEN** 必须运行自动化安全扫描
-- **AND** 必须检查依赖包的已知漏洞
-- **AND** 必须验证配置文件的安全性
-- **AND** 必须生成安全检查报告
+### Data Validation
+- Input sanitization for all user-provided data
+- Maximum query length: 10,000 characters
+- JSON schema validation for request bodies
 
-#### Scenario: 安全门禁
-- **WHEN** 安全检查未通过时
-- **THEN** 部署流程必须被阻止
-- **AND** 必须提供详细的安全问题报告
-- **AND** 必须记录安全检查失败的原因
-- **AND** 必须要求修复所有严重安全问题
+### Secrets Management
+- API keys stored in Cloudflare Workers secrets
+- Never expose in logs or error messages
+- Environment variables encrypted at rest
 
-### Requirement: 监控和告警配置
-系统**MUST**配置安全监控和告警机制，及时发现和响应安全事件。
+## Future Enhancements
 
-#### Scenario: 实时监控
-- **WHEN** 系统运行时
-- **THEN** 必须监控所有安全相关事件
-- **AND** 必须检测异常的API访问模式
-- **AND** 必须监控认证失败率
-- **AND** 必须跟踪权限违规尝试
+The following features are planned for future implementation:
 
-#### Scenario: 告警机制
-- **WHEN** 检测到安全威胁时
-- **THEN** 必须立即发送安全告警
-- **AND** 告警必须包含详细的事件信息
-- **AND** 必须支持多种通知渠道（邮件/短信/Slack）
-- **AND** 必须记录告警处理过程
-
-### Requirement: 错误响应安全化
-所有API错误响应**MUST**避免泄露敏感系统信息，防止信息泄露攻击。
-
-#### Scenario: 认证错误处理
-- **WHEN** 认证失败或Token无效时
-- **THEN** 系统必须返回标准化的401错误
-- **AND** 错误消息不得包含系统内部信息
-- **AND** 必须记录详细的安全日志
-
-#### Scenario: 权限错误处理
-- **WHEN** 用户权限不足访问资源时
-- **THEN** 系统必须返回标准化的403错误
-- **AND** 错误消息仅说明权限不足
-- **AND** 不得暴露资源存在性或路径信息
-
-### Requirement: 生产环境配置
-生产环境**MUST**实施最严格的安全配置，确保系统在面临威胁时的安全性。
-
-#### Scenario: 生产安全标准
-- **WHEN** 系统部署到生产环境时
-- **THEN** 必须启用所有安全功能
-- **AND** 必须配置最强的安全策略
-- **AND** 必须实施完整的安全监控
-- **AND** 必须定期进行安全审计
-
-#### Scenario: 安全合规
-- **WHEN** 生产环境运行时
-- **THEN** 必须符合行业安全标准
-- **AND** 必须通过第三方安全审计
-- **AND** 必须实施漏洞管理流程
-- **AND** 必须定期更新安全策略
-
-### Requirement: API集成测试框架
-系统 SHALL 提供完整的API集成测试框架，确保前后端接口的正确性和一致性。
-
-#### Scenario: 后端API集成测试
-- **WHEN** 运行后端集成测试套件
-- **THEN** 所有核心API端点通过测试（/api/v1/chat/*, /api/v1/reports/*）
-- **AND** 测试使用真实的数据库和Redis连接
-- **AND** 测试覆盖率达到80%以上
-- **AND** 测试执行时间< 2分钟
-
-#### Scenario: 前端API客户端测试
-- **WHEN** 运行前端集成测试
-- **THEN** API客户端正确处理请求和响应
-- **AND** 环境配置正确加载（开发/生产环境）
-- **AND** 错误处理逻辑正常工作
-- **AND** 所有API调用使用正确的URL路径
-
-#### Scenario: 端到端API流程测试
-- **WHEN** 执行E2E测试
-- **THEN** 完整的用户交互流程正常工作
-- **AND** Quick Chat和Deep Research功能可用
-- **AND** 错误场景得到正确处理
-- **AND** 测试在CI/CD环境中稳定运行
-
-### Requirement: API路由一致性验证
-系统 SHALL 验证前后端API路由配置的一致性，防止路径错误。
-
-#### Scenario: URL路径验证
-- **WHEN** 前端构建API请求URL
-- **THEN** 不出现路径重复（如`/api/api/v1`）
-- **AND** 生产环境使用完整URL（`https://web3search-api.marovole.workers.dev/api/v1/...`）
-- **AND** 开发环境使用相对路径（`/api/v1/...`）配合代理
-- **AND** URL构建逻辑通过单元测试验证
-
-#### Scenario: 环境配置测试
-- **WHEN** 应用加载环境配置
-- **THEN** 根据运行环境正确设置API_BASE_URL
-- **AND** 生产环境检测逻辑正确（hostname判断）
-- **AND** 环境变量VITE_API_BASE_URL正确解析
-- **AND** 配置错误时有明确的错误提示
-
-#### Scenario: API端点可达性测试
-- **WHEN** 运行端点可达性测试
-- **THEN** 所有定义的API端点返回有效响应（非404）
-- **AND** 健康检查端点正常工作
-- **AND** API文档页面可访问
-- **AND** 测试覆盖所有环境（开发/预发布/生产）
-
-### Requirement: API错误处理集成测试
-系统 SHALL 测试各种错误场景下的API行为和恢复机制。
-
-#### Scenario: 网络错误处理测试
-- **WHEN** 模拟网络中断或超时
-- **THEN** 前端正确显示错误提示
-- **AND** 自动重试机制正常工作
-- **AND** 用户可以手动重试失败的请求
-- **AND** 离线状态下的行为符合预期
-
-#### Scenario: 后端错误响应测试
-- **WHEN** 后端返回错误状态码（4xx, 5xx）
-- **THEN** 前端正确解析错误信息
-- **AND** 显示用户友好的错误消息
-- **AND** 错误详情记录到日志
-- **AND** 特定错误触发相应的恢复流程
-
-#### Scenario: 速率限制测试
-- **WHEN** 触发API速率限制
-- **THEN** 前端显示"请求过于频繁"提示
-- **AND** 显示剩余等待时间倒计时
-- **AND** 等待期结束后自动允许重试
-- **AND** 速率限制信息从响应头正确解析
-
-### Requirement: CI/CD集成测试自动化
-系统 SHALL 在CI/CD流程中自动执行集成测试，确保代码质量。
-
-#### Scenario: PR触发集成测试
-- **WHEN** 创建或更新Pull Request
-- **THEN** 自动触发完整的集成测试套件
-- **AND** 测试结果显示在PR检查中
-- **AND** 测试失败时阻止合并
-- **AND** 测试报告上传为CI工件
-
-#### Scenario: 测试环境配置
-- **WHEN** CI环境运行集成测试
-- **THEN** 自动配置测试数据库和Redis
-- **AND** 正确设置环境变量和密钥
-- **AND** 测试运行在隔离的环境中
-- **AND** 测试完成后清理临时资源
-
-#### Scenario: 测试覆盖率报告
-- **WHEN** 集成测试执行完成
-- **THEN** 生成详细的覆盖率报告
-- **AND** 覆盖率低于阈值时测试失败
-- **AND** 覆盖率趋势可视化展示
-- **AND** 未覆盖的代码路径明确标识
-
+1. **User Authentication**: JWT-based user accounts
+2. **API Keys**: Developer API keys for third-party integrations
+3. **Request Signing**: HMAC-SHA256 signature verification
+4. **RBAC**: Role-based permission system
+5. **Analytics**: Request metrics and usage tracking
+6. **Caching**: Intelligent response caching with cache invalidation
