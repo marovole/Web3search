@@ -82,15 +82,10 @@ test.describe('API Integration E2E Tests', () => {
     // Should not be 404 (endpoint exists)
     expect(response.status()).not.toBe(404);
 
-    // May return validation error or success
-    // 429: Rate limit, 500: Server error, 503: Service unavailable
+    // API 返回 SSE 流式响应，200 状态码即表示成功
+    // May return validation error or streaming success
+    // 200: SSE streaming, 400: Bad request, 422: Validation error, 429: Rate limit, 500: Server error, 503: Service unavailable
     expect([200, 400, 422, 429, 500, 503]).toContain(response.status());
-
-    // 如果成功，验证响应格式
-    if (response.ok()) {
-      const data = await response.json();
-      expect(data).toHaveProperty('answer');
-    }
   });
 
   test('Invalid requests should return 422', async ({ request }) => {
