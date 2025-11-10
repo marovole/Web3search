@@ -25,6 +25,7 @@ const getApiBaseUrl = () => {
 };
 
 const API_BASE_URL = getApiBaseUrl();
+const isProduction = process.env.TEST_ENV === 'production';
 
 test.describe('API Integration E2E Tests', () => {
   test('Health check endpoint should be accessible', async ({ request }) => {
@@ -133,6 +134,7 @@ test.describe('API URL Configuration Tests', () => {
 
   test('API base URL should be properly formatted', () => {
     expect(API_BASE_URL).toMatch(/^https?:\/\//);
-    expect(API_BASE_URL).not.toContain('/api');
+    // API base URL 不应该以斜杠结尾
+    expect(API_BASE_URL).not.toMatch(/\/$/);
   });
 });
