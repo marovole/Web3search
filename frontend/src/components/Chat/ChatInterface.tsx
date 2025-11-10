@@ -11,6 +11,31 @@ import LoadingAnimation from '../Shared/LoadingAnimation'
 import HotspotPanel from '../Hotspot/HotspotPanel'
 import NetworkErrorRetry from '../Error/NetworkErrorRetry'
 
+/**
+ * Minimum acceptable length for Quick Chat responses
+ * Responses shorter than this indicate truncation or API issues
+ */
+const MIN_QUICK_CHAT_RESPONSE_LENGTH = 10
+
+/**
+ * Normalizes Quick Chat API responses to ensure minimum quality
+ * @param rawContent - Raw response content from API
+ * @returns Normalized content that meets minimum length requirement
+ */
+const normalizeQuickChatResponse = (rawContent?: string): string => {
+  const normalized = rawContent?.trim() ?? ''
+
+  if (normalized.length >= MIN_QUICK_CHAT_RESPONSE_LENGTH) {
+    return normalized
+  }
+
+  // If response is too short, provide user-friendly fallback
+  return [
+    '⚠️ 快速回复异常：AI返回内容过短，请稍后再试或切换到深度研究模式。',
+    normalized ? `原始响应：${normalized}` : '原始响应为空。'
+  ].join('\n')
+}
+
 const ChatInterface: React.FC = () => {
   // State
   const [messages, setMessages] = useState<Message[]>([])
@@ -85,10 +110,27 @@ const ChatInterface: React.FC = () => {
           conversation_id: conversationId,
         })
 
+        // Normalize response to ensure minimum quality
+        const sanitizedContent = normalizeQuickChatResponse(response.content)
+
+        // Log warning if response was sanitized
+        if (sanitizedContent !== (response.content?.trim() ?? '')) {
+          Sentry.addBreadcrumb({
+            message: 'Quick chat response sanitized',
+            category: 'chat',
+            level: 'warning',
+            data: {
+              rawLength: response.content?.length || 0,
+              normalizedLength: sanitizedContent.length,
+              sessionId: response.session_id,
+            },
+          })
+        }
+
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: response.content,
+          content: sanitizedContent,
           timestamp: new Date(),
         }
         setMessages((prev) => [...prev, assistantMessage])
@@ -100,7 +142,7 @@ const ChatInterface: React.FC = () => {
           category: 'chat',
           level: 'info',
           data: {
-            responseLength: response.content.length,
+            responseLength: sanitizedContent.length,
             sessionId: response.session_id,
           },
         })

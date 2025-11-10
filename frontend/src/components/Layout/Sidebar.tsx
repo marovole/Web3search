@@ -11,7 +11,9 @@ import {
   BarChart3,
   FileText,
   Command,
-  Code
+  Code,
+  Clock,
+  Star
 } from 'lucide-react'
 import { useKeyboardShortcutsContext } from '@/contexts/KeyboardShortcutsContext'
 
@@ -22,6 +24,7 @@ interface SidebarItemProps {
   isActive?: boolean
   onClick?: () => void
   badge?: string | number
+  testId?: string
 }
 
 const SidebarItem: React.FC<SidebarItemProps> = ({
@@ -30,7 +33,8 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   href,
   isActive = false,
   onClick,
-  badge
+  badge,
+  testId
 }) => {
   const Component = href ? 'a' : 'button'
 
@@ -38,6 +42,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
     <Component
       href={href}
       onClick={onClick}
+      data-testid={testId}
       className={cn(
         "w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200",
         "hover:bg-muted/50 active:bg-muted/80",
@@ -161,6 +166,20 @@ const Sidebar: React.FC<SidebarProps> = ({
       isActive: currentPath === '/github'
     },
     {
+      icon: <Clock size={18} />,
+      label: '历史记录',
+      href: '/history',
+      isActive: currentPath === '/history',
+      testId: 'sidebar-history'
+    },
+    {
+      icon: <Star size={18} />,
+      label: '监控列表',
+      href: '/watchlist',
+      isActive: currentPath === '/watchlist',
+      testId: 'sidebar-watchlist'
+    },
+    {
       icon: <FileText size={18} />,
       label: '报告',
       href: '/reports',
@@ -252,7 +271,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               主要功能
             </h3>
             <div className="space-y-1">
-              {menuItems.slice(0, 5).map((item) => (
+              {menuItems.slice(0, 6).map((item) => (
                 <SidebarItem key={item.href} {...item} />
               ))}
             </div>
@@ -263,7 +282,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               其他
             </h3>
             <div className="space-y-1">
-              {menuItems.slice(5).map((item) => (
+              {menuItems.slice(6).map((item) => (
                 <SidebarItem key={item.href} {...item} />
               ))}
             </div>
