@@ -14,7 +14,7 @@ import { test, expect } from '@playwright/test';
 const getApiBaseUrl = () => {
   // 如果环境变量明确指定了生产环境
   if (process.env.TEST_ENV === 'production') {
-    return 'https://web3search-api.marovole.workers.dev';
+    return 'https://web3search-api.marovole.workers.dev/api/v1';
   }
   // 如果有明确的 API URL 配置
   if (process.env.VITE_API_BASE_URL) {
