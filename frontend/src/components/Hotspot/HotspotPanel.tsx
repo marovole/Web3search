@@ -54,15 +54,19 @@ const HotspotPanel: React.FC<HotspotPanelProps> = ({ onSelectHotspot }) => {
     }
   }
 
-  const formatPrice = (price?: number) => {
-    if (!price) return 'N/A'
+  const formatPrice = (price?: number | null) => {
+    if (price === undefined || price === null || typeof price !== 'number' || isNaN(price)) {
+      return 'N/A'
+    }
     if (price < 0.01) return `$${price.toFixed(6)}`
     if (price < 1) return `$${price.toFixed(4)}`
     return `$${price.toFixed(2)}`
   }
 
-  const formatPriceChange = (change?: number) => {
-    if (change === undefined || change === null) return null
+  const formatPriceChange = (change?: number | null) => {
+    if (change === undefined || change === null || typeof change !== 'number' || isNaN(change)) {
+      return null
+    }
     const isPositive = change > 0
     return (
       <span className={isPositive ? 'text-success' : 'text-danger'}>
