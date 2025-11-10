@@ -528,18 +528,16 @@ export class AlertManager {
 // 导出全局实例
 export const alertManager = AlertManager.getInstance()
 
-// 便捷函数
-export const {
-  startMonitoring,
-  stopMonitoring,
-  addPerformanceMetric,
-  addBusinessMetric,
-  addAlertRule,
-  removeAlertRule,
-  getActiveAlerts,
-  getAlertHistory,
-  resolveAlert,
-  getSystemHealth
-} = alertManager
+// 便捷函数（使用包装函数保持 this 上下文）
+export const startMonitoring = (interval?: number) => alertManager.startMonitoring(interval)
+export const stopMonitoring = () => alertManager.stopMonitoring()
+export const addPerformanceMetric = (metric: PerformanceMetric) => alertManager.addPerformanceMetric(metric)
+export const addBusinessMetric = (metric: BusinessMetric) => alertManager.addBusinessMetric(metric)
+export const addAlertRule = (rule: AlertRule) => alertManager.addAlertRule(rule)
+export const removeAlertRule = (ruleId: string) => alertManager.removeAlertRule(ruleId)
+export const getActiveAlerts = () => alertManager.getActiveAlerts()
+export const getAlertHistory = (limit?: number) => alertManager.getAlertHistory(limit)
+export const resolveAlert = (alertId: string) => alertManager.resolveAlert(alertId)
+export const getSystemHealth = () => alertManager.getSystemHealth()
 
 export type { AlertRule, Alert, NotificationChannel, PerformanceMetric, BusinessMetric }

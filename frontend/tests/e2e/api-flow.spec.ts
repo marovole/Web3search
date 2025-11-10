@@ -11,10 +11,10 @@ import { test, expect } from '@playwright/test';
 const isProduction = process.env.TEST_ENV === 'production';
 
 // API基础URL配置
-// 开发环境：直接访问后端 API
-// 生产环境：通过前端代理访问（测试完整请求链路）
+// 生产环境测试：使用 Workers API
+// 开发环境测试：使用本地 API
 const API_BASE_URL = isProduction
-  ? (process.env.FRONTEND_URL || 'http://localhost:5173')
+  ? 'https://web3search-api.marovole.workers.dev'
   : (process.env.VITE_API_BASE_URL || 'http://localhost:8000');
 
 test.describe('API Integration E2E Tests', () => {
