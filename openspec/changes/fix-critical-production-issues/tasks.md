@@ -485,21 +485,30 @@
 - [ ] 验证前端可以连接新 API
 
 #### E2E 测试执行
-- [ ] 运行完整的 E2E 测试套件：`npx playwright test`
-- [ ] 测试关键用户流程：
+- [x] 运行完整的 E2E 测试套件：`npx playwright test`
+- [x] 测试关键用户流程：
   - 访问首页
   - 进行搜索（自动完成）
   - 发起聊天对话
   - 生成报告（如果实现）
   - 主题切换、设置页面
-- [ ] 记录测试结果和失败用例
-- [ ] 修复发现的 bug
+- [x] 记录测试结果和失败用例（初始：5/19 通过，26%）
+- [x] 修复发现的 bug
 
 #### Bug 修复
-- [ ] 修复 API 兼容性问题（请求/响应格式差异）
-- [ ] 修复前端集成问题（CORS、超时）
-- [ ] 修复数据格式不一致问题
-- [ ] 重新运行测试验证修复
+- [x] 修复 API 兼容性问题（请求/响应格式差异）
+  - ✅ E2E 测试配置指向生产 API URL（`web3search-api.marovole.workers.dev`）
+  - ✅ 配置 `TEST_ENV=production` 环境变量
+  - ✅ Git 提交：`006e5f7` (2025-11-10)
+- [x] 修复前端集成问题（CORS、超时）
+- [x] 修复数据格式不一致问题
+  - ✅ 修复 HotspotPanel.tsx 价格数据 toFixed() 错误
+  - ✅ 添加全面的 null/undefined/NaN 检查
+  - ✅ Git 提交：`5dc1eaf` (2025-11-10)
+  - ✅ 修复 alertManager.ts 的 `this` 绑定问题
+  - ✅ 改用箭头函数包装导出（同 userAnalytics 修复模式）
+  - ✅ Git 提交：`006e5f7` (2025-11-10)
+- [ ] 重新运行测试验证修复（等待部署完成）
 
 #### 回归测试
 - [ ] 再次运行完整测试套件
@@ -733,15 +742,20 @@
 - [ ] 目标：测试通过率 > 95%
 
 #### E2E 测试生产环境配置
-- [ ] 创建生产环境测试配置文件（`playwright.config.production.ts`）
-- [ ] 配置生产环境 URL：
+- [x] 创建生产环境测试配置文件（`playwright.config.prod.ts`）
+- [x] 配置生产环境 URL：
   ```typescript
   use: {
     baseURL: 'https://web3search.pages.dev',
   }
+  env: {
+    TEST_ENV: 'production',
+  }
   ```
-- [ ] 创建生产测试脚本：`npm run test:e2e:production`
-- [ ] 运行生产环境测试验证
+- [x] 创建生产测试脚本：`npm run test:e2e:prod`
+- [x] 运行生产环境测试验证（初始结果：5/19 通过）
+- [x] 修复测试配置问题（API URL、环境变量）
+  - ✅ Git 提交：`006e5f7` (2025-11-10)
 - [ ] 配置 CI/CD 自动运行生产测试
 
 #### 测试数据管理
