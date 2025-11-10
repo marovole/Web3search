@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react'
 import { getHotspots } from '../../services/api'
 import type { HotspotItem } from '../../types/hotspot'
+import { formatPrice, formatPriceChange } from '../../lib/safeFormatters'
 
 interface HotspotPanelProps {
   onSelectHotspot?: (symbol: string, name: string) => void
@@ -52,28 +53,6 @@ const HotspotPanel: React.FC<HotspotPanelProps> = ({ onSelectHotspot }) => {
     if (onSelectHotspot) {
       onSelectHotspot(hotspot.symbol, hotspot.name)
     }
-  }
-
-  const formatPrice = (price?: number | null) => {
-    if (price === undefined || price === null || typeof price !== 'number' || isNaN(price)) {
-      return 'N/A'
-    }
-    if (price < 0.01) return `$${price.toFixed(6)}`
-    if (price < 1) return `$${price.toFixed(4)}`
-    return `$${price.toFixed(2)}`
-  }
-
-  const formatPriceChange = (change?: number | null) => {
-    if (change === undefined || change === null || typeof change !== 'number' || isNaN(change)) {
-      return null
-    }
-    const isPositive = change > 0
-    return (
-      <span className={isPositive ? 'text-success' : 'text-danger'}>
-        {isPositive ? '+' : ''}
-        {change.toFixed(2)}%
-      </span>
-    )
   }
 
   if (loading && hotspots.length === 0) {
@@ -153,7 +132,7 @@ const HotspotPanel: React.FC<HotspotPanelProps> = ({ onSelectHotspot }) => {
               </div>
               {/* 热度分数 */}
               <span className="text-xs font-semibold text-orange-600 bg-orange-100 px-2 py-0.5 rounded">
-                {hotspot.total_score.toFixed(0)}
+                {hotspot.total_score?.toFixed(0) ?? 'N/A'}
               </span>
             </div>
 
