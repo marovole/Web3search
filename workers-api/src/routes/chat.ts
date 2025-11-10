@@ -10,6 +10,7 @@ import type { ChatRequestBody, ChatCompletionMessage } from '../types/chat'
 import { createSupabaseClient } from '../lib/supabase'
 import { createOpenRouterClient, OpenRouterError } from '../lib/openrouter'
 import { createRateLimitMiddleware } from '../middlewares/rate-limit'
+import { createCoinGeckoClient } from '../lib/coingecko'
 
 const DEFAULT_MODEL = 'anthropic/claude-3.5-sonnet'
 const MAX_HISTORY_MESSAGES = 10
@@ -79,14 +80,36 @@ chat.post(
     // Initialize clients and conversation
     const supabase = createSupabaseClient(c.env)
     const openrouter = createOpenRouterClient(c.env)
+    const coingecko = createCoinGeckoClient()
     const conversationId = body.conversation_id || crypto.randomUUID()
     const shouldStream = body.stream !== false // Default to streaming
     const model = body.model || DEFAULT_MODEL
 
+    // Try to fetch real-time price data if this is a price query
+    let priceData: string | null = null
+    try {
+      const priceInfo = await coingecko.getPriceFromQuery(query)
+      if (priceInfo) {
+        const direction = priceInfo.price_change_24h >= 0 ? '上涨' : '下跌'
+        priceData = `
+[Real-time Market Data from CoinGecko]
+Coin: ${priceInfo.name} (${priceInfo.symbol})
+Current Price: $${priceInfo.price_usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })}
+24h Change: ${Math.abs(priceInfo.price_change_24h).toFixed(2)}% (${direction})
+Market Cap: $${priceInfo.market_cap.toLocaleString('en-US')}
+Market Cap Rank: #${priceInfo.market_cap_rank || 'N/A'}
+
+Please use this real-time data in your response.
+`
+      }
+    } catch (error) {
+      console.warn('Failed to fetch price data:', error)
+    }
+
     // Ensure conversation exists and fetch history
     await ensureConversationExists(supabase, conversationId)
     const history = await fetchConversationHistory(supabase, conversationId)
-    const messageChain = buildMessageChain(history, query)
+    const messageChain = buildMessageChain(history, query, priceData)
 
     // Save user message
     await persistMessage(supabase, {
@@ -218,16 +241,21 @@ async function fetchConversationHistory(
 
 /**
  * Build message chain for OpenRouter
- * Includes system prompt, history, and current user input
+ * Includes system prompt, history, price data (if any), and current user input
  */
 function buildMessageChain(
   history: ChatCompletionMessage[],
-  latestUserInput: string
+  latestUserInput: string,
+  priceData: string | null = null
 ): ChatCompletionMessage[] {
+  const userMessage = priceData
+    ? `${priceData}\n\nUser Question: ${latestUserInput}`
+    : latestUserInput
+
   return [
     { role: 'system', content: SYSTEM_PROMPT },
     ...history,
-    { role: 'user', content: latestUserInput },
+    { role: 'user', content: userMessage },
   ]
 }
 
