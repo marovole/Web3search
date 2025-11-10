@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react'
 import { getHotspots } from '../../services/api'
 import type { HotspotItem } from '../../types/hotspot'
-import { formatPrice, formatPriceChange } from '../../lib/safeFormatters'
+import { formatPrice, formatPriceChange, formatScore } from '../../lib/safeFormatters'
 
 interface HotspotPanelProps {
   onSelectHotspot?: (symbol: string, name: string) => void
@@ -132,7 +132,7 @@ const HotspotPanel: React.FC<HotspotPanelProps> = ({ onSelectHotspot }) => {
               </div>
               {/* 热度分数 */}
               <span className="text-xs font-semibold text-orange-600 bg-orange-100 px-2 py-0.5 rounded">
-                {hotspot.total_score?.toFixed(0) ?? 'N/A'}
+                {formatScore(hotspot.total_score, 0, 'N/A')}
               </span>
             </div>
 

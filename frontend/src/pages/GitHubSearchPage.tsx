@@ -9,6 +9,7 @@ import { SearchResultsExport } from '@/components/Search/SearchResultsExport'
 import { useSearchFavorites } from '@/hooks/useSearchFavorites'
 import { CodePreview } from '@/components/Search/CodePreview'
 import { useRegisterShortcut } from '@/contexts/KeyboardShortcutsContext'
+import { coerceFiniteNumber, safeToFixed } from '@/lib/safeFormatters'
 
 // 类型定义
 interface GitHubSearchResult {
@@ -253,12 +254,23 @@ const GitHubSearchPage: React.FC = () => {
     })
   }
 
-  // 格式化数字
-  const formatNumber = (num: number) => {
+  // 格式化数字 - 使用安全格式化防止运行时错误
+  const formatNumber = (value: unknown) => {
+    const num = coerceFiniteNumber(value)
+    if (num === null) return 'N/A'
     if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'k'
+      return `${safeToFixed(num / 1000, 1, '0')}k`
     }
-    return num.toString()
+    return safeToFixed(num, 0, '0')
+  }
+
+  // 格式化执行时间
+  const formatExecutionTime = (value: unknown) => {
+    const num = coerceFiniteNumber(value)
+    if (num === null) {
+      return 'N/A'
+    }
+    return `${safeToFixed(num / 1000, 2, '0.00')}s`
   }
 
   return (
@@ -470,7 +482,7 @@ const GitHubSearchPage: React.FC = () => {
                 <p className="text-sm text-muted-foreground">
                   找到 <span className="font-bold text-foreground">{results.data.total_count.toLocaleString()}</span> 个结果
                   <span className="mx-2">•</span>
-                  耗时 <span className="font-medium">{(results.execution_time_ms / 1000).toFixed(2)}s</span>
+                  耗时 <span className="font-medium">{formatExecutionTime(results.execution_time_ms)}</span>
                 </p>
                 <SearchResultsExport
                   results={useInfiniteScrollMode ? allItems : results.data.items}

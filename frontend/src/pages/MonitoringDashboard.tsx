@@ -288,7 +288,7 @@ export default function MonitoringDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">错误率</p>
-              <p className="text-2xl font-bold mt-1">{metrics.errorRate.toFixed(2)}%</p>
+              <p className="text-2xl font-bold mt-1">{safeToFixed(metrics.errorRate, 2)}%</p>
             </div>
             <div className="p-3 bg-orange-500/10 rounded-lg">
               <AlertTriangle className="w-6 h-6 text-orange-500" />

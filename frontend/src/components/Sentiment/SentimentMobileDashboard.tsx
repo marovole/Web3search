@@ -12,6 +12,7 @@ import { SentimentGauge } from './SentimentGauge';
 import { SentimentChart } from './SentimentChart';
 import { PlatformComparison } from './PlatformComparison';
 import { RefreshCw, Wifi, WifiOff, AlertCircle, Plus, Menu, BarChart3, TrendingUp, X } from 'lucide-react';
+import { formatPercentage, formatScore } from '@/lib/safeFormatters';
 
 interface SentimentMobileDashboardProps {
   defaultSymbols?: string[];
@@ -184,8 +185,8 @@ export function SentimentMobileDashboard({
             <div className="grid grid-cols-2 gap-3">
               <MetricCard
                 title="平均情绪"
-                value={stats.averageScore.toFixed(3)}
-                subtitle={`${stats.positivePercentage.toFixed(1)}% 积极`}
+                value={formatScore(stats?.averageScore, 3, '0.000')}
+                subtitle={`${formatPercentage(stats?.positivePercentage, 1, 'N/A')} 积极`}
                 color={stats.averageScore > 0.1 ? 'green' : stats.averageScore < -0.1 ? 'red' : 'blue'}
               />
               <MetricCard
@@ -196,14 +197,14 @@ export function SentimentMobileDashboard({
               />
               <MetricCard
                 title="积极情绪"
-                value={`${stats.positivePercentage.toFixed(1)}%`}
+                value={formatPercentage(stats?.positivePercentage, 1, 'N/A')}
                 subtitle={`${Object.keys(stats).length} 个币种`}
                 color="green"
               />
               <MetricCard
                 title="消极情绪"
-                value={`${stats.negativePercentage.toFixed(1)}%`}
-                subtitle={`平均${stats.averageScore.toFixed(3)}`}
+                value={formatPercentage(stats?.negativePercentage, 1, 'N/A')}
+                subtitle={`平均${formatScore(stats?.averageScore, 3, '0.000')}`}
                 color="red"
               />
             </div>
@@ -238,13 +239,13 @@ export function SentimentMobileDashboard({
                       <div>
                         <div className="text-muted-foreground">情绪分数</div>
                         <div className="font-bold">
-                          {sentimentData[symbol].data.sentiment_score.toFixed(3)}
+                          {formatScore(sentimentData[symbol].data.sentiment_score, 3, '0.000')}
                         </div>
                       </div>
                       <div>
                         <div className="text-muted-foreground">置信度</div>
                         <div className="font-bold">
-                          {(sentimentData[symbol].data.confidence * 100).toFixed(1)}%
+                          {formatPercentage(sentimentData[symbol].data.confidence * 100, 1, '0.0%')}
                         </div>
                       </div>
                       <div>
@@ -269,19 +270,19 @@ export function SentimentMobileDashboard({
                           <div className="flex justify-between text-xs">
                             <span>积极</span>
                             <span>
-                              {sentimentData[symbol].data.sentiment_distribution.positive.toFixed(1)}%
+                              {formatPercentage(sentimentData[symbol].data.sentiment_distribution.positive, 1, '0.0%')}
                             </span>
                           </div>
                           <div className="flex justify-between text-xs">
                             <span>中性</span>
                             <span>
-                              {sentimentData[symbol].data.sentiment_distribution.neutral.toFixed(1)}%
+                              {formatPercentage(sentimentData[symbol].data.sentiment_distribution.neutral, 1, '0.0%')}
                             </span>
                           </div>
                           <div className="flex justify-between text-xs">
                             <span>消极</span>
                             <span>
-                              {sentimentData[symbol].data.sentiment_distribution.negative.toFixed(1)}%
+                              {formatPercentage(sentimentData[symbol].data.sentiment_distribution.negative, 1, '0.0%')}
                             </span>
                           </div>
                         </div>
@@ -299,7 +300,7 @@ export function SentimentMobileDashboard({
                               variant="outline"
                               className="text-xs"
                             >
-                              {platform}: {score.toFixed(2)}
+                              {platform}: {formatScore(score, 2, '0.00')}
                             </Badge>
                           ))}
                         </div>

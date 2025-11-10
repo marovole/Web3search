@@ -18,6 +18,7 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { coerceFiniteNumber, formatPercentage, formatScore, safeToFixed } from '@/lib/safeFormatters';
 
 interface PlatformStats {
   [platform: string]: {
@@ -60,19 +61,29 @@ export function PlatformComparison({ stats, className }: PlatformComparisonProps
   }
 
   // 准备柱状图数据
-  const barData = Object.entries(stats).map(([platform, data]) => ({
-    platform: PLATFORM_LABELS[platform as keyof typeof PLATFORM_LABELS] || platform,
-    score: parseFloat(data.score.toFixed(3)),
-    volume: data.volume,
-    fullPlatform: platform
-  }));
+  const barData = Object.entries(stats).map(([platform, data]) => {
+    const normalizedScore = coerceFiniteNumber(data.score);
+
+    return {
+      platform: PLATFORM_LABELS[platform as keyof typeof PLATFORM_LABELS] || platform,
+      score: normalizedScore !== null
+        ? Number.parseFloat(safeToFixed(normalizedScore, 3, '0.000'))
+        : 0,
+      volume: data.volume,
+      fullPlatform: platform
+    };
+  });
 
   // 准备饼图数据
-  const pieData = Object.entries(stats).map(([platform, data]) => ({
-    name: PLATFORM_LABELS[platform as keyof typeof PLATFORM_LABELS] || platform,
-    value: data.percentage,
-    fullPlatform: platform
-  }));
+  const pieData = Object.entries(stats).map(([platform, data]) => {
+    const normalizedPercentage = coerceFiniteNumber(data.percentage);
+
+    return {
+      name: PLATFORM_LABELS[platform as keyof typeof PLATFORM_LABELS] || platform,
+      value: normalizedPercentage ?? 0,
+      fullPlatform: platform
+    };
+  });
 
   // 自定义Tooltip
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -83,7 +94,7 @@ export function PlatformComparison({ stats, className }: PlatformComparisonProps
           <p className="font-medium mb-1">{data.platform}</p>
           <p style={{ color: '#666' }}>
             情绪分数: <span style={{ color: '#333', fontWeight: 'bold' }}>
-              {data.score.toFixed(3)}
+              {formatScore(data.score, 3, '0.000')}
             </span>
           </p>
           <p style={{ color: '#666' }}>
@@ -106,7 +117,7 @@ export function PlatformComparison({ stats, className }: PlatformComparisonProps
           <p className="font-medium">{data.name}</p>
           <p className="text-sm" style={{ color: '#666' }}>
             占比: <span style={{ color: '#333', fontWeight: 'bold' }}>
-              {data.value?.toFixed(1)}%
+              {`${safeToFixed(data.value, 1, '0.0')}%`}
             </span>
           </p>
         </div>
@@ -170,7 +181,7 @@ export function PlatformComparison({ stats, className }: PlatformComparisonProps
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={(entry) => `${entry.value.toFixed(1)}%`}
+                    label={(entry) => `${safeToFixed(entry.value, 1, '0.0')}%`}
                     outerRadius={60}
                     fill="#8884d8"
                     dataKey="value"
@@ -204,7 +215,7 @@ export function PlatformComparison({ stats, className }: PlatformComparisonProps
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-bold">
-                      {data.percentage.toFixed(1)}%
+                      {formatPercentage(data.percentage, 1, 'N/A')}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {data.volume.toLocaleString()}

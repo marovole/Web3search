@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { SentimentData } from './WebSocketManager';
+import { coerceFiniteNumber, formatPercentage, formatScore, safeToFixed } from '@/lib/safeFormatters';
 
 interface SentimentGaugeProps {
   symbol: string;
@@ -54,14 +55,16 @@ export function SentimentGauge({
     }
   };
 
-  const formatNumber = (num: number) => {
+  const formatNumber = (value: unknown) => {
+    const num = coerceFiniteNumber(value);
+    if (num === null) return 'N/A';
     if (num >= 1000000) {
-      return `${(num / 1000000).toFixed(1)}M`;
+      return `${safeToFixed(num / 1000000, 1, '0')}M`;
     }
     if (num >= 1000) {
-      return `${(num / 1000).toFixed(1)}K`;
+      return `${safeToFixed(num / 1000, 1, '0')}K`;
     }
-    return num.toString();
+    return safeToFixed(num, 0, '0');
   };
 
   if (isLoading) {
@@ -117,7 +120,7 @@ export function SentimentGauge({
           {/* 主要情绪分数 */}
           <div className="text-center">
             <div className={`text-3xl font-bold ${getSentimentColor(sentiment_score)}`}>
-              {sentiment_score.toFixed(3)}
+              {formatScore(sentiment_score, 3, '0.000')}
             </div>
             <div className="text-sm text-muted-foreground">情绪分数</div>
           </div>
@@ -126,7 +129,7 @@ export function SentimentGauge({
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>置信度</span>
-              <span>{(confidence * 100).toFixed(1)}%</span>
+              <span>{formatPercentage(confidence * 100, 1, '0.0%')}</span>
             </div>
             <Progress value={confidence * 100} className="h-2" />
           </div>
@@ -138,7 +141,7 @@ export function SentimentGauge({
               <div className="space-y-1">
                 <div className="flex justify-between text-xs">
                   <span>积极</span>
-                  <span>{sentiment_distribution.positive.toFixed(1)}%</span>
+                  <span>{formatPercentage(sentiment_distribution.positive, 1, '0.0%')}</span>
                 </div>
                 <Progress
                   value={sentiment_distribution.positive}
@@ -146,7 +149,7 @@ export function SentimentGauge({
                 />
                 <div className="flex justify-between text-xs">
                   <span>中性</span>
-                  <span>{sentiment_distribution.neutral.toFixed(1)}%</span>
+                  <span>{formatPercentage(sentiment_distribution.neutral, 1, '0.0%')}</span>
                 </div>
                 <Progress
                   value={sentiment_distribution.neutral}
@@ -154,7 +157,7 @@ export function SentimentGauge({
                 />
                 <div className="flex justify-between text-xs">
                   <span>消极</span>
-                  <span>{sentiment_distribution.negative.toFixed(1)}%</span>
+                  <span>{formatPercentage(sentiment_distribution.negative, 1, '0.0%')}</span>
                 </div>
                 <Progress
                   value={sentiment_distribution.negative}
@@ -187,7 +190,7 @@ export function SentimentGauge({
                     variant="outline"
                     className="text-xs"
                   >
-                    {platform}: {score.toFixed(2)}
+                    {platform}: {formatScore(score, 2, '0.00')}
                   </Badge>
                 ))}
               </div>

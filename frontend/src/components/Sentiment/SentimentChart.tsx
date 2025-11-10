@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SentimentData } from './WebSocketManager';
+import { coerceFiniteNumber, formatScore, safeToFixed } from '@/lib/safeFormatters';
 
 interface SentimentChartProps {
   symbols: string[];
@@ -79,9 +80,10 @@ export function SentimentChart({
         const sentimentData = data[symbol];
         if (sentimentData) {
           // 模拟历史数据变化（实际应该从API获取历史数据）
-          const baseScore = sentimentData.data.sentiment_score;
+          const baseScore = coerceFiniteNumber(sentimentData.data.sentiment_score) ?? 0;
           const variation = Math.sin(index * 0.5) * 0.1;
-          dataPoint[symbol] = parseFloat((baseScore + variation).toFixed(3));
+          const combinedScore = baseScore + variation;
+          dataPoint[symbol] = Number.parseFloat(safeToFixed(combinedScore, 3, '0.000'));
         } else {
           dataPoint[symbol] = 0;
         }
@@ -127,7 +129,7 @@ export function SentimentChart({
           <p className="font-medium mb-2">{`时间: ${label}`}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }}>
-              {`${entry.name}: ${entry.value?.toFixed(3) || '0.000'}`}
+              {`${entry.name}: ${formatScore(entry.value, 3, '0.000')}`}
             </p>
           ))}
         </div>
@@ -226,9 +228,10 @@ export function SentimentAreaChart({
       symbols.forEach(symbol => {
         const sentimentData = data[symbol];
         if (sentimentData) {
-          const baseScore = sentimentData.data.sentiment_score;
-          const variation = Math.sin(index * 0.5) * 0.1;
-          dataPoint[symbol] = parseFloat((baseScore + variation).toFixed(3));
+          const baseScore = coerceFiniteNumber(sentimentData.data.sentiment_score) ?? 0;
+          const variation = Math.sin(index * 0.4) * 0.08;
+          const combinedScore = baseScore + variation;
+          dataPoint[symbol] = Number.parseFloat(safeToFixed(combinedScore, 3, '0.000'));
         } else {
           dataPoint[symbol] = 0;
         }

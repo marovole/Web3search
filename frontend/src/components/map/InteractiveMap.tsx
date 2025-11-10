@@ -8,6 +8,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { formatMarketCap } from '@/lib/safeFormatters'
 
 // Fix for default marker icons in Leaflet with webpack/vite
 import icon from 'leaflet/dist/images/marker-icon.png'
@@ -226,8 +227,7 @@ export function InteractiveMap({
                 <div className="mt-3 space-y-1">
                   {project.marketCap && (
                     <p className="text-sm text-gray-700 dark:text-gray-300">
-                      <span className="font-medium">Market Cap:</span> $
-                      {(project.marketCap / 1_000_000).toFixed(2)}M
+                      <span className="font-medium">Market Cap:</span> {formatMarketCap(project.marketCap)}
                     </p>
                   )}
                   {project.foundedYear && (

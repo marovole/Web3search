@@ -17,6 +17,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { formatScore, safeToFixed } from '@/lib/safeFormatters';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
@@ -82,7 +83,7 @@ export function SentimentTimeline({ symbol, className }: SentimentTimelineProps)
             minute: interval > 1 ? undefined : '2-digit'
           }),
           timestamp: timestamp.toISOString(),
-          score: parseFloat(baseScore.toFixed(3)),
+          score: Number.parseFloat(safeToFixed(baseScore, 3, '0.000')),
           volume,
           classification,
           event: Math.random() > 0.8 ? generateRandomEvent() : undefined
@@ -152,7 +153,7 @@ export function SentimentTimeline({ symbol, className }: SentimentTimelineProps)
           <p className="font-medium mb-2">{label}</p>
           <div className="space-y-1 text-sm">
             <p>
-              情绪分数: <span className="font-bold">{data.score.toFixed(3)}</span>
+              情绪分数: <span className="font-bold">{formatScore(data.score, 3, '0.000')}</span>
             </p>
             <p>
               讨论量: <span className="font-bold">{data.volume.toLocaleString()}</span>
@@ -254,7 +255,7 @@ export function SentimentTimeline({ symbol, className }: SentimentTimelineProps)
                       variant="secondary"
                       className={getEventBadgeColor(data.classification)}
                     >
-                      {data.score.toFixed(2)}
+                      {formatScore(data.score, 2, '0.00')}
                     </Badge>
                   </div>
                 ))}
@@ -269,19 +270,23 @@ export function SentimentTimeline({ symbol, className }: SentimentTimelineProps)
               <div>
                 <div className="text-xs text-muted-foreground">平均分数</div>
                 <div className="text-sm font-bold">
-                  {(timelineData.reduce((sum, d) => sum + d.score, 0) / timelineData.length).toFixed(3)}
+                  {formatScore(
+                    timelineData.reduce((sum, d) => sum + d.score, 0) / timelineData.length,
+                    3,
+                    '0.000'
+                  )}
                 </div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">最高分数</div>
                 <div className="text-sm font-bold text-green-600">
-                  {Math.max(...timelineData.map(d => d.score)).toFixed(3)}
+                  {formatScore(Math.max(...timelineData.map(d => d.score)), 3, '0.000')}
                 </div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">最低分数</div>
                 <div className="text-sm font-bold text-red-600">
-                  {Math.min(...timelineData.map(d => d.score)).toFixed(3)}
+                  {formatScore(Math.min(...timelineData.map(d => d.score)), 3, '0.000')}
                 </div>
               </div>
             </div>

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useWebSocket } from './hooks/useWebSocket';
 import { Activity, Zap, AlertTriangle, CheckCircle, Timer, Wifi, WifiOff } from 'lucide-react';
+import { safeToFixed } from '@/lib/safeFormatters';
 
 interface PerformanceMetrics {
   connectionLatency: number;
@@ -248,7 +249,7 @@ export function PerformanceMonitor({
                 <div>
                   <div className="text-xs text-muted-foreground">延迟</div>
                   <div className="text-sm font-bold">
-                    {metrics.connectionLatency.toFixed(0)}ms
+                    {safeToFixed(metrics.connectionLatency, 0, '0')}ms
                   </div>
                 </div>
                 <div>
@@ -260,7 +261,7 @@ export function PerformanceMonitor({
                 <div>
                   <div className="text-xs text-muted-foreground">消息频率</div>
                   <div className="text-sm font-bold">
-                    {metrics.messageFrequency.toFixed(1)}/s
+                    {safeToFixed(metrics.messageFrequency, 1, '0.0')}/s
                   </div>
                 </div>
               </div>
@@ -277,13 +278,13 @@ export function PerformanceMonitor({
                 <div>
                   <div className="text-xs text-muted-foreground">渲染时间</div>
                   <div className="text-sm font-bold">
-                    {metrics.renderTime.toFixed(1)}ms
+                    {safeToFixed(metrics.renderTime, 1, '0.0')}ms
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">内存使用</div>
                   <div className="text-sm font-bold">
-                    {metrics.memoryUsage.toFixed(1)}MB
+                    {safeToFixed(metrics.memoryUsage, 1, '0.0')}MB
                   </div>
                 </div>
                 <div>
@@ -321,7 +322,7 @@ export function PerformanceMonitor({
                         key={index}
                         className={`flex-1 ${color} rounded-t`}
                         style={{ height: `${height}%` }}
-                        title={`${latency.toFixed(0)}ms`}
+                        title={`${safeToFixed(latency, 0, '0')}ms`}
                       />
                     );
                   })}

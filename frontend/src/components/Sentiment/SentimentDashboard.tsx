@@ -15,6 +15,7 @@ import { PlatformComparison } from './PlatformComparison';
 import { SentimentTimeline } from './SentimentTimeline';
 import { SentimentMobileDashboard } from './SentimentMobileDashboard';
 import { RefreshCw, Wifi, WifiOff, AlertCircle, Plus, X, Smartphone, Monitor } from 'lucide-react';
+import { formatPercentage, formatScore } from '@/lib/safeFormatters';
 
 interface SentimentDashboardProps {
   defaultSymbols?: string[];
@@ -204,7 +205,7 @@ export function SentimentDashboard({
             <CardContent className="pt-6">
               <div className="text-center">
                 <div className="text-2xl font-bold">
-                  {stats.averageScore.toFixed(3)}
+                  {formatScore(stats?.averageScore, 3, '0.000')}
                 </div>
                 <div className="text-sm text-muted-foreground">平均情绪分数</div>
               </div>
@@ -226,7 +227,7 @@ export function SentimentDashboard({
             <CardContent className="pt-6">
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
-                  {stats.positivePercentage.toFixed(1)}%
+                  {formatPercentage(stats?.positivePercentage, 1, 'N/A')}
                 </div>
                 <div className="text-sm text-muted-foreground">积极情绪</div>
               </div>
@@ -237,7 +238,7 @@ export function SentimentDashboard({
             <CardContent className="pt-6">
               <div className="text-center">
                 <div className="text-2xl font-bold text-red-600">
-                  {stats.negativePercentage.toFixed(1)}%
+                  {formatPercentage(stats?.negativePercentage, 1, 'N/A')}
                 </div>
                 <div className="text-sm text-muted-foreground">消极情绪</div>
               </div>

@@ -24,6 +24,7 @@ import { VulnerabilityList } from './VulnerabilityList';
 import { QualityMetrics } from './QualityMetrics';
 import { AnalysisProgress } from './AnalysisProgress';
 import { cn } from '@/lib/utils';
+import { formatDuration as safeFormatDuration, formatPercentage, formatScore } from '@/lib/safeFormatters';
 
 interface ReviewResultsProps {
   reviewId: string;
@@ -158,10 +159,8 @@ export const ReviewResults: React.FC<ReviewResultsProps> = ({
     }
   }, [status, reviewId, progressData]);
 
-  const formatDuration = (seconds?: number) => {
-    if (!seconds) return 'N/A';
-    if (seconds < 60) return `${seconds.toFixed(1)}s`;
-    return `${(seconds / 60).toFixed(1)}m`;
+  const formatAnalysisDuration = (seconds?: number) => {
+    return safeFormatDuration(seconds ?? null);
   };
 
   const getGradeColor = (grade?: string) => {
@@ -278,7 +277,7 @@ export const ReviewResults: React.FC<ReviewResultsProps> = ({
                   <div>
                     <p className="text-sm text-muted-foreground">Analysis Time</p>
                     <p className="text-lg font-semibold">
-                      {formatDuration(reviewData.analysisDuration)}
+                      {formatAnalysisDuration(reviewData.analysisDuration)}
                     </p>
                   </div>
                 </div>
@@ -293,7 +292,7 @@ export const ReviewResults: React.FC<ReviewResultsProps> = ({
                 <CardTitle>Analysis Results</CardTitle>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">
-                    Confidence: {((reviewData.confidenceScore || 0) * 100).toFixed(1)}%
+                    Confidence: {formatPercentage(reviewData.confidenceScore ? reviewData.confidenceScore * 100 : null, 1, 'N/A')}
                   </Badge>
                   <Button variant="outline" size="sm">
                     <Download className="h-4 w-4 mr-2" />
@@ -356,7 +355,7 @@ export const ReviewResults: React.FC<ReviewResultsProps> = ({
                         <div className="flex items-center justify-between">
                           <span>Maintainability</span>
                           <span className="font-semibold">
-                            {reviewData.qualitySummary?.maintainabilityIndex?.toFixed(1) || 'N/A'}
+                            {formatScore(reviewData.qualitySummary?.maintainabilityIndex, 1, 'N/A')}
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
