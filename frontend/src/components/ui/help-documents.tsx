@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { cn } from '@/lib/utils'
+import { formatFileSize } from '@/lib/safeFormatters'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -819,7 +820,7 @@ export const DocumentViewer: React.FC<{
                 <div className="flex-1">
                   <div className="font-medium text-sm">{attachment.name}</div>
                   <div className="text-xs text-muted-foreground">
-                    {attachment.type} • {(attachment.size / 1024).toFixed(1)} KB
+                    {attachment.type} • {formatFileSize(attachment.size)}
                   </div>
                 </div>
                 <ExternalLink className="w-4 h-4 text-muted-foreground" />

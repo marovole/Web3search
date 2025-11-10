@@ -882,7 +882,7 @@ export const FeedbackStats: React.FC<{
       
       <Card className="p-4 text-center">
         <div className="text-2xl font-bold text-blue-600">
-          {stats.avgRating.toFixed(1)}
+          {formatScore(stats.avgRating, 1)}
         </div>
         <div className="text-sm text-muted-foreground">平均评分</div>
       </Card>
