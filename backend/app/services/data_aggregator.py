@@ -15,6 +15,7 @@ from app.services.collectors import (
     reddit_collector,
     cryptopanic_collector,
 )
+from app.services.collectors.coingecko import CoinGeckoAPIError
 
 
 class DataAggregator:
@@ -152,6 +153,10 @@ class DataAggregator:
         try:
             market_data = await coingecko_collector.get_coin_market_data(coingecko_id)
 
+            # 验证数据有效性，避免返回虚假的 $0 价格
+            if not market_data or market_data.get("price_usd") is None:
+                raise CoinGeckoAPIError(f"未能获取 {coingecko_id} 的实时价格")
+
             # 获取历史数据（7天）
             historical_data = await coingecko_collector.get_market_chart(
                 coingecko_id,
@@ -165,7 +170,8 @@ class DataAggregator:
             }
         except Exception as e:
             print(f"⚠️ 获取市场数据失败: {e}")
-            return {}
+            # 重新抛出异常，让上层处理
+            raise
 
     async def _get_onchain_data(self, coingecko_id: str) -> Dict[str, Any]:
         """获取链上数据"""
@@ -373,19 +379,23 @@ class DataAggregator:
         # 只获取基本市场数据
         market_data = await coingecko_collector.get_coin_market_data(coingecko_id)
 
+        # 验证数据有效性，避免返回虚假的 $0 价格
+        if not market_data or market_data.get("price_usd") is None:
+            raise CoinGeckoAPIError(f"无法获取 {symbol.upper()} 的实时价格数据")
+
         name = market_data.get("name", symbol)
-        price = market_data.get("price_usd", 0)
-        change_24h = market_data.get("price_change_24h", 0)
-        market_cap = market_data.get("market_cap", 0)
+        price = market_data.get("price_usd")
+        change_24h = market_data.get("price_change_24h")
+        market_cap = market_data.get("market_cap")
         rank = market_data.get("market_cap_rank", "N/A")
 
-        direction = "上涨" if change_24h > 0 else "下跌"
+        direction = "上涨" if (change_24h or 0) > 0 else "下跌"
 
         return f"""
 **{name} ({symbol.upper()})**
 💰 当前价格: ${price:.4f}
-📊 24h变化: {abs(change_24h):.2f}% ({direction})
-💎 市值: ${market_cap:,.0f} (排名第{rank})
+📊 24h变化: {abs(change_24h or 0):.2f}% ({direction})
+💎 市值: ${(market_cap or 0):,.0f} (排名第{rank})
 """
 
 

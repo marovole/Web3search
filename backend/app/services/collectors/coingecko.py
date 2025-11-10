@@ -15,6 +15,15 @@ from app.core.structlog_config import get_logger
 logger = get_logger(__name__)
 
 
+class CoinGeckoAPIError(Exception):
+    """CoinGecko API 错误异常类
+
+    当无法从 CoinGecko 获取有效数据时抛出此异常，
+    避免返回虚假的 $0 价格数据。
+    """
+    pass
+
+
 class CoinGeckoCollector:
     """
     CoinGecko API客户端
@@ -93,14 +102,10 @@ class CoinGeckoCollector:
                 else:
                     raise Exception(f"CoinGecko请求失败: {str(e)}")
 
-        # 返回友好的错误信息，而不是抛出异常
-        logger.error(f"CoinGecko API请求达到最大重试次数: {endpoint}")
-        return {
-            "error": True,
-            "message": "CoinGecko API暂时不可用，请稍后再试",
-            "endpoint": endpoint,
-            "attempts": 3
-        }
+        # 达到最大重试次数后，抛出明确的异常
+        error_msg = f"CoinGecko API 暂时不可用 ({endpoint})，请稍后再试"
+        logger.error(error_msg)
+        raise CoinGeckoAPIError(error_msg)
 
     # ================================
     # 核心数据采集方法
@@ -156,16 +161,23 @@ class CoinGeckoCollector:
             include_community_data=False,
         )
 
+        # 验证响应数据的有效性
         if not data or "market_data" not in data:
-            return {}
+            raise CoinGeckoAPIError(f"未能获取 {coin_id} 的市场数据")
 
         market_data = data["market_data"]
+        current_price = market_data.get("current_price", {})
+        price_usd = current_price.get("usd")
+
+        # 确保美元价格存在且有效
+        if price_usd is None:
+            raise CoinGeckoAPIError(f"CoinGecko 未返回 {coin_id} 的美元价格")
 
         return {
             "symbol": data.get("symbol", "").upper(),
             "name": data.get("name"),
-            "price_usd": market_data.get("current_price", {}).get("usd"),
-            "price_btc": market_data.get("current_price", {}).get("btc"),
+            "price_usd": price_usd,
+            "price_btc": current_price.get("btc"),
             "market_cap": market_data.get("market_cap", {}).get("usd"),
             "market_cap_rank": market_data.get("market_cap_rank"),
             "total_volume_24h": market_data.get("total_volume", {}).get("usd"),

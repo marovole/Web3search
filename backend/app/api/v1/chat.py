@@ -27,6 +27,7 @@ from app.schemas.chat import (
 )
 from app.services.research_engine import quick_chat_engine, deep_research_engine
 from app.services.report import report_generator
+from app.services.collectors.coingecko import CoinGeckoAPIError
 from app.models.report import Report, ReportType, ReportStatus
 from app.models.conversation import Conversation, Message, MessageRole
 from datetime import datetime
@@ -287,11 +288,28 @@ async def quick_chat(
     except HTTPException:
         # 重新抛出HTTP异常（包括429限流错误）
         raise
+    except CoinGeckoAPIError as e:
+        # CoinGecko 数据源错误 - 返回用户友好的 503 错误
+        error_msg = str(e)
+
+        metrics.record_error(
+            error_type="CoinGeckoAPIError",
+            error_message=error_msg,
+            context={"endpoint": "/api/v1/chat/quick-chat", "query": request.query[:50]}
+        )
+
+        print(f"⚠️ CoinGecko 数据不可用: {error_msg}")
+
+        raise HTTPException(
+            status_code=503,
+            detail=f"加密货币价格数据暂时不可用，请稍后重试。({error_msg})" if settings.DEBUG else "加密货币价格数据暂时不可用，请稍后重试。",
+            headers={"Retry-After": "60"}
+        )
     except Exception as e:
         # 记录错误指标
         error_type = type(e).__name__
         error_msg = str(e)
-        
+
         metrics.record_error(
             error_type=error_type,
             error_message=error_msg,
@@ -301,10 +319,10 @@ async def quick_chat(
         print(f"❌ Quick Chat错误 [{error_type}]: {error_msg}")
         import traceback
         traceback.print_exc()
-        
+
         # 根据错误类型返回不同的错误信息
         error_lower = error_msg.lower()
-        
+
         # API限流错误（429）
         if "429" in error_msg or "rate limit" in error_lower or "too many requests" in error_lower:
             raise HTTPException(
@@ -333,8 +351,8 @@ async def quick_chat(
         # 其他错误
         else:
             detail_msg = (
-                f"Quick Chat处理失败 [{error_type}]: {error_msg[:200]}" 
-                if settings.DEBUG 
+                f"Quick Chat处理失败 [{error_type}]: {error_msg[:200]}"
+                if settings.DEBUG
                 else "Quick Chat处理失败，请稍后重试"
             )
             raise HTTPException(

@@ -130,14 +130,14 @@ export function loadEnvConfig(): EnvConfig {
 
     if (isProduction && !config.API_BASE_URL.startsWith('http')) {
       console.warn('⚠️ Production environment detected but API_BASE_URL is not a complete URL. Using default backend URL.')
-      config.API_BASE_URL = 'https://web3search-api.marovole.workers.dev'
+      config.API_BASE_URL = 'https://web3search-api.onrender.com'
     }
 
     // 验证URL格式：确保没有路径重复
     if (config.API_BASE_URL.includes('/api/v1') || config.API_BASE_URL.includes('/api/api')) {
       console.error('❌ API_BASE_URL contains API path! This will cause path duplication.')
       console.error(`   Current: ${config.API_BASE_URL}`)
-      console.error(`   Expected: https://web3search-api.marovole.workers.dev`)
+      console.error(`   Expected: https://web3search-api.onrender.com`)
       throw new Error('Invalid API_BASE_URL configuration: contains API path')
     }
 
@@ -183,14 +183,14 @@ export function getEnvConfig(): EnvConfig {
 
       if (isProduction && !envConfig.API_BASE_URL.startsWith('https://')) {
         console.log(`🔄 Runtime detection: hostname is ${hostname}, switching to production API`)
-        envConfig.API_BASE_URL = 'https://web3search-api.marovole.workers.dev'
+        envConfig.API_BASE_URL = 'https://web3search-api.onrender.com'
       }
 
       // 再次验证：确保URL格式正确
       if (envConfig.API_BASE_URL.includes('/api/v1') || envConfig.API_BASE_URL.includes('/api/api')) {
         console.error('❌ Runtime check failed: API_BASE_URL contains API path!')
         console.error(`   Current: ${envConfig.API_BASE_URL}`)
-        envConfig.API_BASE_URL = 'https://web3search-api.marovole.workers.dev'
+        envConfig.API_BASE_URL = 'https://web3search-api.onrender.com'
         console.log(`✅ Fixed to: ${envConfig.API_BASE_URL}`)
       }
 
