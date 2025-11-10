@@ -529,7 +529,7 @@ export class AlertManager {
 export const alertManager = AlertManager.getInstance()
 
 // 便捷函数（使用包装函数保持 this 上下文）
-export const startMonitoring = (interval?: number) => alertManager.startMonitoring(interval)
+export const startMonitoring = () => alertManager.startMonitoring()
 export const stopMonitoring = () => alertManager.stopMonitoring()
 export const addPerformanceMetric = (metric: PerformanceMetric) => alertManager.addPerformanceMetric(metric)
 export const addBusinessMetric = (metric: BusinessMetric) => alertManager.addBusinessMetric(metric)

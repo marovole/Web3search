@@ -1,10 +1,66 @@
 import React, { useState, useEffect } from 'react'
 import { X, Code2, Loader2, ExternalLink } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { cn } from '@/lib/utils'
+
+// 使用 Prism Light 减少 bundle 体积，按需加载
+const loadSyntaxHighlighter = async () => {
+  const [PrismLight, vscDarkPlusStyle, vsStyle] = await Promise.all([
+    import('react-syntax-highlighter/dist/esm/prism-light').then(m => m.default),
+    import('react-syntax-highlighter/dist/esm/styles/prism').then(m => m.vscDarkPlus),
+    import('react-syntax-highlighter/dist/esm/styles/prism').then(m => m.vs)
+  ])
+  return { PrismLight, vscDarkPlusStyle, vsStyle }
+}
+
+// 按需加载语言定义
+const loadLanguage = async (lang: string, PrismLight: any) => {
+  try {
+    let langDefinition
+    switch (lang.toLowerCase()) {
+      case 'typescript':
+      case 'ts':
+        langDefinition = await import('react-syntax-highlighter/dist/esm/languages/prism/typescript').then(m => m.default)
+        break
+      case 'javascript':
+      case 'js':
+        langDefinition = await import('react-syntax-highlighter/dist/esm/languages/prism/javascript').then(m => m.default)
+        break
+      case 'python':
+      case 'py':
+        langDefinition = await import('react-syntax-highlighter/dist/esm/languages/prism/python').then(m => m.default)
+        break
+      case 'rust':
+        langDefinition = await import('react-syntax-highlighter/dist/esm/languages/prism/rust').then(m => m.default)
+        break
+      case 'go':
+        langDefinition = await import('react-syntax-highlighter/dist/esm/languages/prism/go').then(m => m.default)
+        break
+      case 'solidity':
+        langDefinition = await import('react-syntax-highlighter/dist/esm/languages/prism/solidity').then(m => m.default)
+        break
+      case 'json':
+        langDefinition = await import('react-syntax-highlighter/dist/esm/languages/prism/json').then(m => m.default)
+        break
+      case 'jsx':
+        langDefinition = await import('react-syntax-highlighter/dist/esm/languages/prism/jsx').then(m => m.default)
+        break
+      case 'tsx':
+        langDefinition = await import('react-syntax-highlighter/dist/esm/languages/prism/tsx').then(m => m.default)
+        break
+      default:
+        return null
+    }
+
+    if (langDefinition && PrismLight.registerLanguage) {
+      PrismLight.registerLanguage(lang.toLowerCase(), langDefinition)
+    }
+    return true
+  } catch (error) {
+    console.warn(`Failed to load language: ${lang}`, error)
+    return null
+  }
+}
 
 interface CodePreviewProps {
   repository: {
@@ -31,9 +87,23 @@ export function CodePreview({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [language, setLanguage] = useState<string>('')
+  const [SyntaxHighlighter, setSyntaxHighlighter] = useState<any>(null)
+  const [darkTheme, setDarkTheme] = useState<any>(null)
+  const [lightTheme, setLightTheme] = useState<any>(null)
 
   // 检测暗色模式
   const isDarkMode = document.documentElement.classList.contains('dark')
+
+  // 懒加载 SyntaxHighlighter
+  useEffect(() => {
+    if (isOpen && !SyntaxHighlighter) {
+      loadSyntaxHighlighter().then(({ PrismLight, vscDarkPlusStyle, vsStyle }) => {
+        setSyntaxHighlighter(() => PrismLight)
+        setDarkTheme(vscDarkPlusStyle)
+        setLightTheme(vsStyle)
+      })
+    }
+  }, [isOpen])
 
   useEffect(() => {
     if (isOpen && repository) {
@@ -52,10 +122,10 @@ export function CodePreview({
       // 尝试从 GitHub API 获取 README 或主要代码文件
       // 注意：这需要 GitHub token，这里使用模拟数据作为示例
       // 实际实现应该调用后端 API
-      
+
       // 模拟代码预览
       await new Promise(resolve => setTimeout(resolve, 500))
-      
+
       const mockCode = `// ${repository.full_name}
 // 这是一个代码预览示例
 
@@ -72,8 +142,14 @@ const data = {
   language: '${repository.language || 'TypeScript'}'
 }`
 
+      const lang = repository.language || 'typescript'
       setCode(mockCode)
-      setLanguage(repository.language || 'typescript')
+      setLanguage(lang)
+
+      // 按需加载语言定义
+      if (SyntaxHighlighter) {
+        await loadLanguage(lang, SyntaxHighlighter)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '加载代码预览失败')
     } finally {
@@ -160,11 +236,11 @@ const data = {
                   </div>
                 )}
 
-                {code && !loading && !error && (
+                {code && !loading && !error && SyntaxHighlighter && darkTheme && lightTheme && (
                   <div className="rounded-lg overflow-hidden border">
                     <SyntaxHighlighter
                       language={language.toLowerCase()}
-                      style={isDarkMode ? vscDarkPlus : vs}
+                      style={isDarkMode ? darkTheme : lightTheme}
                       customStyle={{
                         margin: 0,
                         borderRadius: 0,
@@ -175,6 +251,14 @@ const data = {
                     >
                       {code}
                     </SyntaxHighlighter>
+                  </div>
+                )}
+
+                {code && !loading && !error && (!SyntaxHighlighter || !darkTheme || !lightTheme) && (
+                  <div className="rounded-lg overflow-hidden border p-4 bg-muted">
+                    <pre className="text-sm overflow-x-auto">
+                      <code>{code}</code>
+                    </pre>
                   </div>
                 )}
               </div>

@@ -7,12 +7,16 @@ import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { AdvancedFilters, type FilterOptions } from '@/components/Search/AdvancedFilters'
 import { SearchResultsExport } from '@/components/Search/SearchResultsExport'
 import { useSearchFavorites } from '@/hooks/useSearchFavorites'
-import { CodePreview } from '@/components/Search/CodePreview'
 import { useRegisterShortcut } from '@/contexts/KeyboardShortcutsContext'
 import { coerceFiniteNumber, safeToFixed } from '@/lib/safeFormatters'
 
+// 懒加载 CodePreview 模态框（减少约 150-200KB 初始 bundle）
+const CodePreview = React.lazy(() =>
+  import('@/components/Search/CodePreview').then(m => ({ default: m.CodePreview }))
+)
+
 // 类型定义
-interface GitHubSearchResult {
+export interface GitHubSearchResult {
   id: number
   name: string
   full_name: string
@@ -676,17 +680,19 @@ const GitHubSearchPage: React.FC = () => {
           </motion.div>
         )}
 
-        {/* 代码预览 */}
+        {/* 代码预览 - 懒加载 */}
         {previewRepository && (
-          <CodePreview
-            repository={{
-              full_name: previewRepository.full_name,
-              html_url: previewRepository.html_url,
-              language: previewRepository.language
-            }}
-            isOpen={!!previewRepository}
-            onClose={() => setPreviewRepository(null)}
-          />
+          <React.Suspense fallback={null}>
+            <CodePreview
+              repository={{
+                full_name: previewRepository.full_name,
+                html_url: previewRepository.html_url,
+                language: previewRepository.language
+              }}
+              isOpen={!!previewRepository}
+              onClose={() => setPreviewRepository(null)}
+            />
+          </React.Suspense>
         )}
       </div>
     </div>

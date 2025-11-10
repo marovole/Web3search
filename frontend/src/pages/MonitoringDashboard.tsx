@@ -17,6 +17,7 @@ import { useUserPreferences } from '@/contexts/UserPreferencesContext'
 import { analytics } from '@/services/analytics'
 import performanceMonitor from '@/services/performance'
 import { cn } from '@/lib/utils'
+import { safeToFixed } from '@/lib/safeFormatters'
 
 // 监控数据类型
 interface MonitoringMetrics {

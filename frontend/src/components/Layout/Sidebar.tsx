@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import {
   MessageSquare,
@@ -181,58 +180,42 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   ]
 
-  const sidebarVariants = {
-    desktop: {
-      open: { x: 0, opacity: 1 },
-      closed: { x: -280, opacity: 0 }
-    },
-    mobile: {
-      open: { x: 0, opacity: 1 },
-      closed: { x: -100, opacity: 0 }
-    }
-  }
-
-  const currentVariants = isMobile ? sidebarVariants.mobile : sidebarVariants.desktop
-
   return (
     <>
-      {/* Overlay for mobile */}
-      {isMobile && (
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/50 z-40 md:hidden"
-              onClick={onToggle}
-            />
+      {/* Overlay for mobile - 使用 CSS transitions 替代 framer-motion */}
+      {isMobile && isOpen && (
+        <div
+          className={cn(
+            "fixed inset-0 bg-black/50 z-40 md:hidden",
+            "transition-opacity duration-200",
+            isOpen ? "opacity-100" : "opacity-0"
           )}
-        </AnimatePresence>
+          onClick={onToggle}
+        />
       )}
 
-      {/* Sidebar */}
-      <motion.aside
+      {/* Sidebar - 使用 CSS transitions 替代 framer-motion */}
+      <aside
         ref={sidebarRef}
-        initial={false}
-        animate={isOpen ? "open" : "closed"}
-        variants={currentVariants}
-        transition={{
-          type: "spring",
-          stiffness: 300,
-          damping: 30,
-          mass: 0.8
-        }}
         className={cn(
-          "fixed left-0 top-0 h-full bg-card border-r border-border z-50",
-          "w-64 md:w-72 lg:w-80",
+          "fixed left-0 top-0 h-full z-50",
+          "bg-card border-r border-border",
           "flex flex-col",
-          // Touch-friendly scrolling
-          "overscroll-contain",
-          // Mobile specific styles
-          isMobile && "shadow-2xl"
+          "transition-all duration-300 ease-in-out",
+          // Desktop styles
+          "md:w-64",
+          // Mobile styles
+          "w-64 md:relative",
+          // Transform based on state
+          isOpen
+            ? "translate-x-0 opacity-100"
+            : isMobile
+            ? "-translate-x-full opacity-0"
+            : "-translate-x-full md:translate-x-0 opacity-0 md:opacity-100"
         )}
+        style={{
+          transition: "transform 0.3s ease-in-out, opacity 0.3s ease-in-out"
+        }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -313,7 +296,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <p className="mt-1">构建在Web3技术之上</p>
           </div>
         </div>
-      </motion.aside>
+      </aside>
     </>
   )
 }

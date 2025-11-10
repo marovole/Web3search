@@ -201,14 +201,17 @@ export interface ReportStreamChunk {
  * 生成研究报告 - Real API版本（流式响应）
  */
 const generateReportReal = async (request: ReportGenerationRequest) => {
+  const token = localStorage.getItem('web3search_access_token')
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
   const response = await fetch(`${apiConfig.baseUrl}/api/v1/reports/generate`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': localStorage.getItem('web3search_access_token')
-        ? `Bearer ${localStorage.getItem('web3search_access_token')}`
-        : undefined,
-    },
+    headers,
     body: JSON.stringify(request),
   })
 
@@ -330,10 +333,10 @@ export const getSearchSuggestions = apiConfig.useMock
       await new Promise(resolve => setTimeout(resolve, 200))
       return {
         suggestions: [
-          { id: '1', title: 'Web3技术趋势', type: 'report' },
-          { id: '2', title: 'DeFi协议对比', type: 'report' },
-          { id: '3', title: 'NFT市场分析', type: 'chat' },
-          { id: '4', title: 'Bitcoin价格监控', type: 'watchlist' }
+          { id: '1', title: 'Web3技术趋势', type: 'report' as const },
+          { id: '2', title: 'DeFi协议对比', type: 'report' as const },
+          { id: '3', title: 'NFT市场分析', type: 'chat' as const },
+          { id: '4', title: 'Bitcoin价格监控', type: 'watchlist' as const }
         ].filter(item => item.title.toLowerCase().includes(query.toLowerCase())),
         popular: ['blockchain', 'ethereum', 'web3', 'defi']
       }
