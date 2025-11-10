@@ -38,7 +38,8 @@ test.describe('API Integration E2E Tests', () => {
     expect(data).toHaveProperty('status');
   });
 
-  test('API documentation should be accessible', async ({ request }) => {
+  // Workers API 不提供 /docs 端点，跳过此测试
+  test.skip('API documentation should be accessible', async ({ request }) => {
     const response = await request.get(`${API_BASE_URL}/docs`);
 
     expect(response.ok()).toBeTruthy();
