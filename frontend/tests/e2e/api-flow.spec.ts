@@ -48,9 +48,9 @@ test.describe('API Integration E2E Tests', () => {
 
   test('API endpoints should not return 404', async ({ request }) => {
     const endpoints = [
-      '/api/v1/chat/quick',
-      '/api/v1/chat/research',
-      '/api/v1/reports/',
+      '/chat/quick',
+      '/chat/research',
+      '/reports/',
     ];
 
     for (const endpoint of endpoints) {
@@ -65,10 +65,8 @@ test.describe('API Integration E2E Tests', () => {
   });
 
   test('Quick Chat API should accept valid requests', async ({ request }) => {
-    // 生产环境使用前端代理路径
-    const endpoint = isProduction
-      ? '/api/v1/chat/quick-chat'  // 通过前端代理
-      : '/api/v1/chat/quick-chat';  // 直接访问后端
+    // API_BASE_URL 已经包含 /api/v1，所以 endpoint 只需要相对路径
+    const endpoint = '/chat/quick-chat';
 
     const response = await request.post(`${API_BASE_URL}${endpoint}`, {
       data: {
@@ -96,9 +94,7 @@ test.describe('API Integration E2E Tests', () => {
   });
 
   test('Invalid requests should return 422', async ({ request }) => {
-    const endpoint = isProduction
-      ? '/api/v1/chat/quick-chat'
-      : '/api/v1/chat/quick-chat';
+    const endpoint = '/chat/quick-chat';
 
     const response = await request.post(`${API_BASE_URL}${endpoint}`, {
       data: {
