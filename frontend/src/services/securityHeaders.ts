@@ -73,7 +73,7 @@ export class SecurityHeaderManager {
     },
     {
       name: 'Content-Security-Policy',
-      value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://web3search-api.onrender.com; font-src 'self' data: https:; frame-ancestors 'none';",
+      value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://web3search-api.marovole.workers.dev; font-src 'self' data: https:; frame-ancestors 'none';",
       enabled: true,
       description: '内容安全策略，防止XSS和数据注入',
       importance: 'critical'

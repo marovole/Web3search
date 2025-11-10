@@ -124,7 +124,7 @@ export function DashboardPage() {
             </div>
             <div className="h-96">
               <StreamingChat
-                apiUrl="https://web3search-api.onrender.com/api/v1/chat"
+                apiUrl={`${import.meta.env.VITE_API_BASE_URL || 'https://web3search-api.marovole.workers.dev'}/api/v1/chat`}
                 onMessageComplete={(message) => {
                   console.log('Chat message completed:', message)
                 }}
@@ -147,7 +147,7 @@ export function DashboardPage() {
             </div>
             <div className="p-6">
               <ResearchSSE
-                apiUrl="https://web3search-api.onrender.com/api/v1/deep-research"
+                apiUrl={`${import.meta.env.VITE_API_BASE_URL || 'https://web3search-api.marovole.workers.dev'}/api/v1/deep-research`}
                 query={researchQuery}
                 onComplete={(result) => {
                   console.log('Research completed:', result)
