@@ -1,10 +1,12 @@
 import React, { useState } from 'react'
+import secureAuthApi from '../../services/secureAuth'
 
 interface ExportButtonProps {
   markdownContent: string
   reportTitle: string
   symbol: string
   reportId?: number
+  isCompleted?: boolean
 }
 
 const ExportButton: React.FC<ExportButtonProps> = ({
@@ -12,8 +14,10 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   reportTitle,
   symbol,
   reportId,
+  isCompleted = false,
 }) => {
   const [copying, setCopying] = useState(false)
+  const [exportingPdf, setExportingPdf] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
 
   // Download Markdown file
@@ -32,6 +36,59 @@ const ExportButton: React.FC<ExportButtonProps> = ({
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
     showSuccessMessage()
+  }
+
+  // Download PDF from backend
+  const handleDownloadPDF = async () => {
+    if (!reportId || !isCompleted) {
+      alert('PDF导出仅支持已完成的报告')
+      return
+    }
+
+    try {
+      setExportingPdf(true)
+
+      // 使用配置好的API客户端（支持httpOnly cookie认证）
+      const response = await secureAuthApi.get(
+        `/api/v1/reports/reports/${reportId}/export/pdf`,
+        {
+          responseType: 'blob',
+        }
+      )
+
+      if (!response.data) {
+        throw new Error('PDF导出失败: 无响应数据')
+      }
+
+      // 获取文件名（从响应头中提取）
+      const contentDisposition = response.headers['content-disposition']
+      let filename = `${symbol}_深度研究报告_${new Date().toISOString().split('T')[0]}.pdf`
+
+      if (contentDisposition) {
+        const matches = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+        if (matches && matches[1]) {
+          filename = matches[1].replace(/['"]/g, '')
+        }
+      }
+
+      // 下载文件
+      const blob = response.data as Blob
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      showSuccessMessage()
+    } catch (error) {
+      console.error('PDF导出失败:', error)
+      alert(`PDF导出失败: ${error instanceof Error ? error.message : '未知错误'}`)
+    } finally {
+      setExportingPdf(false)
+    }
   }
 
   // Print as PDF (browser print dialog)
@@ -87,6 +144,57 @@ const ExportButton: React.FC<ExportButtonProps> = ({
         </svg>
         <span>下载 Markdown</span>
       </button>
+
+      {/* Download PDF */}
+      {reportId && isCompleted && (
+        <button
+          onClick={handleDownloadPDF}
+          disabled={exportingPdf}
+          className="btn-secondary flex items-center gap-2"
+        >
+          {exportingPdf ? (
+            <>
+              <svg
+                className="animate-spin w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <span>导出PDF中...</span>
+            </>
+          ) : (
+            <>
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              <span>下载 PDF</span>
+            </>
+          )}
+        </button>
+      )}
 
       {/* Print as PDF */}
       <button
