@@ -458,7 +458,11 @@ async function updateProgress(
   }
 }
 
-async function generateResearchPlan(
+/**
+ * Generate research plan with search queries
+ * Exported for use in streaming endpoints
+ */
+export async function generateResearchPlan(
   query: string,
   modelConfig: any,
   env: Env
@@ -528,7 +532,12 @@ function extractSearchQueriesFromContent(content: string, originalQuery: string)
   return queries.slice(0, 5) // Limit to 5 queries
 }
 
-async function searchSources(queries: string[]): Promise<any[]> {
+/**
+ * Search for sources based on queries
+ * Exported for use in streaming endpoints
+ * TODO: Integrate with real search API
+ */
+export async function searchSources(queries: string[]): Promise<any[]> {
   // Mock source search - in production, integrate with search API
   // For now, return mock sources
 
@@ -542,7 +551,11 @@ async function searchSources(queries: string[]): Promise<any[]> {
   }))
 }
 
-async function analyzeSources(
+/**
+ * Analyze sources using AI
+ * Exported for use in streaming endpoints
+ */
+export async function analyzeSources(
   sources: any[],
   query: string,
   modelConfig: any,
@@ -596,7 +609,11 @@ async function analyzeSources(
   }
 }
 
-async function synthesizeFindings(
+/**
+ * Synthesize research findings into final answer
+ * Exported for use in streaming endpoints
+ */
+export async function synthesizeFindings(
   analysis: any,
   query: string,
   modelConfig: any,

@@ -7,10 +7,18 @@ import { Hono } from 'hono'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Env } from '../types/env'
 import type { ChatRequestBody, ChatCompletionMessage } from '../types/chat'
+import type { DeepResearchRequest } from '../types/deep-research'
 import { createSupabaseClient } from '../lib/supabase'
 import { createOpenRouterClient, OpenRouterError } from '../lib/openrouter'
 import { createRateLimitMiddleware } from '../middlewares/rate-limit'
 import { createCoinGeckoClient } from '../lib/coingecko'
+import { ROUTING_STRATEGIES, getModelConfig } from '../lib/model-routing'
+import {
+  generateResearchPlan,
+  searchSources,
+  analyzeSources,
+  synthesizeFindings,
+} from './deep-research'
 
 const DEFAULT_MODEL = 'anthropic/claude-3.5-sonnet'
 const MAX_HISTORY_MESSAGES = 10
@@ -199,6 +207,123 @@ Please use this real-time data in your response.
   }
 )
 
+/**
+ * POST /deep-research/stream
+ * Deep Research with SSE streaming
+ * Streams progress updates through research pipeline stages
+ */
+chat.post(
+  '/deep-research/stream',
+  createRateLimitMiddleware({
+    scope: 'deep-research-ip-day',
+    limit: 5,
+    windowSeconds: 60 * 60 * 24, // 24 hours
+    key: (c) => c.req.header('cf-connecting-ip') || 'anonymous',
+  }),
+  async (c) => {
+    // Parse and validate request body
+    let body: DeepResearchRequest
+    try {
+      body = await c.req.json<DeepResearchRequest>()
+    } catch {
+      return c.json(
+        {
+          error: {
+            code: 'INVALID_JSON',
+            message: 'Body must be valid JSON',
+            status: 400,
+          },
+        },
+        400
+      )
+    }
+
+    const query = body.query?.trim()
+    if (!query) {
+      return c.json(
+        {
+          error: {
+            code: 'MISSING_QUERY',
+            message: 'Field "query" is required',
+            status: 400,
+          },
+        },
+        400
+      )
+    }
+
+    if (query.length > 5000) {
+      return c.json(
+        {
+          error: {
+            code: 'QUERY_TOO_LONG',
+            message: 'Query exceeds 5000 characters',
+            status: 400,
+          },
+        },
+        400
+      )
+    }
+
+    try {
+      const supabase = createSupabaseClient(c.env)
+
+      // Determine model configuration
+      const useCase = 'deep-research' as const
+      const modelId = body.model || ROUTING_STRATEGIES[useCase].primary[0]
+      const modelConfig = getModelConfig(modelId)
+
+      if (!modelConfig) {
+        return c.json(
+          {
+            error: {
+              code: 'INVALID_MODEL',
+              message: `Model ${modelId} not found`,
+              status: 400,
+            },
+          },
+          400
+        )
+      }
+
+      // Ensure conversation exists
+      const conversationId = body.conversation_id || crypto.randomUUID()
+      await ensureConversationExists(supabase, conversationId, {
+        title: `Deep Research: ${query.substring(0, 100)}`,
+      })
+
+      // Save user message
+      await persistMessage(supabase, {
+        conversation_id: conversationId,
+        role: 'user',
+        content: query,
+        metadata: body.metadata ?? null,
+      })
+
+      // Create SSE stream
+      return streamDeepResearch({
+        query,
+        conversationId,
+        modelConfig,
+        supabase,
+        env: c.env,
+      })
+    } catch (error) {
+      console.error('Deep Research stream handler failed:', error)
+      return c.json(
+        {
+          error: {
+            code: 'DEEP_RESEARCH_ERROR',
+            message: 'Failed to start deep research',
+            status: 500,
+          },
+        },
+        500
+      )
+    }
+  }
+)
+
 export default chat
 
 // ============================================
@@ -210,11 +335,17 @@ export default chat
  */
 async function ensureConversationExists(
   supabase: SupabaseClient,
-  conversationId: string
+  conversationId: string,
+  options?: { title?: string }
 ) {
+  const data: any = { id: conversationId }
+  if (options?.title) {
+    data.title = options.title
+  }
+
   const { error } = await supabase
     .from('conversations')
-    .upsert({ id: conversationId }, { onConflict: 'id' })
+    .upsert(data, { onConflict: 'id' })
   if (error) console.warn('Failed to upsert conversation', error)
 }
 
@@ -379,6 +510,182 @@ async function streamChatResponse({
     },
     cancel() {
       reader.cancel().catch(() => {})
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  })
+}
+
+// ============================================
+// Deep Research Streaming Functions
+// ============================================
+
+interface DeepResearchStreamParams {
+  query: string
+  conversationId: string
+  modelConfig: any
+  supabase: SupabaseClient
+  env: Env
+}
+
+/**
+ * Stream Deep Research progress using Server-Sent Events (SSE)
+ * Emits progress events for each stage: data_collection, analysis, report_generation, complete
+ * Persists final assistant response to database
+ */
+function streamDeepResearch({
+  query,
+  conversationId,
+  modelConfig,
+  supabase,
+  env,
+}: DeepResearchStreamParams): Response {
+  const encoder = new TextEncoder()
+  let heartbeat: ReturnType<typeof setInterval> | null = null
+
+  const stream = new ReadableStream({
+    start(controller) {
+      // SSE event emitter helper
+      const emit = (event: {
+        type: 'progress' | 'content' | 'complete' | 'error'
+        stage?: string
+        section?: string
+        content: string
+        session_id?: string
+      }) => {
+        const data = JSON.stringify(event)
+        controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+      }
+
+      // Keep-alive heartbeat to prevent Cloudflare timeout
+      heartbeat = setInterval(() => {
+        controller.enqueue(encoder.encode(': keep-alive\n\n'))
+      }, 15_000)
+
+      // Execute research pipeline
+      ;(async () => {
+        try {
+          // Stage 1: Data Collection
+          emit({
+            type: 'progress',
+            stage: 'data_collection',
+            content: '正在准备研究计划...',
+          })
+
+          const plan = await generateResearchPlan(query, modelConfig, env)
+
+          emit({
+            type: 'progress',
+            stage: 'data_collection',
+            content: `研究计划已生成，将搜索 ${plan.search_queries.length} 个来源...`,
+          })
+
+          // Stage 2: Source Search
+          const sources = await searchSources(plan.search_queries)
+
+          emit({
+            type: 'content',
+            section: 'sources',
+            content: JSON.stringify({
+              count: sources.length,
+              queries: plan.search_queries,
+            }),
+          })
+
+          // Stage 3: Analysis
+          emit({
+            type: 'progress',
+            stage: 'analysis',
+            content: '正在分析数据源...',
+          })
+
+          const analysis = await analyzeSources(sources, query, modelConfig, env)
+
+          emit({
+            type: 'progress',
+            stage: 'analysis',
+            content: `已分析 ${sources.length} 个来源，发现 ${analysis.citations.length} 条引用...`,
+          })
+
+          // Stage 4: Report Generation
+          emit({
+            type: 'progress',
+            stage: 'report_generation',
+            content: '正在生成综合报告...',
+          })
+
+          const synthesis = await synthesizeFindings(
+            analysis,
+            query,
+            modelConfig,
+            env
+          )
+
+          // Emit final answer as content (so UI can display it)
+          emit({
+            type: 'content',
+            section: 'answer',
+            content: synthesis.answer,
+          })
+
+          // Persist assistant response
+          await persistMessage(supabase, {
+            conversation_id: conversationId,
+            role: 'assistant',
+            content: synthesis.answer,
+            metadata: {
+              research_result: synthesis.result,
+              citations: analysis.citations,
+            },
+          })
+
+          // Stage 5: Complete
+          emit({
+            type: 'complete',
+            content: synthesis.summary || 'Research completed successfully',
+            session_id: conversationId,
+          })
+
+          clearInterval(heartbeat)
+          controller.enqueue(
+            encoder.encode('event: done\ndata: {"status":"completed"}\n\n')
+          )
+          controller.close()
+        } catch (error) {
+          clearInterval(heartbeat)
+          console.error('Deep Research pipeline failed:', error)
+
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : 'Deep research pipeline encountered an error'
+
+          emit({
+            type: 'error',
+            content: errorMessage,
+          })
+
+          controller.enqueue(
+            encoder.encode(
+              `event: error\ndata: ${JSON.stringify({ error: errorMessage })}\n\n`
+            )
+          )
+          controller.close()
+        }
+      })()
+    },
+    cancel() {
+      // Cleanup if client disconnects
+      console.log('Deep Research stream cancelled by client')
+      if (heartbeat) {
+        clearInterval(heartbeat)
+      }
     },
   })
 
