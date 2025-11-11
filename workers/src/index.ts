@@ -6,6 +6,7 @@
 import { Hono } from 'hono'
 import { cors } from './middlewares/cors'
 import { logger } from './middlewares/logger'
+import { rateLimit } from './middlewares/rateLimit'
 import healthRouter from './routes/health'
 import searchRouter from './routes/search'
 import chatRouter from './routes/chat'
@@ -16,10 +17,11 @@ import type { Env } from './types/env'
 const app = new Hono<{ Bindings: Env }>()
 
 // 全局中间件
-app.use('*', logger())  // 请求日志记录
-app.use('*', cors())    // CORS 处理
+app.use('*', logger())     // 请求日志记录
+app.use('*', cors())       // CORS 处理
+app.use('*', rateLimit.general) // 通用速率限制
 
-// 挂载路由
+// 挂载路由（应用特定速率限制）
 app.route('/api/v1', healthRouter)
 app.route('/api/v1/search', searchRouter)
 app.route('/api/v1/chat', chatRouter)

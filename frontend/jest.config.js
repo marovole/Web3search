@@ -49,15 +49,34 @@ export default {
   // Coverage reporters
   coverageReporters: ['text', 'lcov', 'html', 'json-summary'],
   
-  // Coverage thresholds - to be enabled when we reach target coverage
-  // coverageThreshold: {
-  //   global: {
-  //     branches: 80,
-  //     functions: 80,
-  //     lines: 80,
-  //     statements: 80,
-  //   },
-  // },
+  // Coverage thresholds - 设置合理的测试覆盖率要求
+  coverageThreshold: {
+    global: {
+      branches: 70,
+      functions: 75,
+      lines: 75,
+      statements: 75,
+    },
+    // 关键安全相关文件要求更高覆盖率
+    './src/utils/tokenManager.ts': {
+      branches: 90,
+      functions: 90,
+      lines: 90,
+      statements: 90,
+    },
+    './src/utils/inputValidation.ts': {
+      branches: 90,
+      functions: 90,
+      lines: 90,
+      statements: 90,
+    },
+    './src/services/api.ts': {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
   
   // Ignore patterns
   testPathIgnorePatterns: [

@@ -3,6 +3,7 @@ import { stream } from 'hono/streaming'
 import { createOpenRouterClient } from '../lib/openrouter'
 import { RateLimiter } from '../lib/rate-limiter'
 import { getSupabaseClient } from '../lib/supabase'
+import { rateLimit } from '../middlewares/rateLimit'
 import {
   getOrCreateConversation,
   saveMessage,
@@ -14,6 +15,9 @@ import type { ChatRequest, ChatResponse, ChatStreamChunk } from '../types/chat'
 import type { OpenRouterMessage } from '../types/openrouter'
 
 const router = new Hono<{ Bindings: Env }>()
+
+// 对聊天API应用更严格的速率限制
+router.use('*', rateLimit.chat)
 
 // ========================================
 // 深度研究 API 类型定义

@@ -17,14 +17,26 @@ const app = new Hono<{ Bindings: Bindings }>()
 // 中间件配置
 app.use('*', cors({
   origin: (origin) => {
-    // 允许所有 web3search.pages.dev 子域名（包括预览部署）
-    if (origin.endsWith('.web3search.pages.dev') || origin === 'https://web3search.pages.dev' || origin === 'http://localhost:5173') {
+    // 严格的域名白名单 - 防止子域名攻击
+    const allowedOrigins = [
+      'https://web3search.pages.dev',
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://127.0.0.1:5173'
+    ]
+    
+    // 在开发环境允许本地开发服务器
+    if (c.env.ENVIRONMENT === 'development' && origin && 
+        (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))) {
       return origin
     }
-    return 'https://web3search.pages.dev'
+    
+    return allowedOrigins.includes(origin) ? origin : null
   },
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowMethods: ['GET', 'POST', 'OPTIONS'], // 限制HTTP方法
   allowHeaders: ['Content-Type', 'Authorization'],
+  credentials: true, // 如果需要发送cookies
+  maxAge: 86400, // 预检请求缓存24小时
 }))
 
 app.use('*', logger())
@@ -39,9 +51,9 @@ app.get('/api/v1/health', async (c) => {
   const startTime = Date.now()
 
   try {
-    // 测试数据库连接
+    // 优化的数据库连接测试 - 使用SELECT 1而不是查询实际数据
     const supabase = createSupabaseClient(c.env)
-    const { error } = await supabase.from('conversations').select('id').limit(1)
+    const { error } = await supabase.rpc('health_check')
 
     const status = error ? 'degraded' : 'healthy'
     const responseTime = Date.now() - startTime
@@ -100,6 +112,41 @@ app.get('/api/v1/search/autocomplete', async (c) => {
   }
 })
 
+// 输入验证函数
+function validateChatInput(query: string): { isValid: boolean; error?: string } {
+  if (!query || typeof query !== 'string') {
+    return { isValid: false, error: 'Query parameter is required and must be a string' }
+  }
+
+  const trimmedQuery = query.trim()
+  
+  if (trimmedQuery.length === 0) {
+    return { isValid: false, error: 'Query cannot be empty' }
+  }
+
+  if (trimmedQuery.length > 2000) {
+    return { isValid: false, error: 'Query is too long (max 2000 characters)' }
+  }
+
+  // 检测潜在的注入攻击
+  const dangerousPatterns = [
+    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+    /javascript:/gi,
+    /on\w+\s*=/gi,
+    /ignore\s+previous\s+instructions/gi,
+    /system\s*:/gi,
+    /assistant\s*:/gi,
+  ]
+
+  for (const pattern of dangerousPatterns) {
+    if (pattern.test(trimmedQuery)) {
+      return { isValid: false, error: 'Query contains invalid content' }
+    }
+  }
+
+  return { isValid: true }
+}
+
 // 聊天 API（基础版本）
 app.post('/api/v1/chat/quick-chat', async (c) => {
   try {
@@ -113,9 +160,11 @@ app.post('/api/v1/chat/quick-chat', async (c) => {
       max_tokens
     } = body
 
-    if (!query || query.trim().length === 0) {
+    // 验证输入
+    const validation = validateChatInput(query)
+    if (!validation.isValid) {
       return c.json({
-        error: 'Query parameter is required',
+        error: validation.error,
         response: null
       }, 400)
     }

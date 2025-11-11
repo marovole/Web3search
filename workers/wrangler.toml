@@ -4,7 +4,9 @@
 name = "web3search-worker"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
-account_id = "b80eef96097fab92f15b574ed5fbb927"
+# SECURITY: Account ID moved to environment variable for security
+# Set with: wrangler secret put CLOUDFLARE_ACCOUNT_ID
+# account_id = "your-account-id-here"
 
 # Workers开发环境
 workers_dev = true
@@ -18,10 +20,10 @@ id = "31dbcabb88ca4f6f83585a592965c782"
 [vars]
 APP_VERSION = "workers-dev"
 CORS_ORIGINS = "http://localhost:5173,http://localhost:3000"
-SUPABASE_URL = "https://hxxnkbxyjhhorfeodiji.supabase.co"
 SUPABASE_HEALTH_TABLE = "projects"
 
 # 机密变量需通过 wrangler secret put 设置：
+# wrangler secret put SUPABASE_URL
 # wrangler secret put SUPABASE_ANON_KEY
 # wrangler secret put SUPABASE_SERVICE_ROLE_KEY (可选)
 # wrangler secret put OPENROUTER_API_KEY
@@ -46,7 +48,6 @@ id = "31dbcabb88ca4f6f83585a592965c782"
 [env.production.vars]
 APP_VERSION = "workers-2025.01.20"
 CORS_ORIGINS = "https://web3search.pages.dev,https://web3search.vercel.app"
-SUPABASE_URL = "https://hxxnkbxyjhhorfeodiji.supabase.co"
 SUPABASE_HEALTH_TABLE = "projects"
 ENVIRONMENT = "production"
 
@@ -58,5 +59,4 @@ workers_dev = true
 [env.development.vars]
 APP_VERSION = "workers-dev"
 CORS_ORIGINS = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"
-SUPABASE_URL = "https://hxxnkbxyjhhorfeodiji.supabase.co"
 SUPABASE_HEALTH_TABLE = "projects"

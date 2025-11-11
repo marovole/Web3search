@@ -8,7 +8,9 @@ compatibility_flags = ["nodejs_compat"]
 
 # Account ID (replace with your Cloudflare account ID)
 # Get it from: https://dash.cloudflare.com/ → Workers & Pages → Overview
-account_id = "b80eef96097fab92f15b574ed5fbb927"
+# SECURITY: Never commit real account ID to version control
+# Use environment variable: wrangler secret put CLOUDFLARE_ACCOUNT_ID
+# account_id = "your-account-id-here"
 
 # ============================================
 # Development Environment

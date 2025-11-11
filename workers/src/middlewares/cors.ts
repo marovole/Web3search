@@ -16,7 +16,7 @@ const parseOrigins = (value?: string): string[] =>
 
 /**
  * 检查来源是否匹配通配符模式
- * 支持 *.example.com 格式
+ * 仅支持安全的预定义子域名通配符
  */
 const isWildcardMatch = (origin: string, pattern: string): boolean => {
   if (!pattern.startsWith('*.')) {
@@ -26,6 +26,13 @@ const isWildcardMatch = (origin: string, pattern: string): boolean => {
   const domain = pattern.slice(2) // 移除 "*."
   try {
     const { hostname } = new URL(origin)
+    
+    // 安全检查：只允许特定的子域名模式
+    const allowedWildcardDomains = ['web3search.pages.dev']
+    if (!allowedWildcardDomains.includes(domain)) {
+      return false
+    }
+    
     return hostname === domain || hostname.endsWith(`.${domain}`)
   } catch {
     return false
@@ -57,10 +64,13 @@ const resolveAllowedOrigin = (
     return origin
   }
 
-  // 开发环境：允许 localhost 和 127.0.0.1
+  // 开发环境：严格验证 localhost 和 127.0.0.1
   if (
     !allowedOrigins.length &&
-    (origin.includes('localhost') || origin.includes('127.0.0.1'))
+    (origin.startsWith('http://localhost:') || 
+     origin.startsWith('http://127.0.0.1:') ||
+     origin.startsWith('https://localhost:') ||
+     origin.startsWith('https://127.0.0.1:'))
   ) {
     return origin
   }

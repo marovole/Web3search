@@ -17,6 +17,7 @@ import * as mockApi from './api.mock'
 
 // Load environment configuration
 import { getApiConfig, isDevelopment } from '../utils/env'
+import tokenManager from '../utils/tokenManager'
 
 const apiConfig = getApiConfig()
 const isDevMode = isDevelopment()
@@ -42,8 +43,8 @@ const api: AxiosInstance = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
-    // 添加认证token（如果存在）
-    const token = localStorage.getItem('web3search_access_token')
+    // 使用安全的令牌管理器获取token
+    const token = tokenManager.getToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -214,7 +215,7 @@ export interface ReportStreamChunk {
  * 生成研究报告 - Real API版本（流式响应）
  */
 const generateReportReal = async (request: ReportGenerationRequest) => {
-  const token = localStorage.getItem('web3search_access_token')
+  const token = tokenManager.getToken()
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   }
