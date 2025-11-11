@@ -50,13 +50,15 @@ search.get('/autocomplete', async (c) => {
 
   try {
     const supabase = createSupabaseClient(c.env)
+    // 转义 PostgreSQL ILIKE 特殊字符以防止 SQL 注入
+    const searchTerm = query.replace(/[%_]/g, '\\$&')
 
     // Search in both symbol and name fields
     // Use ilike for case-insensitive search
     const { data, error } = await supabase
       .from('projects')
       .select('id, symbol, name, coingecko_id, description, blockchain, categories, tags')
-      .or(`symbol.ilike.%${query}%,name.ilike.%${query}%`)
+      .or(`symbol.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`)
       .order('symbol', { ascending: true })
       .limit(limit)
 

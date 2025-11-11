@@ -26,9 +26,25 @@ import {
   generateSSEEvents,
 } from '../mocks/mockData'
 
+import { isDevelopment } from '../utils/env'
+
 // ================================
 // Mock Utilities
 // ================================
+
+/**
+ * 检查是否为开发模式
+ */
+const isDevMode = isDevelopment()
+
+/**
+ * Mock API 日志工具 - 仅在开发模式下输出
+ */
+const logMock = (label: string, ...args: unknown[]) => {
+  if (isDevMode) {
+    console.log(label, ...args)
+  }
+}
 
 /**
  * 模拟网络延迟
@@ -148,7 +164,7 @@ class MockEventSource implements EventSource {
 export const quickChat = async (
   request: QuickChatRequest
 ): Promise<QuickChatResponse> => {
-  console.log('[Mock API] Quick Chat request:', request)
+  logMock('[Mock API] Quick Chat request:', request)
   await delay(1000) // 模拟1秒网络延迟
 
   return {
@@ -162,7 +178,7 @@ export const quickChat = async (
  * 返回自定义EventSource模拟器
  */
 export const deepResearchStream = (request: DeepResearchRequest): EventSource => {
-  console.log('[Mock API] Deep Research Stream request:', request)
+  logMock('[Mock API] Deep Research Stream request:', request)
   const url = `mock://deep-research/stream?query=${request.query}`
   return new MockEventSource(url) as EventSource
 }
@@ -174,7 +190,7 @@ export const deepResearchStream = (request: DeepResearchRequest): EventSource =>
 export const deepResearch = async (
   request: DeepResearchRequest
 ): Promise<DeepResearchResponse> => {
-  console.log('[Mock API] Deep Research request:', request)
+  logMock('[Mock API] Deep Research request:', request)
   await delay(30000) // 模拟30秒生成时间
 
   return mockDeepResearchResponse
@@ -184,7 +200,7 @@ export const deepResearch = async (
  * 获取报告详情 - Mock版本
  */
 export const getReport = async (reportId: number): Promise<Report> => {
-  console.log('[Mock API] Get Report:', reportId)
+  logMock('[Mock API] Get Report:', reportId)
   await delay(500)
 
   return {
@@ -202,7 +218,7 @@ export const getReports = async (params?: {
   page?: number
   page_size?: number
 }) => {
-  console.log('[Mock API] Get Reports:', params)
+  logMock('[Mock API] Get Reports:', params)
   await delay(800)
 
   // 返回3个Mock报告
@@ -225,7 +241,7 @@ export const createShareLink = async (
   reportId: number,
   request?: ShareReportRequest
 ): Promise<ShareReportResponse> => {
-  console.log('[Mock API] Create Share Link:', reportId, request)
+  logMock('[Mock API] Create Share Link:', reportId, request)
   await delay(500)
 
   const token = `mock-token-${reportId}-${Date.now()}`
@@ -244,7 +260,7 @@ export const createShareLink = async (
 export const getSharedReport = async (
   shareToken: string
 ): Promise<SharedReportResponse> => {
-  console.log('[Mock API] Get Shared Report:', shareToken)
+  logMock('[Mock API] Get Shared Report:', shareToken)
   await delay(800)
 
   return mockSharedReportResponse
@@ -254,7 +270,7 @@ export const getSharedReport = async (
  * 禁用分享链接 - Mock版本
  */
 export const disableShareLink = async (reportId: number): Promise<void> => {
-  console.log('[Mock API] Disable Share Link:', reportId)
+  logMock('[Mock API] Disable Share Link:', reportId)
   await delay(500)
   // 无返回值
 }
@@ -263,7 +279,7 @@ export const disableShareLink = async (reportId: number): Promise<void> => {
  * 健康检查 - Mock版本
  */
 export const healthCheck = async (): Promise<{ status: string }> => {
-  console.log('[Mock API] Health Check')
+  logMock('[Mock API] Health Check')
   await delay(200)
 
   return {

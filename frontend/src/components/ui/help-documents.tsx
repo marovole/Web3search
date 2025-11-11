@@ -4,6 +4,7 @@ import { formatFileSize } from '@/lib/safeFormatters'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { xssProtection } from '@/services/xssProtection'
 import { 
   BookOpen, 
   Search, 
@@ -707,9 +708,14 @@ export const DocumentViewer: React.FC<{
       const level = (heading.match(/^#+/) || [''])[0].length
       const title = heading.replace(/^#+\s+/, '')
       const id = `heading-${index}`
-      
+
       return { level, title, id }
     })
+  }, [document.content])
+
+  // 清理 HTML 内容以防止 XSS 攻击
+  const sanitizedContent = useMemo(() => {
+    return xssProtection.sanitizeHTML(document.content)
   }, [document.content])
 
   return (
@@ -796,9 +802,9 @@ export const DocumentViewer: React.FC<{
 
         {/* 文档内容 */}
         <Card className="lg:col-span-3 p-6">
-          <div 
+          <div
             className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: document.content }}
+            dangerouslySetInnerHTML={{ __html: sanitizedContent }}
           />
         </Card>
       </div>

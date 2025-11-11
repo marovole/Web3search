@@ -4,9 +4,10 @@
  * Part of Week 2 T13: Frontend SSE Integration
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useResearchSSE } from '../../hooks/useSSE'
 import type { ResearchSSEvent } from '../../lib/sse'
+import { xssProtection } from '@/services/xssProtection'
 
 export interface ResearchSSEProps {
   apiUrl: string
@@ -42,6 +43,12 @@ export function ResearchSSE({
   const [currentStep, setCurrentStep] = useState<string>('')
   const [result, setResult] = useState<any>(null)
   const [errorMessage, setErrorMessage] = useState<string>('')
+
+  // 清理 HTML 内容以防止 XSS 攻击
+  const sanitizedResultHtml = useMemo(
+    () => xssProtection.sanitizeHTML(result?.html || ''),
+    [result?.html]
+  )
 
   const {
     events,
@@ -296,7 +303,7 @@ export function ResearchSSE({
             </h3>
             <div className="prose dark:prose-invert max-w-none">
               {result.markdown ? (
-                <div dangerouslySetInnerHTML={{ __html: result.html || '' }} />
+                <div dangerouslySetInnerHTML={{ __html: sanitizedResultHtml }} />
               ) : (
                 <pre className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto">
                   <code className="text-sm text-gray-700 dark:text-gray-300">

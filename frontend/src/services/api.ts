@@ -19,11 +19,15 @@ import * as mockApi from './api.mock'
 import { getApiConfig, isDevelopment } from '../utils/env'
 
 const apiConfig = getApiConfig()
+const isDevMode = isDevelopment()
 
-if (apiConfig.useMock) {
-  console.log('🎭 Mock API Mode Enabled - Using mock data instead of real backend')
-} else {
-  console.log('🌐 Real API Mode - Connecting to backend at', apiConfig.baseUrl)
+// 仅在开发环境输出 API 模式信息
+if (isDevMode) {
+  if (apiConfig.useMock) {
+    console.log('🎭 Mock API Mode Enabled - Using mock data instead of real backend')
+  } else {
+    console.log('🌐 Real API Mode - Connecting to backend at', apiConfig.baseUrl)
+  }
 }
 
 // Create axios instance
@@ -75,9 +79,18 @@ const quickChatReal = async (
   // 生产环境: baseURL = https://web3search-api.marovole.workers.dev, path = /api/v1/chat/quick-chat
   // 结果: https://web3search-api.marovole.workers.dev/api/v1/chat/quick-chat
   const path = '/api/v1/chat/quick-chat'
-  console.log(`[API] Quick Chat Request: ${api.defaults.baseURL}${path}`)
+
+  // 仅在开发环境输出请求和响应日志
+  if (isDevMode) {
+    console.log(`[API] Quick Chat Request: ${api.defaults.baseURL}${path}`)
+  }
+
   const response = await api.post<QuickChatResponse>(path, request)
-  console.log(`[API] Quick Chat Response:`, response.data)
+
+  if (isDevMode) {
+    console.log(`[API] Quick Chat Response:`, response.data)
+  }
+
   return response.data
 }
 
