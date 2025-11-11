@@ -100,12 +100,14 @@ export const rateLimitConfigs = {
   // 聊天API限制（更严格）
   chat: {
     windowMs: 60 * 1000,    // 1分钟
-    maxRequests: 10,         // 每分钟10次
+    maxRequests: 20,         // 每分钟20次
     keyGenerator: (c: any) => {
       const clientIP = c.req.header('CF-Connecting-IP') || 'unknown'
       const userAgent = c.req.header('User-Agent') || 'unknown'
       // 使用IP + User-Agent作为key，防止同一IP的多用户共享限制
-      return `chat_limit:${clientIP}:${Buffer.from(userAgent).toString('base64').slice(0, 16)}`
+      // 使用简单的哈希替代Buffer，避免Cloudflare Workers兼容性问题
+      const hash = userAgent.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)
+      return `chat_limit:${clientIP}:${hash.toString(36)}`
     }
   },
   
