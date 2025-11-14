@@ -35,7 +35,11 @@ export interface TelemetryData {
   // Response details
   responseStatus?: number
   responseHeaders?: Record<string, string>
-  responseBody?: string
+  responseMetadata?: {
+    bodyLength: number
+    contentType: string | null
+    hasError: boolean
+  }
   completionTokens: number
   finishReason?: string
 
@@ -128,25 +132,30 @@ export async function buildTelemetryData(
   let promptTokens = 0
   let completionTokens = 0
   let costUSD = 0
-  let responseBody = ''
+  let bodyText = '' // Temporary variable for token extraction only
   let finishReason = ''
 
   if (result.success && result.data) {
     try {
       const clonedResponse = result.data.clone()
-      const bodyText = await clonedResponse.text()
+      bodyText = await clonedResponse.text()
       const tokens = extractTokensFromResponse(bodyText)
       promptTokens = tokens.promptTokens
       completionTokens = tokens.completionTokens
       costUSD = calculateCost(modelConfig, promptTokens, completionTokens)
-      responseBody = bodyText
 
+      // Extract finish reason without storing full body
       const bodyJson = JSON.parse(bodyText)
       finishReason = bodyJson.choices?.[0]?.finish_reason || ''
     } catch (error) {
       console.error('Failed to extract tokens from response:', error)
     }
   }
+
+  // Extract response metadata (without storing sensitive content)
+  const responseContentType = result.data?.headers.get('content-type') ?? null
+  const responseBodyLength = bodyText?.length || 0
+  const hasError = !result.success || !!result.error
 
   // Build telemetry data
   const telemetry: TelemetryData = {
@@ -175,10 +184,14 @@ export async function buildTelemetryData(
     },
     promptTokens: promptTokens || estimateTokens(JSON.stringify(request.messages)),
 
-    // Response
+    // Response (metadata only, no sensitive content)
     responseStatus: result.data?.status,
     responseHeaders: result.data ? Object.fromEntries(result.data.headers.entries()) : undefined,
-    responseBody: responseBody,
+    responseMetadata: {
+      bodyLength: responseBodyLength,
+      contentType: responseContentType,
+      hasError,
+    },
     completionTokens,
     finishReason,
 
@@ -265,7 +278,7 @@ export async function logTelemetry(
         p_prompt_tokens: telemetry.promptTokens,
         p_response_status: telemetry.responseStatus || null,
         p_response_headers: telemetry.responseHeaders || null,
-        p_response_body: telemetry.responseBody || null,
+        p_response_body: null, // Privacy: No longer storing full response bodies
         p_completion_tokens: telemetry.completionTokens,
         p_finish_reason: telemetry.finishReason || null,
         p_error_code: telemetry.errorCode || null,

@@ -21,6 +21,7 @@ import { ROUTING_STRATEGIES, getModelConfig } from '../lib/model-routing'
 import { executeOpenRouterRequest } from '../lib/resilience'
 import { parseStreamResponse, createStreamingResponse } from '../lib/streaming'
 import { createRateLimitMiddleware } from '../middlewares/rate-limit'
+import { ensureConversationExists } from '../lib/conversation'
 
 const DEFAULT_RESEARCH_DEPTH: ResearchDepth = 'standard'
 const MAX_RESEARCH_QUERY_LENGTH = 5000
@@ -416,25 +417,6 @@ async function processResearchTask(
 // ============================================
 // Helper Functions
 // ============================================
-
-async function ensureConversationExists(
-  supabase: SupabaseClient,
-  conversationId: string,
-  options: { title?: string } = {}
-) {
-  const { error } = await supabase.from('conversations').upsert(
-    {
-      id: conversationId,
-      title: options.title || 'Deep Research',
-      metadata: {},
-      client_session_id: crypto.randomUUID(),
-      model_preset: 'deep-research',
-    },
-    { onConflict: 'id' }
-  )
-
-  if (error) console.warn('Failed to upsert conversation:', error.message)
-}
 
 async function updateProgress(
   supabase: SupabaseClient,

@@ -19,6 +19,11 @@ import {
 import { executeOpenRouterRequest } from '../lib/resilience'
 import { buildTelemetryData, logToMultipleDestinations } from '../lib/telemetry'
 import { parseStreamResponse, createStreamingResponse } from '../lib/streaming'
+import {
+  ensureConversationExists,
+  fetchConversationHistory,
+  persistMessage,
+} from '../lib/conversation'
 
 const DEFAULT_USE_CASE: keyof typeof ROUTING_STRATEGIES = 'quick-chat'
 const MAX_HISTORY_MESSAGES = 10
@@ -72,7 +77,11 @@ chatV2.post(
       await ensureConversationExists(supabase, conversationId, { title: query.substring(0, 100) })
 
       // Fetch conversation history
-      const history = await fetchConversationHistory(supabase, conversationId)
+      const history = await fetchConversationHistory(
+        supabase,
+        conversationId,
+        MAX_HISTORY_MESSAGES
+      )
       const messageChain = buildMessageChain(history, query)
 
       // Save user message
@@ -209,51 +218,6 @@ export default chatV2
 // Helper Functions
 // ============================================
 
-interface ConversationOptions {
-  title?: string
-  metadata?: Record<string, unknown>
-}
-
-async function ensureConversationExists(
-  supabase: SupabaseClient,
-  conversationId: string,
-  options: ConversationOptions = {}
-) {
-  const { error } = await supabase
-    .from('conversations')
-    .upsert({
-      id: conversationId,
-      title: options.title || 'New Conversation',
-      metadata: options.metadata || {},
-      client_session_id: crypto.randomUUID(),
-      model_preset: 'quick-chat'
-    }, {
-      onConflict: 'id',
-      ignoreDuplicates: false
-    })
-
-  if (error) console.warn('Failed to upsert conversation:', error.message)
-}
-
-async function fetchConversationHistory(
-  supabase: SupabaseClient,
-  conversationId: string
-): Promise<ChatCompletionMessage[]> {
-  const { data, error } = await supabase
-    .from('messages')
-    .select('role, content')
-    .eq('conversation_id', conversationId)
-    .order('created_at', { ascending: true })
-    .limit(MAX_HISTORY_MESSAGES)
-
-  if (error) {
-    console.warn('Unable to fetch conversation history:', error.message)
-    return []
-  }
-
-  return data || []
-}
-
 function buildMessageChain(
   history: ChatCompletionMessage[],
   latestUserInput: string
@@ -263,32 +227,6 @@ function buildMessageChain(
     ...history,
     { role: 'user', content: latestUserInput },
   ]
-}
-
-async function persistMessage(
-  supabase: SupabaseClient,
-  message: {
-    conversation_id: string
-    role: 'user' | 'assistant'
-    content: string
-    metadata?: Record<string, unknown> | null
-  },
-  options: { returnId?: boolean } = {}
-): Promise<string | undefined> {
-  const query = supabase.from('messages').insert(message)
-
-  if (options.returnId) {
-    const { data, error } = await query.select('id').single()
-    if (error) {
-      console.warn('Failed to store message:', error.message)
-      return undefined
-    }
-    return data?.id
-  }
-
-  const { error } = await query
-  if (error) console.warn('Failed to store message:', error.message)
-  return undefined
 }
 
 // ============================================

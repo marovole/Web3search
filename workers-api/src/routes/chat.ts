@@ -7,12 +7,16 @@ import { Hono } from 'hono'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Env } from '../types/env'
 import type { ChatRequestBody, ChatCompletionMessage } from '../types/chat'
-import type { DeepResearchRequest } from '../types/deep-research'
 import { createSupabaseClient } from '../lib/supabase'
 import { createOpenRouterClient, OpenRouterError } from '../lib/openrouter'
 import { createRateLimitMiddleware } from '../middlewares/rate-limit'
 import { createCoinGeckoClient } from '../lib/coingecko'
 import { ROUTING_STRATEGIES, getModelConfig } from '../lib/model-routing'
+import {
+  ensureConversationExists,
+  fetchConversationHistory,
+  persistMessage,
+} from '../lib/conversation'
 import {
   generateResearchPlan,
   searchSources,
@@ -116,7 +120,11 @@ Please use this real-time data in your response.
 
     // Ensure conversation exists and fetch history
     await ensureConversationExists(supabase, conversationId)
-    const history = await fetchConversationHistory(supabase, conversationId)
+    const history = await fetchConversationHistory(
+      supabase,
+      conversationId,
+      MAX_HISTORY_MESSAGES
+    )
     const messageChain = buildMessageChain(history, query, priceData)
 
     // Save user message
@@ -208,11 +216,16 @@ Please use this real-time data in your response.
 )
 
 /**
- * POST /deep-research/stream
+ * GET /deep-research/stream
  * Deep Research with SSE streaming
  * Streams progress updates through research pipeline stages
+ *
+ * Query Parameters:
+ *   - query (required): The research query (max 2000 characters)
+ *   - conversation_id (optional): Existing conversation ID to continue
+ *   - model (optional): Model ID to use (defaults to primary deep-research model)
  */
-chat.post(
+chat.get(
   '/deep-research/stream',
   createRateLimitMiddleware({
     scope: 'deep-research-ip-day',
@@ -221,30 +234,19 @@ chat.post(
     key: (c) => c.req.header('cf-connecting-ip') || 'anonymous',
   }),
   async (c) => {
-    // Parse and validate request body
-    let body: DeepResearchRequest
-    try {
-      body = await c.req.json<DeepResearchRequest>()
-    } catch {
-      return c.json(
-        {
-          error: {
-            code: 'INVALID_JSON',
-            message: 'Body must be valid JSON',
-            status: 400,
-          },
-        },
-        400
-      )
-    }
+    // Parse and validate query parameters
+    const queryParam = c.req.query('query')
+    const conversationParam = c.req.query('conversation_id')
+    const modelParam = c.req.query('model')
 
-    const query = body.query?.trim()
+    // Validate query parameter
+    const query = typeof queryParam === 'string' ? queryParam.trim() : ''
     if (!query) {
       return c.json(
         {
           error: {
             code: 'MISSING_QUERY',
-            message: 'Field "query" is required',
+            message: 'Query parameter "query" is required',
             status: 400,
           },
         },
@@ -252,16 +254,17 @@ chat.post(
       )
     }
 
-    if (query.length > 5000) {
+    // Enforce query length limit for GET requests (URL length constraints)
+    if (query.length > 2000) {
       return c.json(
         {
           error: {
-            code: 'QUERY_TOO_LONG',
-            message: 'Query exceeds 5000 characters',
-            status: 400,
+            code: 'URI_TOO_LONG',
+            message: 'Query exceeds maximum length of 2000 characters',
+            status: 414,
           },
         },
-        400
+        414
       )
     }
 
@@ -270,7 +273,10 @@ chat.post(
 
       // Determine model configuration
       const useCase = 'deep-research' as const
-      const modelId = body.model || ROUTING_STRATEGIES[useCase].primary[0]
+      const modelId =
+        typeof modelParam === 'string' && modelParam.trim()
+          ? modelParam.trim()
+          : ROUTING_STRATEGIES[useCase].primary[0]
       const modelConfig = getModelConfig(modelId)
 
       if (!modelConfig) {
@@ -278,7 +284,7 @@ chat.post(
           {
             error: {
               code: 'INVALID_MODEL',
-              message: `Model ${modelId} not found`,
+              message: `Model "${modelId}" not found`,
               status: 400,
             },
           },
@@ -287,7 +293,11 @@ chat.post(
       }
 
       // Ensure conversation exists
-      const conversationId = body.conversation_id || crypto.randomUUID()
+      const conversationId =
+        typeof conversationParam === 'string' && conversationParam.trim()
+          ? conversationParam.trim()
+          : crypto.randomUUID()
+
       await ensureConversationExists(supabase, conversationId, {
         title: `Deep Research: ${query.substring(0, 100)}`,
       })
@@ -297,7 +307,7 @@ chat.post(
         conversation_id: conversationId,
         role: 'user',
         content: query,
-        metadata: body.metadata ?? null,
+        metadata: null, // Metadata no longer supported via GET query params
       })
 
       // Create SSE stream
@@ -331,46 +341,6 @@ export default chat
 // ============================================
 
 /**
- * Ensure conversation exists in database (upsert)
- */
-async function ensureConversationExists(
-  supabase: SupabaseClient,
-  conversationId: string,
-  options?: { title?: string }
-) {
-  const data: any = { id: conversationId }
-  if (options?.title) {
-    data.title = options.title
-  }
-
-  const { error } = await supabase
-    .from('conversations')
-    .upsert(data, { onConflict: 'id' })
-  if (error) console.warn('Failed to upsert conversation', error)
-}
-
-/**
- * Fetch conversation history from database
- * Returns up to MAX_HISTORY_MESSAGES recent messages
- */
-async function fetchConversationHistory(
-  supabase: SupabaseClient,
-  conversationId: string
-): Promise<ChatCompletionMessage[]> {
-  const { data, error } = await supabase
-    .from('messages')
-    .select('role, content')
-    .eq('conversation_id', conversationId)
-    .order('created_at', { ascending: true })
-    .limit(MAX_HISTORY_MESSAGES)
-  if (error) {
-    console.warn('Unable to fetch conversation history', error)
-    return []
-  }
-  return data ?? []
-}
-
-/**
  * Build message chain for OpenRouter
  * Includes system prompt, history, price data (if any), and current user input
  */
@@ -388,35 +358,6 @@ function buildMessageChain(
     ...history,
     { role: 'user', content: userMessage },
   ]
-}
-
-/**
- * Persist message to database
- * Optionally returns the inserted message ID
- */
-async function persistMessage(
-  supabase: SupabaseClient,
-  message: {
-    conversation_id: string
-    role: 'user' | 'assistant'
-    content: string
-    metadata?: Record<string, unknown> | null
-  },
-  options: { returnId?: boolean } = {}
-): Promise<string | undefined> {
-  const query = supabase.from('messages').insert(message)
-  if (options.returnId) {
-    const { data, error } = await query.select('id').single()
-    if (error) {
-      console.warn('Failed to store message', error)
-      return undefined
-    }
-    return data?.id
-  }
-
-  const { error } = await query
-  if (error) console.warn('Failed to store message', error)
-  return undefined
 }
 
 // ============================================
