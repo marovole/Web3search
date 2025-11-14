@@ -6,43 +6,52 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Env } from '../../src/types/env'
 
-// Mock deep-research functions
-vi.mock('../../src/routes/deep-research', () => ({
-  generateResearchPlan: vi.fn(async () => ({
-    search_queries: ['web3 fundamentals'],
-    plan: 'mock plan',
-  })),
-  searchSources: vi.fn(async () => [
-    {
-      id: 'source-1',
-      url: 'https://example.com/source/1',
-      title: 'Mock Source',
-      snippet: 'A mock snippet',
-      relevance_score: 0.8,
-      accessed_at: new Date().toISOString(),
-    },
-  ]),
-  analyzeSources: vi.fn(async () => ({
-    citations: [],
-    tokens: { prompt: 0, completion: 0 },
-    cost: 0,
-  })),
-  synthesizeFindings: vi.fn(async () => ({
-    result: {
+// Mock deep-research functions (partial mock - preserve default export)
+vi.mock('../../src/routes/deep-research', async () => {
+  const actual = await vi.importActual<
+    typeof import('../../src/routes/deep-research')
+  >('../../src/routes/deep-research')
+
+  return {
+    ...actual,
+    __esModule: true,
+    default: actual.default, // Explicitly preserve the default export (the Hono router)
+    generateResearchPlan: vi.fn(async () => ({
+      search_queries: ['web3 fundamentals'],
+      plan: 'mock plan',
+    })),
+    searchSources: vi.fn(async () => [
+      {
+        id: 'source-1',
+        url: 'https://example.com/source/1',
+        title: 'Mock Source',
+        snippet: 'A mock snippet',
+        relevance_score: 0.8,
+        accessed_at: new Date().toISOString(),
+      },
+    ]),
+    analyzeSources: vi.fn(async () => ({
+      citations: [],
+      tokens: { prompt: 0, completion: 0 },
+      cost: 0,
+    })),
+    synthesizeFindings: vi.fn(async () => ({
+      result: {
+        summary: 'mock summary',
+        answer: 'mock answer',
+        key_findings: [],
+        sources: [],
+        citations: [],
+        research_depth: 'standard',
+        total_sources: 0,
+        total_citations: 0,
+        confidence_score: 1,
+      },
       summary: 'mock summary',
       answer: 'mock answer',
-      key_findings: [],
-      sources: [],
-      citations: [],
-      research_depth: 'standard',
-      total_sources: 0,
-      total_citations: 0,
-      confidence_score: 1,
-    },
-    summary: 'mock summary',
-    answer: 'mock answer',
-  })),
-}))
+    })),
+  }
+})
 
 // Mock Supabase client
 vi.mock('../../src/lib/supabase', () => ({
@@ -74,11 +83,11 @@ vi.mock('../../src/lib/supabase', () => ({
   }),
 }))
 
-import chat from '../../src/routes/chat'
+import deepResearch from '../../src/routes/deep-research'
 
-// Test the chat router directly, not through the main app
-// So the path is relative to the chat router: /deep-research/stream
-const BASE_URL = 'https://example.com/deep-research/stream'
+// Test the deep-research router directly, not through the main app
+// So the path is relative to the deep-research router: /stream
+const BASE_URL = 'https://example.com/stream'
 
 async function fetchDeepResearch({
   query,
@@ -99,7 +108,7 @@ async function fetchDeepResearch({
     },
   })
 
-  return chat.fetch(request, env ?? createMockEnv())
+  return deepResearch.fetch(request, env ?? createMockEnv())
 }
 
 describe('Deep Research SSE endpoint', () => {
