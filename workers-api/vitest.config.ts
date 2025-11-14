@@ -19,8 +19,8 @@ export default defineConfig({
 
     // Coverage configuration
     coverage: {
-      // Use c8 for coverage (fast and accurate)
-      provider: 'c8',
+      // Use v8 for coverage (fast and accurate)
+      provider: 'v8',
 
       // Include all source files
       all: true,

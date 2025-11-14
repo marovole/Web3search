@@ -76,7 +76,9 @@ vi.mock('../../src/lib/supabase', () => ({
 
 import chat from '../../src/routes/chat'
 
-const BASE_URL = 'https://example.com/api/v1/chat/deep-research/stream'
+// Test the chat router directly, not through the main app
+// So the path is relative to the chat router: /deep-research/stream
+const BASE_URL = 'https://example.com/deep-research/stream'
 
 async function fetchDeepResearch({
   query,

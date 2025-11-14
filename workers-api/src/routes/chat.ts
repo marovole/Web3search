@@ -489,6 +489,7 @@ function streamDeepResearch({
 }: DeepResearchStreamParams): Response {
   const encoder = new TextEncoder()
   let heartbeat: ReturnType<typeof setInterval> | null = null
+  let isCancelled = false
 
   const stream = new ReadableStream({
     start(controller) {
@@ -500,13 +501,28 @@ function streamDeepResearch({
         content: string
         session_id?: string
       }) => {
-        const data = JSON.stringify(event)
-        controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+        // Skip if stream was cancelled
+        if (isCancelled) return
+
+        try {
+          const data = JSON.stringify(event)
+          controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+        } catch (error) {
+          // Silently ignore errors if controller is closed
+          if (!isCancelled) {
+            console.warn('Failed to emit SSE event:', error)
+          }
+        }
       }
 
       // Keep-alive heartbeat to prevent Cloudflare timeout
       heartbeat = setInterval(() => {
-        controller.enqueue(encoder.encode(': keep-alive\n\n'))
+        if (isCancelled) return
+        try {
+          controller.enqueue(encoder.encode(': keep-alive\n\n'))
+        } catch (error) {
+          // Silently ignore if controller is closed
+        }
       }, 15_000)
 
       // Execute research pipeline
@@ -599,31 +615,41 @@ function streamDeepResearch({
           )
           controller.close()
         } catch (error) {
-          clearInterval(heartbeat)
+          if (heartbeat) {
+            clearInterval(heartbeat)
+          }
           console.error('Deep Research pipeline failed:', error)
 
-          const errorMessage =
-            error instanceof Error
-              ? error.message
-              : 'Deep research pipeline encountered an error'
+          if (isCancelled) return // Don't try to write to closed stream
 
-          emit({
-            type: 'error',
-            content: errorMessage,
-          })
+          try {
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : 'Deep research pipeline encountered an error'
 
-          controller.enqueue(
-            encoder.encode(
-              `event: error\ndata: ${JSON.stringify({ error: errorMessage })}\n\n`
+            emit({
+              type: 'error',
+              content: errorMessage,
+            })
+
+            controller.enqueue(
+              encoder.encode(
+                `event: error\ndata: ${JSON.stringify({ error: errorMessage })}\n\n`
+              )
             )
-          )
-          controller.close()
+            controller.close()
+          } catch (closeError) {
+            // Silently ignore if controller is already closed
+            console.warn('Failed to send error event (stream may be closed)')
+          }
         }
       })()
     },
     cancel() {
       // Cleanup if client disconnects
       console.log('Deep Research stream cancelled by client')
+      isCancelled = true
       if (heartbeat) {
         clearInterval(heartbeat)
       }
