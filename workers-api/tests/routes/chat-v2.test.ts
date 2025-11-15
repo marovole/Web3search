@@ -4,6 +4,7 @@
  */
 
 import { describe, expect, it, vi, beforeEach } from 'vitest'
+import type { ExecutionContext } from '@cloudflare/workers-types'
 import type { Env } from '../../src/types/env'
 
 // Mock model-routing
@@ -104,9 +105,11 @@ const BASE_URL = 'https://example.com/quick-chat'
 async function fetchQuickChat({
   body,
   env,
+  executionCtx,
 }: {
   body?: Record<string, any>
   env?: Env
+  executionCtx?: ExecutionContext
 } = {}) {
   const request = new Request(BASE_URL, {
     method: 'POST',
@@ -117,7 +120,11 @@ async function fetchQuickChat({
     body: body ? JSON.stringify(body) : undefined,
   })
 
-  return chatV2.fetch(request, env ?? createMockEnv())
+  return chatV2.fetch(
+    request,
+    env ?? createMockEnv(),
+    executionCtx ?? createMockExecutionContext()
+  )
 }
 
 describe('Chat v2 - Quick Chat Endpoint', () => {
@@ -439,4 +446,15 @@ function createInMemoryKV(): KVNamespace {
       list_complete: true,
     }),
   } as unknown as KVNamespace
+}
+
+/**
+ * Create a mock ExecutionContext for testing
+ * Provides waitUntil() stub to prevent "no ExecutionContext" errors
+ */
+function createMockExecutionContext(): ExecutionContext {
+  return {
+    waitUntil: vi.fn(),
+    passThroughOnException: vi.fn(),
+  } as unknown as ExecutionContext
 }
