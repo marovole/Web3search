@@ -4,6 +4,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { Hono } from 'hono'
 import type { Env } from '../../src/types/env'
 
 // Mock deep-research functions (partial mock - preserve default export)
@@ -85,9 +86,13 @@ vi.mock('../../src/lib/supabase', () => ({
 
 import deepResearch from '../../src/routes/deep-research'
 
-// Test the deep-research router directly, not through the main app
-// So the path is relative to the deep-research router: /stream
-const BASE_URL = 'https://example.com/stream'
+// Create a test app that mimics production routing structure
+// This ensures the router is mounted with the correct path prefix
+const deepResearchApp = new Hono<{ Bindings: Env }>()
+deepResearchApp.route('/api/v1/deep-research', deepResearch)
+
+// Use the full production path for testing
+const BASE_URL = 'https://example.com/api/v1/deep-research/stream'
 
 async function fetchDeepResearch({
   query,
@@ -108,7 +113,7 @@ async function fetchDeepResearch({
     },
   })
 
-  return deepResearch.fetch(request, env ?? createMockEnv())
+  return deepResearchApp.fetch(request, env ?? createMockEnv())
 }
 
 describe('Deep Research SSE endpoint', () => {

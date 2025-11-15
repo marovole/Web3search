@@ -25,7 +25,7 @@ export async function corsMiddleware(c: Context<{ Bindings: Env }>, next: Next) 
   // Handle preflight requests
   if (c.req.method === 'OPTIONS') {
     if (isAllowedOrigin) {
-      return c.newResponse('', {
+      return c.newResponse(null, {
         status: 204,
         headers: {
           'Access-Control-Allow-Origin': origin,
