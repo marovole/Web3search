@@ -99,14 +99,10 @@ The search aggregation system **SHALL** have comprehensive test coverage for all
 - **AND** verify correct provider is selected based on availability
 - **AND** verify results are properly formatted for downstream analysis
 
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Search result deduplication
 The search aggregation system SHALL deduplicate results by URL **within a single provider's results**, keeping the highest relevance score when duplicates exist.
-
-**Previous behavior**: Deduplication occurred across all providers.
-
-**New behavior**: Since we now use provider failover (not parallel aggregation), deduplication only applies within a single provider's result set. This simplifies logic and respects provider-specific ranking.
 
 #### Scenario: Single-provider deduplication
 - **WHEN** a provider returns multiple results with the same URL
