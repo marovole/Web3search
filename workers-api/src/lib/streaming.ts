@@ -242,8 +242,8 @@ export function withTimeout<T>(
   stream: ReadableStream<T>,
   timeoutMs: number
 ): ReadableStream<T> {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+  const abortController = new AbortController()
+  const timeoutId = setTimeout(() => abortController.abort(), timeoutMs)
 
   const reader = stream.getReader()
   let isReleased = false
@@ -263,7 +263,7 @@ export function withTimeout<T>(
           const { value, done } = await Promise.race([
             reader.read(),
             new Promise<never>((_, reject) =>
-              controller.signal.addEventListener('abort', () =>
+              abortController.signal.addEventListener('abort', () =>
                 reject(new Error('Stream timeout'))
               )
             )

@@ -256,9 +256,14 @@ describe('Reports - Generate Endpoint', () => {
       expect(fullText).toContain('tokens_used')
 
       // With 2 sections @ 150 tokens each = 300 total
-      const completeEventMatch = fullText.match(/data:\s*(\{[^}]+report_complete[^}]+\})/)
-      if (completeEventMatch) {
-        const eventData = JSON.parse(completeEventMatch[1])
+      // Extract the complete JSON object from SSE data line
+      const lines = fullText.split('\n')
+      const completeDataLine = lines.find(line =>
+        line.startsWith('data:') && line.includes('report_complete')
+      )
+      if (completeDataLine) {
+        const jsonStr = completeDataLine.replace(/^data:\s*/, '')
+        const eventData = JSON.parse(jsonStr)
         expect(eventData.tokens_used).toBeGreaterThan(0)
         expect(eventData.tokens_used).toBe(300) // 2 sections * 150 tokens
       }

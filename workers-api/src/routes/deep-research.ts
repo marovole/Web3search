@@ -7,6 +7,7 @@
 import { Hono } from 'hono'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Env } from '../types/env'
+import type { ChatCompletionMessage, ChatRole } from '../types/chat'
 import type {
   DeepResearchRequest,
   DeepResearchTask,
@@ -570,14 +571,14 @@ export async function generateResearchPlan(
 ): Promise<{ search_queries: string[]; plan: string }> {
   const openrouter = createOpenRouterClient(env)
 
-  const messages = [
+  const messages: ChatCompletionMessage[] = [
     {
-      role: 'system',
+      role: 'system' as ChatRole,
       content:
         'You are a research assistant. Given a query, generate a research plan with specific search queries.',
     },
     {
-      role: 'user',
+      role: 'user' as ChatRole,
       content: `Generate a research plan for: "${query}"`,
     },
   ]
@@ -590,7 +591,7 @@ export async function generateResearchPlan(
   }
 
   const response = await openrouter.request(payload)
-  const result = await response.json()
+  const result = await response.json() as any
 
   const content = result.choices?.[0]?.message?.content || ''
 
@@ -664,14 +665,14 @@ export async function analyzeSources(
 }> {
   const openrouter = createOpenRouterClient(env)
 
-  const messages = [
+  const messages: ChatCompletionMessage[] = [
     {
-      role: 'system',
+      role: 'system' as ChatRole,
       content:
         'Analyze these sources and extract relevant information with citations.',
     },
     {
-      role: 'user',
+      role: 'user' as ChatRole,
       content: `Query: ${query}\n\nSources:\n${JSON.stringify(sources, null, 2)}`,
     },
   ]
@@ -685,7 +686,7 @@ export async function analyzeSources(
   }
 
   const response = await openrouter.request(payload)
-  const result = await response.json()
+  const result = await response.json() as any
 
   const content = result.choices?.[0]?.message?.content || ''
 
@@ -722,14 +723,14 @@ export async function synthesizeFindings(
 }> {
   const openrouter = createOpenRouterClient(env)
 
-  const messages = [
+  const messages: ChatCompletionMessage[] = [
     {
-      role: 'system',
+      role: 'system' as ChatRole,
       content:
         'Synthesize the research findings into a comprehensive answer with summary.',
     },
     {
-      role: 'user',
+      role: 'user' as ChatRole,
       content: `Query: ${query}\n\nAnalysis: ${JSON.stringify(analysis, null, 2)}`,
     },
   ]
@@ -743,7 +744,7 @@ export async function synthesizeFindings(
   }
 
   const response = await openrouter.request(payload)
-  const result = await response.json()
+  const result = await response.json() as any
 
   const content = result.choices?.[0]?.message?.content || ''
 
@@ -801,12 +802,18 @@ function streamDeepResearch({
         section?: string
         content: string
         session_id?: string
+        timestamp?: string
       }) => {
         // Skip if stream was cancelled
         if (isCancelled) return
 
         try {
-          const data = JSON.stringify(event)
+          // Ensure timestamp is always present
+          const enrichedEvent = {
+            ...event,
+            timestamp: event.timestamp ?? new Date().toISOString(),
+          }
+          const data = JSON.stringify(enrichedEvent)
           controller.enqueue(encoder.encode(`data: ${data}\n\n`))
         } catch (error) {
           // Silently ignore errors if controller is closed

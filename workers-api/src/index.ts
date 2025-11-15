@@ -147,26 +147,36 @@ async function runHealthChecks(env: Env, ctx: ExecutionContext) {
   }
 
   // Check KV Cache
-  try {
-    const testKey = 'health-check-test'
-    await env.CACHE.put(testKey, 'test', { expirationTtl: 60 })
-    const value = await env.CACHE.get(testKey)
-    await env.CACHE.delete(testKey)
-
-    results.push({
-      check_name: 'kv_cache',
-      status: value === 'test' ? 'healthy' : 'degraded',
-      latency_ms: Date.now(),
-      details: { operation: 'read_write_test', success: value === 'test' }
-    })
-  } catch (error) {
+  if (!env.CACHE) {
     results.push({
       check_name: 'kv_cache',
       status: 'down',
-      latency_ms: Date.now(),
-      error_message: error instanceof Error ? error.message : 'Unknown error',
-      details: { type: 'kv_error' }
+      latency_ms: 0,
+      error_message: 'CACHE namespace not bound',
+      details: { type: 'not_configured' }
     })
+  } else {
+    try {
+      const testKey = 'health-check-test'
+      await env.CACHE.put(testKey, 'test', { expirationTtl: 60 })
+      const value = await env.CACHE.get(testKey)
+      await env.CACHE.delete(testKey)
+
+      results.push({
+        check_name: 'kv_cache',
+        status: value === 'test' ? 'healthy' : 'degraded',
+        latency_ms: Date.now(),
+        details: { operation: 'read_write_test', success: value === 'test' }
+      })
+    } catch (error) {
+      results.push({
+        check_name: 'kv_cache',
+        status: 'down',
+        latency_ms: Date.now(),
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        details: { type: 'kv_error' }
+      })
+    }
   }
 
   // Save results to Supabase if possible
@@ -189,6 +199,11 @@ async function runHealthChecks(env: Env, ctx: ExecutionContext) {
  * Clean up expired KV cache entries
  */
 async function runKvCacheCleanup(env: Env, ctx: ExecutionContext) {
+  if (!env.CACHE) {
+    console.warn('[Scheduled] CACHE not bound, skipping KV cache cleanup')
+    return
+  }
+
   try {
     const prefix = 'deep-research:'
     const cutoffTime = Date.now() - (24 * 60 * 60 * 1000) // 24 hours ago

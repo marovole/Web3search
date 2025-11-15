@@ -92,6 +92,8 @@ export interface ResearchProgress {
   steps_completed: number
   total_steps: number
   estimated_time_remaining?: number
+  timestamp: string
+  [key: string]: unknown
 }
 
 export interface ResearchListParams {
@@ -117,6 +119,8 @@ export interface ResearchStepUpdate {
   total_steps: number
   progress_percent: number
   message?: string
+  timestamp: string
+  [key: string]: unknown
 }
 
 // WebSocket/SSE events for real-time updates

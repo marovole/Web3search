@@ -17,7 +17,7 @@ export interface RateLimitOptions {
   /** Window duration in seconds */
   windowSeconds: number
   /** Custom key extraction function (defaults to cf-connecting-ip) */
-  key?: (c: Context<{ Bindings: Env }>) => string
+  key?: (c: Context<{ Bindings: Env }>) => string | Promise<string>
 }
 
 /**
@@ -53,7 +53,7 @@ export const createRateLimitMiddleware = (
 
     // Extract identifier (IP address or custom key)
     const identifier =
-      options.key?.(c) ?? c.req.header('cf-connecting-ip') ?? 'anonymous'
+      (await options.key?.(c)) ?? c.req.header('cf-connecting-ip') ?? 'anonymous'
 
     // Calculate current window ID (sliding window)
     const windowId = Math.floor(Date.now() / 1000 / options.windowSeconds)

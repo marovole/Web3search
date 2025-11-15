@@ -13,6 +13,8 @@ export interface ChatRequestBody {
   conversation_id?: string
   model?: string
   stream?: boolean
+  temperature?: number
+  max_tokens?: number
   metadata?: Record<string, unknown>
 }
 

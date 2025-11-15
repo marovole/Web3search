@@ -122,7 +122,7 @@ export async function buildTelemetryData(
       userAgent?: string
     }
   }
-): TelemetryData {
+): Promise<TelemetryData> {
   const { request, modelConfig, result, env, requestContext } = options
 
   const startedAt = new Date()
@@ -305,7 +305,7 @@ export async function logTelemetry(
     }
 
     const data = await response.json()
-    return { success: true, id: data }
+    return { success: true, id: String(data) }
 
   } catch (error) {
     console.error('Error logging telemetry:', error)
@@ -365,7 +365,7 @@ export function createTelemetryTrace(
         name: 'api_call.start',
         timestamp: telemetry.startedAt.getTime(),
         attributes: {
-          'messages.count': telemetry.requestBody?.messages || 0
+          'messages.count': Number(telemetry.requestBody?.messages) || 0
         }
       },
       {

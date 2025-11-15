@@ -23,6 +23,12 @@ export interface Env {
   // KV Namespace (Cache) - Optional for now
   CACHE?: KVNamespace
 
+  // OpenRouter Circuit Breaker State (Optional)
+  OPENROUTER_CIRCUIT_STATE?: KVNamespace
+
+  // Sentry Error Monitoring (Optional)
+  SENTRY_DSN?: string
+
   // Client Session Tracking
   CLIENT_SESSION_ID?: string
 

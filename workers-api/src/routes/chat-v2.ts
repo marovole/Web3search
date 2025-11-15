@@ -138,6 +138,7 @@ chatV2.post(
             initialDelayMs: 100,
             maxDelayMs: 10000,
             backoffFactor: 2,
+            timeoutMs: 30000,
             retryableStatuses: [408, 429, 502, 503, 504],
             retryableErrors: ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNREFUSED']
           }
@@ -277,7 +278,7 @@ async function handleNonStreamingResponse({
   conversationId,
   modelConfig
 }: NonStreamingResponseParams) {
-  const result = await response.json()
+  const result = await response.json() as any
   const assistantContent = result.choices?.[0]?.message?.content?.trim() || ''
 
   if (!assistantContent) {

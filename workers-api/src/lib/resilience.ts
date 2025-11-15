@@ -17,6 +17,7 @@ export interface RetryConfig {
   initialDelayMs: number
   maxDelayMs: number
   backoffFactor: number
+  timeoutMs: number
   retryableStatuses: number[]
   retryableErrors: string[]
 }
@@ -29,6 +30,7 @@ export const DEFAULT_RETRY_CONFIG: RetryConfig = {
   initialDelayMs: 100,
   maxDelayMs: 10000,
   backoffFactor: 2,
+  timeoutMs: 30000,
   retryableStatuses: [408, 429, 502, 503, 504],
   retryableErrors: ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNREFUSED']
 }

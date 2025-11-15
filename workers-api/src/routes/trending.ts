@@ -25,7 +25,12 @@ trending.get('/hotspots', async (c) => {
       const cacheKey = `trending:hotspots:${limit}`
       const cached = await c.env.CACHE.get(cacheKey)
       if (cached) {
-        return c.json(JSON.parse(cached))
+        try {
+          return c.json(JSON.parse(cached))
+        } catch (parseError) {
+          // Cache data is malformed, continue to database query
+          console.warn('[Trending] Malformed cache data, falling back to database')
+        }
       }
     }
 
