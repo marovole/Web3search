@@ -21,9 +21,7 @@ Define the API architecture, endpoints, and security mechanisms for the Web3sear
 - JWT token-based user authentication
 - Request signature verification
 - Role-based access control (RBAC)
-
 ## Requirements
-
 ### Requirement: CORS Configuration
 The system **SHALL** implement strict CORS policies to prevent unauthorized cross-origin requests.
 
@@ -143,6 +141,22 @@ The system **SHALL** maintain consistent URL structure across all environments.
 - **AND** all other hostnames trigger production mode with full backend URL
 
 **Rationale**: 修复生产环境API URL配置错误，确保前端正确构建API请求路径，避免路径重复（`/api/api/v1`）导致的404错误。
+
+### Requirement: Search result deduplication
+The search aggregation system SHALL deduplicate results by URL **within a single provider's results**, keeping the highest relevance score when duplicates exist.
+
+#### Scenario: Single-provider deduplication
+- **WHEN** a provider returns multiple results with the same URL
+- **THEN** system keeps only the result with highest `relevance_score`
+- **AND** removes duplicate URLs within that provider's results
+- **WHEN** using failover (one provider per query)
+- **THEN** cross-provider deduplication is not needed (only one provider succeeds)
+
+#### Scenario: Result sorting maintains provider ranking
+- **WHEN** results are returned from any provider
+- **THEN** results are sorted by `relevance_score` descending
+- **AND** sorting preserves provider's ranking signals
+- **AND** deduplication happens before final sorting
 
 ## API Endpoints
 

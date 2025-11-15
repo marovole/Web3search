@@ -404,3 +404,25 @@ The system SHALL provide optimal performance for report display and interaction.
 - **AND** data shall be cached to avoid redundant processing
 - **AND** visualization performance shall be optimized for different device capabilities
 
+### Requirement: Mocking Infrastructure for Report Tests
+The test suite **SHALL** provide reusable mock implementations for OpenRouter and Supabase to enable deterministic testing of report generation flows.
+
+#### Scenario: OpenRouter mock responses
+- **WHEN** tests need to simulate OpenRouter API calls
+- **THEN** provide mock functions that return configurable responses with:
+  - Success: valid message content with usage data
+  - Failure: network errors, HTTP 500 responses
+  - Timeout: delayed responses for timeout testing
+- **AND** mock responses must match OpenRouter API response structure
+
+#### Scenario: Supabase mock database
+- **WHEN** tests need to simulate Supabase operations
+- **THEN** provide mock client with verifiable `insert`, `select`, `update` methods
+- **AND** allow inspection of arguments passed to mocked methods
+- **AND** simulate both success and failure scenarios
+
+#### Scenario: Test helper reusability
+- **WHEN** writing multiple report tests
+- **THEN** extract common setup logic (mock creation, request builders) into shared helpers
+- **AND** ensure helpers are maintainable and well-documented
+

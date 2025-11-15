@@ -212,3 +212,25 @@
 - **AND** 记录告警处理时间和解决效果
 - **AND** 支持自动恢复和故障转移机制
 
+### Requirement: Mocking Infrastructure for Trending Tests
+The test suite **SHALL** provide reusable mock implementations for Supabase and KV cache to enable deterministic testing of trending hotspot flows.
+
+#### Scenario: Supabase message mocking
+- **WHEN** tests need to simulate Supabase message queries
+- **THEN** provide mock function that returns configurable message arrays with content field
+- **AND** support both success scenarios (with messages) and failure scenarios (database errors)
+- **AND** allow inspection of query parameters (table, select, order, limit)
+
+#### Scenario: KV cache mocking
+- **WHEN** tests need to simulate caching behavior
+- **THEN** provide in-memory KV implementation with get/put/delete methods
+- **AND** support cache hits (return stored data) and misses (return null)
+- **AND** support TTL verification for expiration testing
+- **AND** allow injection of malformed data for error path testing
+
+#### Scenario: Test data fixtures
+- **WHEN** tests need sample message data
+- **THEN** provide fixture with realistic crypto-related message content
+- **AND** ensure fixture covers all keyword categories for classification testing
+- **AND** make fixture easily customizable for different test scenarios
+
