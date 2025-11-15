@@ -463,7 +463,7 @@ async function processResearchTask(
       progress_percent: 40,
     })
 
-    const sources = await searchSources(plan.search_queries)
+    const sources = await searchSources(plan.search_queries, env)
 
     // Step 3: Analyze sources
     await updateProgress(supabase, taskId, {
@@ -636,20 +636,16 @@ function extractSearchQueriesFromContent(content: string, originalQuery: string)
 /**
  * Search for sources based on queries
  * Exported for use in streaming endpoints
- * TODO: Integrate with real search API
+ * Integrates with real search APIs (Brave, Tavily, Serper)
  */
-export async function searchSources(queries: string[]): Promise<any[]> {
-  // Mock source search - in production, integrate with search API
-  // For now, return mock sources
+export async function searchSources(queries: string[], env: Env): Promise<any[]> {
+  const { fetchSearchResultsForQueries } = await import('../lib/search-providers')
 
-  return queries.map((query, index) => ({
-    id: `source-${index}`,
-    url: `https://example.com/source/${index}`,
-    title: `Source about ${query}`,
-    snippet: `This is a snippet about ${query}. It contains relevant information for the research.`,
-    relevance_score: Math.random() * 0.5 + 0.5, // 0.5 - 1.0
-    accessed_at: new Date().toISOString(),
-  }))
+  if (!queries.length) {
+    return []
+  }
+
+  return fetchSearchResultsForQueries(queries, env)
 }
 
 /**
@@ -849,7 +845,7 @@ function streamDeepResearch({
           })
 
           // Stage 2: Source Search
-          const sources = await searchSources(plan.search_queries)
+          const sources = await searchSources(plan.search_queries, env)
 
           emit({
             type: 'content',

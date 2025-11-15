@@ -22,6 +22,42 @@ const DEFAULT_MODEL = 'anthropic/claude-3.5-sonnet'
 const MAX_TOKENS_PER_SECTION = 2000
 
 /**
+ * Token usage data from OpenRouter API response
+ */
+interface SectionGenerationUsage {
+  prompt_tokens: number
+  completion_tokens: number
+  total_tokens: number
+}
+
+/**
+ * Result from generating a single section
+ */
+interface SectionGenerationResult {
+  content: string
+  usage: SectionGenerationUsage
+}
+
+/**
+ * Extract and normalize token usage from OpenRouter API response
+ * Handles missing total_tokens by calculating from prompt + completion
+ */
+function normalizeOpenRouterUsage(data: Record<string, unknown>): SectionGenerationUsage {
+  const usagePayload = (data.usage ?? {}) as Record<string, unknown>
+  const prompt_tokens = typeof usagePayload.prompt_tokens === 'number'
+    ? usagePayload.prompt_tokens
+    : 0
+  const completion_tokens = typeof usagePayload.completion_tokens === 'number'
+    ? usagePayload.completion_tokens
+    : 0
+  const total_tokens = typeof usagePayload.total_tokens === 'number'
+    ? usagePayload.total_tokens
+    : prompt_tokens + completion_tokens
+
+  return { prompt_tokens, completion_tokens, total_tokens }
+}
+
+/**
  * POST /generate
  * Generate a comprehensive research report with streaming response
  */
@@ -113,6 +149,9 @@ reports.post(
         }
         await writer.write(encoder.encode(`data: ${JSON.stringify(header)}\n\n`))
 
+        // Initialize token usage accumulator
+        let tokensUsed = 0
+
         // Generate each section
         for (let i = 0; i < sections.length; i++) {
           const section = sections[i]
@@ -121,7 +160,8 @@ reports.post(
           const sectionPrompt = buildSectionPrompt(state, section)
 
           try {
-            const content = await generateSectionContent(openrouter, sectionPrompt)
+            // Generate content and extract token usage
+            const { content, usage } = await generateSectionContent(openrouter, sectionPrompt)
 
             // Send section content as stream
             const chunk: ReportStreamChunk = {
@@ -133,9 +173,10 @@ reports.post(
 
             await writer.write(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
 
-            // Update state
+            // Update state and accumulate tokens
             state.content[section.id] = content
             state.completed_sections.push(section.id)
+            tokensUsed += usage.total_tokens
 
             // Send progress update
             const progress = {
@@ -162,7 +203,7 @@ reports.post(
         let report_id: string | null = null
         if (save_to_database && supabase) {
           try {
-            report_id = await saveReportToDatabase(supabase, state)
+            report_id = await saveReportToDatabase(supabase, state, tokensUsed)
           } catch (error) {
             console.error('Failed to save report to database:', error)
           }
@@ -177,6 +218,7 @@ reports.post(
           completed_sections: state.completed_sections,
           content: state.content,
           generation_time_ms: Date.now() - state.start_time,
+          tokens_used: tokensUsed,
         }
         await writer.write(encoder.encode(`data: ${JSON.stringify(completion)}\n\n`))
 
@@ -249,8 +291,12 @@ Content:`
 
 /**
  * Generate content for a single section using OpenRouter
+ * Returns both the generated content and token usage statistics
  */
-async function generateSectionContent(openrouter: any, prompt: string): Promise<string> {
+async function generateSectionContent(
+  openrouter: any,
+  prompt: string
+): Promise<SectionGenerationResult> {
   const payload = {
     model: DEFAULT_MODEL,
     messages: [
@@ -280,13 +326,20 @@ async function generateSectionContent(openrouter: any, prompt: string): Promise<
     throw new Error('OpenRouter API returned invalid response')
   }
 
-  return data.choices[0]?.message?.content || ''
+  return {
+    content: data.choices[0]?.message?.content || '',
+    usage: normalizeOpenRouterUsage(data as Record<string, unknown>)
+  }
 }
 
 /**
  * Save completed report to Supabase database
  */
-async function saveReportToDatabase(supabase: any, state: ReportGenerationState): Promise<string> {
+async function saveReportToDatabase(
+  supabase: any,
+  state: ReportGenerationState,
+  tokensUsed: number
+): Promise<string> {
   const { topic, sections, content } = state
 
   const { data, error } = await supabase
@@ -297,7 +350,7 @@ async function saveReportToDatabase(supabase: any, state: ReportGenerationState)
       content: content,
       metadata: {
         model: DEFAULT_MODEL,
-        tokens_used: 0, // TODO: Calculate actual token usage
+        tokens_used: tokensUsed,
         generation_time_ms: Date.now() - state.start_time,
       }
     })

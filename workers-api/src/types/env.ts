@@ -15,8 +15,16 @@ export interface Env {
   // OpenRouter API
   OPENROUTER_API_KEY: string
 
+  // Search API Keys (at least one recommended)
+  BRAVE_SEARCH_API_KEY?: string
+  TAVILY_API_KEY?: string
+  SERPER_API_KEY?: string
+
   // KV Namespace (Cache) - Optional for now
   CACHE?: KVNamespace
+
+  // Client Session Tracking
+  CLIENT_SESSION_ID?: string
 
   // Optional: Durable Objects (if needed in the future)
   // CHAT_CACHE?: DurableObjectNamespace

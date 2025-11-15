@@ -21,9 +21,11 @@ vi.mock('../../src/routes/deep-research', async () => {
       search_queries: ['web3 fundamentals'],
       plan: 'mock plan',
     })),
-    searchSources: vi.fn(async () => [
+    searchSources: vi.fn(async (_queries: string[], _env: any) => [
       {
         id: 'source-1',
+        query: 'web3 fundamentals',
+        provider: 'brave',
         url: 'https://example.com/source/1',
         title: 'Mock Source',
         snippet: 'A mock snippet',
