@@ -45,11 +45,20 @@ id = "edb34a61693d46ce8d0894534f0ce9b3"
 # Environment Variables (Secrets)
 # ============================================
 # Set secrets using: wrangler secret put VARIABLE_NAME
+#
 # Required secrets:
-# - SUPABASE_URL
-# - SUPABASE_ANON_KEY
-# - SUPABASE_SERVICE_ROLE_KEY (optional, for admin operations)
-# - OPENROUTER_API_KEY
+# - SUPABASE_URL                  : Supabase project URL
+# - SUPABASE_ANON_KEY            : Supabase anonymous key
+# - SUPABASE_SERVICE_ROLE_KEY    : (optional) For admin operations
+# - OPENROUTER_API_KEY           : OpenRouter LLM API key
+#
+# Search Provider API Keys (at least one required):
+# - BRAVE_SEARCH_API_KEY         : Brave Search API (primary provider)
+# - TAVILY_API_KEY               : Tavily Search API (failover)
+# - SERPER_API_KEY               : Serper (Google) Search API (failover)
+#
+# Provider failover priority: Brave → Tavily → Serper
+# For API key acquisition, see: docs/SEARCH_PROVIDERS.md
 
 # ============================================
 # Observability

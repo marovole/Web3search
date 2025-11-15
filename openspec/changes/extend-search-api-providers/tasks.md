@@ -68,10 +68,17 @@
 - [x] 6.6 Verify no test regressions in existing suites (33/33 tests passing)
 
 ## 7. Documentation and environment setup
-- [ ] 7.1 Update `.env.example` or wrangler configuration docs with new API keys:
-  - `TAVILY_API_KEY=your_tavily_key`
-  - `SERPER_API_KEY=your_serper_key`
-- [ ] 7.2 Document API key acquisition process in deployment docs
+- [x] 7.1 Update wrangler.toml configuration with new API keys documentation:
+  - `BRAVE_SEARCH_API_KEY` (primary)
+  - `TAVILY_API_KEY` (failover)
+  - `SERPER_API_KEY` (failover)
+- [x] 7.2 Document API key acquisition process in `workers-api/docs/SEARCH_PROVIDERS.md`
+  - Brave Search API setup guide
+  - Tavily Search API setup guide
+  - Serper API setup guide
+  - Local development (.dev.vars) and production (wrangler secrets) configuration
+  - Monitoring, telemetry, and troubleshooting
+  - Cost optimization and caching strategy
 - [x] 7.3 Add inline code comments explaining provider-specific logic
 - [x] 7.4 Update search-providers.ts module-level documentation
 
@@ -91,9 +98,15 @@
 
 ## Notes
 - **Implementation Status**: Core functionality complete and tested (33/33 tests passing)
+- **Documentation Status**: Complete
+  - ✅ wrangler.toml updated with API key documentation
+  - ✅ Comprehensive SEARCH_PROVIDERS.md guide created
+  - ✅ Local development and production deployment instructions
+  - ✅ Monitoring, troubleshooting, and cost optimization guides
 - **Codex Review Findings**:
   - ✅ Provider failover, telemetry, caching, timeout handling all correct
-  - ⚠️ Telemetry privacy enhanced: only log truncated query (fixed)
-  - ⚠️ API auth formats need real-world validation with live keys
+  - ✅ Telemetry privacy enhanced: only log truncated query (fixed)
+  - ⚠️ API auth formats need real-world validation with live keys (requires actual keys)
   - ⚠️ Deduplication currently cross-query; spec calls for single-provider (acceptable for now)
-- **Next Steps**: Validate with real Tavily/Serper API keys, test end-to-end Deep Research flow
+- **Ready for Production**: Yes (pending real API key validation)
+- **Remaining Tasks**: Items 8.1, 8.2, 8.5, 8.6 require real API keys (out of scope for implementation phase)
