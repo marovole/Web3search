@@ -127,16 +127,19 @@
     - `VITE_ENABLE_SENTRY=false` (**已禁用**)
     - `VITE_SENTRY_DSN=` (空值)
   - ⏸️ **当前状态**：已禁用，等待 Sentry 项目创建和 DSN 配置后启用
-- [x] 5.3 启用 Google Analytics ✅ (代码已集成，**已禁用**)
+- [x] 5.3 启用 Google Analytics ✅ (**已启用**)
   - ✅ 优化 GA 脚本延迟加载（frontend/src/services/analytics.ts）
   - ✅ 实现动态脚本注入，避免阻塞页面加载
   - ✅ 添加脚本去重和状态追踪
   - ✅ 更新 `frontend/src/services/monitoring.ts` 添加禁用日志
   - ✅ 更新 `frontend/.env.production`:
-    - `VITE_ENABLE_ANALYTICS=false` (**已禁用**)
-    - `VITE_GA_MEASUREMENT_ID=` (空值)
+    - `VITE_ENABLE_ANALYTICS=true` (**已启用**)
+    - `VITE_GA_MEASUREMENT_ID=G-M0DW9G90FT`
   - ✅ 创建类型化事件定义（frontend/src/types/analytics-events.ts, 118行）
-  - ⏸️ **当前状态**：已禁用，等待 GA4 property 创建和 Measurement ID 配置后启用
+  - ✅ 更新 CSP 配置允许 GA4 脚本加载
+    - 添加 `https://www.googletagmanager.com` 到 script-src
+    - 添加 `https://www.google-analytics.com` 到 connect-src
+  - ✅ **当前状态**：已启用并部署到生产环境（commit: 501db9b）
 - [ ] 5.4 配置告警规则
   - Sentry: 错误率 > 5% 发送 Slack 通知
   - Cloudflare Workers: API 延迟 > 2s 告警
