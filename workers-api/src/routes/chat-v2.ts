@@ -7,7 +7,7 @@ import { Hono } from 'hono'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Env } from '../types/env'
 import type { ChatRequestBody, ChatCompletionMessage } from '../types/chat'
-import { createSupabaseClient } from '../lib/supabase'
+import { getSupabaseClient } from '../lib/supabase'
 import { createOpenRouterClient } from '../lib/openrouter'
 import { createRateLimitMiddleware } from '../middlewares/rate-limit'
 import {
@@ -66,7 +66,7 @@ chatV2.post(
     }
 
     // Initialize clients
-    const supabase = createSupabaseClient(c.env)
+    const supabase = getSupabaseClient(c.env)
     const openrouter = createOpenRouterClient(c.env)
     const conversationId = body.conversation_id || crypto.randomUUID()
     const shouldStream = body.stream !== false

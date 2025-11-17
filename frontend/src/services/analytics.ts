@@ -41,6 +41,7 @@ export class GoogleAnalytics {
   private config: AnalyticsConfig
   private isInitialized = false
   private consent = false
+  private scriptLoaded = false
 
   private constructor() {
     // 默认配置
@@ -83,7 +84,8 @@ export class GoogleAnalytics {
     // 检查用户同意
     if (!this.config.enableConsent || this.getConsent()) {
       this.consent = true
-      this.loadGtag()
+      this.loadScript()
+      this.hydrateGtag()
       this.configureGtag()
       this.isInitialized = true
       console.log('Google Analytics initialized with ID:', this.config.measurementId)
@@ -91,14 +93,42 @@ export class GoogleAnalytics {
   }
 
   /**
-   * 加载gtag脚本
+   * 延迟加载 gtag.js 脚本
+   * 动态创建 script 标签，避免阻塞初始页面加载
    */
-  private loadGtag(): void {
+  private loadScript(): void {
+    if (typeof document === 'undefined' || !this.config.measurementId || this.scriptLoaded) {
+      return
+    }
+
+    // 检查脚本是否已加载（避免重复加载）
+    const selector = this.getScriptSelector()
+    if (document.head?.querySelector(selector)) {
+      this.scriptLoaded = true
+      return
+    }
+
+    // 动态创建并注入 script 标签
+    const script = document.createElement('script')
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${this.config.measurementId}`
+    script.async = true
+    script.setAttribute('data-ga-loaded', 'true')
+    script.addEventListener('load', () => {
+      this.scriptLoaded = true
+    })
+    document.head?.appendChild(script)
+  }
+
+  /**
+   * 初始化 gtag 函数和数据层
+   * 在脚本加载前创建 dataLayer 队列，支持延迟初始化
+   */
+  private hydrateGtag(): void {
     if (typeof window === 'undefined') {
       return
     }
 
-    // 创建gtag函数
+    // 创建 dataLayer 和 gtag 函数
     window.dataLayer = window.dataLayer || []
     window.gtag = function(...args: any[]) {
       window.dataLayer.push(...args)
@@ -112,6 +142,13 @@ export class GoogleAnalytics {
       cookie_flags: this.config.cookieFlags,
       send_page_view: false, // 手动控制页面浏览
     })
+  }
+
+  /**
+   * 获取脚本选择器，用于检测脚本是否已加载
+   */
+  private getScriptSelector(): string {
+    return `script[src="https://www.googletagmanager.com/gtag/js?id=${this.config.measurementId}"]`
   }
 
   /**

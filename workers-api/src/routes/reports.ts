@@ -13,7 +13,7 @@ import type {
   ReportGenerationState
 } from '../types/reports'
 import { createOpenRouterClient } from '../lib/openrouter'
-import { createSupabaseClient } from '../lib/supabase'
+import { getSupabaseClient } from '../lib/supabase'
 import { createRateLimitMiddleware } from '../middlewares/rate-limit'
 
 const reports = new Hono<{ Bindings: Env }>()
@@ -120,7 +120,7 @@ reports.post(
 
     // Initialize OpenRouter client
     const openrouter = createOpenRouterClient(c.env)
-    const supabase = createSupabaseClient(c.env)
+    const supabase = getSupabaseClient(c.env)
 
     // Initialize generation state
     const state: ReportGenerationState = {

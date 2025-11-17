@@ -36,8 +36,8 @@ vi.mock('../../src/lib/openrouter', () => ({
 }))
 
 // Mock Supabase
-vi.mock('../../src/lib/supabase', () => ({
-  createSupabaseClient: vi.fn(() => ({
+vi.mock('../../src/lib/supabase', () => {
+  const mockClient = vi.fn(() => ({
     from: vi.fn((table: string) => {
       if (table === 'reports') {
         return {
@@ -55,8 +55,13 @@ vi.mock('../../src/lib/supabase', () => ({
         upsert: vi.fn(async () => ({ error: null })),
       }
     }),
-  })),
-}))
+  }))
+
+  return {
+    createSupabaseClient: mockClient,
+    getSupabaseClient: mockClient
+  }
+})
 
 import { Hono } from 'hono'
 import reports from '../../src/routes/reports'

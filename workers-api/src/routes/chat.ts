@@ -7,7 +7,7 @@ import { Hono } from 'hono'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Env } from '../types/env'
 import type { ChatRequestBody, ChatCompletionMessage } from '../types/chat'
-import { createSupabaseClient } from '../lib/supabase'
+import { getSupabaseClient } from '../lib/supabase'
 import { createOpenRouterClient, OpenRouterError } from '../lib/openrouter'
 import { createRateLimitMiddleware } from '../middlewares/rate-limit'
 import { createCoinGeckoClient } from '../lib/coingecko'
@@ -84,7 +84,7 @@ chat.post(
     }
 
     // Initialize clients and conversation
-    const supabase = createSupabaseClient(c.env)
+    const supabase = getSupabaseClient(c.env)
     const openrouter = createOpenRouterClient(c.env)
     const coingecko = createCoinGeckoClient()
     const conversationId = body.conversation_id || crypto.randomUUID()

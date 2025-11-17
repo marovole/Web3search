@@ -161,37 +161,54 @@ describe('loggerMiddleware', () => {
   })
 
   describe('Console Logging', () => {
-    it('logs request start with method, path, and request ID', async () => {
+    it('logs request with JSON metrics', async () => {
       await sendLoggerRequest()
 
-      expect(consoleLogSpy).toHaveBeenCalledTimes(2)
+      expect(consoleLogSpy).toHaveBeenCalledTimes(1)
 
-      const [startLog] = consoleLogSpy.mock.calls.map((args) => args[0])
-      expect(startLog).toContain(`[${MOCK_REQUEST_ID}] --> GET /resource`)
+      const [logPrefix, logData] = consoleLogSpy.mock.calls[0]
+      expect(logPrefix).toBe('[REQUEST]')
+
+      const metrics = JSON.parse(logData)
+      expect(metrics).toMatchObject({
+        method: 'GET',
+        path: '/resource',
+        status: 200,
+        requestId: MOCK_REQUEST_ID
+      })
+      expect(metrics).toHaveProperty('durationMs')
+      expect(metrics).toHaveProperty('timestamp')
+      expect(metrics.slow).toBe(false)
     })
 
-    it('logs request completion with status and response time', async () => {
-      await sendLoggerRequest()
+    it('logs slow requests with warning', async () => {
+      // Mock a slow response
+      vi.spyOn(Date, 'now')
+        .mockReturnValueOnce(0) // start time
+        .mockReturnValueOnce(1500) // end time (1.5s duration)
 
-      expect(consoleLogSpy).toHaveBeenCalledTimes(2)
+      await sendLoggerRequest({ method: 'POST', path: '/slow-endpoint' })
 
-      const [, endLog] = consoleLogSpy.mock.calls.map((args) => args[0])
-      expect(endLog).toContain(`[${MOCK_REQUEST_ID}] <-- GET /resource`)
-      expect(endLog).toContain('| Status: 200 |')
-      expect(endLog).toMatch(/\| Time: \d+ms/)
+      const [logPrefix, logData] = consoleLogSpy.mock.calls[0]
+      expect(logPrefix).toBe('[PERFORMANCE]')
+
+      const metrics = JSON.parse(logData)
+      expect(metrics.durationMs).toBeGreaterThan(1000)
+      expect(metrics.slow).toBe(true)
     })
 
     it('logs different HTTP methods correctly', async () => {
       await sendLoggerRequest({ method: 'POST', path: '/slow-endpoint' })
 
-      const [startLog, endLog] = consoleLogSpy.mock.calls.map((args) => args[0])
-      expect(startLog).toContain('--> POST /slow-endpoint')
-      expect(endLog).toContain('<-- POST /slow-endpoint')
+      const [, logData] = consoleLogSpy.mock.calls[0]
+      const metrics = JSON.parse(logData)
+      expect(metrics.method).toBe('POST')
+      expect(metrics.path).toBe('/slow-endpoint')
     })
   })
 
-  describe('IP Address Extraction', () => {
-    it('extracts IP from cf-connecting-ip header (priority 1)', async () => {
+  describe('IP Address Extraction and Masking', () => {
+    it('extracts and masks IP from cf-connecting-ip header (priority 1)', async () => {
       await sendLoggerRequest({
         headers: {
           'cf-connecting-ip': '203.0.113.42',
@@ -199,60 +216,58 @@ describe('loggerMiddleware', () => {
         },
       })
 
-      const [startLog] = consoleLogSpy.mock.calls.map((args) => args[0])
-      expect(startLog).toContain('| IP: 203.0.113.42 |')
+      const [, logData] = consoleLogSpy.mock.calls[0]
+      const metrics = JSON.parse(logData)
+      // IPv4 masking: keeps first two octets
+      expect(metrics.ip).toBe('203.0.0.0')
     })
 
-    it('falls back to x-real-ip header when cf-connecting-ip is missing', async () => {
+    it('falls back to x-real-ip header and masks it', async () => {
       await sendLoggerRequest({
         headers: {
           'x-real-ip': '198.51.100.1',
         },
       })
 
-      const [startLog] = consoleLogSpy.mock.calls.map((args) => args[0])
-      expect(startLog).toContain('| IP: 198.51.100.1 |')
+      const [, logData] = consoleLogSpy.mock.calls[0]
+      const metrics = JSON.parse(logData)
+      // IPv4 masking: keeps first two octets
+      expect(metrics.ip).toBe('198.51.0.0')
     })
 
     it('uses "unknown" when no IP headers are present', async () => {
       await sendLoggerRequest()
 
-      const [startLog] = consoleLogSpy.mock.calls.map((args) => args[0])
-      expect(startLog).toContain('| IP: unknown |')
+      const [, logData] = consoleLogSpy.mock.calls[0]
+      const metrics = JSON.parse(logData)
+      expect(metrics.ip).toBe('unknown')
     })
-  })
 
-  describe('User-Agent Handling', () => {
-    it('includes user-agent in request log', async () => {
+    it('masks IPv6 addresses correctly', async () => {
       await sendLoggerRequest({
         headers: {
-          'user-agent': 'Mozilla/5.0 Test Browser',
+          'cf-connecting-ip': '2001:0db8:85a3:0000:0000:8a2e:0370:7334',
         },
       })
 
-      const [startLog] = consoleLogSpy.mock.calls.map((args) => args[0])
-      expect(startLog).toContain('| UA: Mozilla/5.0 Test Browser...')
+      const [, logData] = consoleLogSpy.mock.calls[0]
+      const metrics = JSON.parse(logData)
+      // IPv6 masking: keeps first four segments, always 8 total
+      expect(metrics.ip).toBe('2001:0db8:85a3:0000:xxxx:xxxx:xxxx:xxxx')
     })
 
-    it('truncates long user-agent strings to 50 characters', async () => {
-      const longUA = 'A'.repeat(100)
-
+    it('masks compressed IPv6 addresses correctly', async () => {
       await sendLoggerRequest({
         headers: {
-          'user-agent': longUA,
+          'cf-connecting-ip': '2001:db8::1',
         },
       })
 
-      const [startLog] = consoleLogSpy.mock.calls.map((args) => args[0])
-      expect(startLog).toContain(`| UA: ${'A'.repeat(50)}...`)
-      expect(startLog).not.toContain('A'.repeat(51))
-    })
-
-    it('handles missing user-agent gracefully', async () => {
-      await sendLoggerRequest()
-
-      const [startLog] = consoleLogSpy.mock.calls.map((args) => args[0])
-      expect(startLog).toContain('| UA: unknown...')
+      const [, logData] = consoleLogSpy.mock.calls[0]
+      const metrics = JSON.parse(logData)
+      // Compressed IPv6 masking: always outputs 8 segments
+      // 2001:db8::1 expands to [2001, db8, 1] -> masks to 2001:db8:1:0:xxxx:xxxx:xxxx:xxxx
+      expect(metrics.ip).toBe('2001:db8:1:0:xxxx:xxxx:xxxx:xxxx')
     })
   })
 
@@ -262,8 +277,9 @@ describe('loggerMiddleware', () => {
       // This test verifies the fallback behavior
       await sendLoggerRequest()
 
-      const [startLog] = consoleLogSpy.mock.calls.map((args) => args[0])
-      expect(startLog).toContain('| Colo: unknown |')
+      const [, logData] = consoleLogSpy.mock.calls[0]
+      const metrics = JSON.parse(logData)
+      expect(metrics.colo).toBe('unknown')
     })
   })
 })

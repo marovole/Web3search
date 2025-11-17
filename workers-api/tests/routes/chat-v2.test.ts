@@ -67,8 +67,8 @@ vi.mock('../../src/lib/conversation', () => ({
 }))
 
 // Mock Supabase
-vi.mock('../../src/lib/supabase', () => ({
-  createSupabaseClient: vi.fn(() => ({
+vi.mock('../../src/lib/supabase', () => {
+  const mockClient = vi.fn(() => ({
     from: vi.fn(() => ({
       upsert: vi.fn(async () => ({ error: null })),
       insert: vi.fn(() => ({
@@ -78,7 +78,12 @@ vi.mock('../../src/lib/supabase', () => ({
       }))
     }))
   }))
-}))
+
+  return {
+    createSupabaseClient: mockClient,
+    getSupabaseClient: mockClient
+  }
+})
 
 // Mock OpenRouter
 vi.mock('../../src/lib/openrouter', () => ({

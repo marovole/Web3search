@@ -124,9 +124,11 @@ export class MonitoringManager {
    * 初始化Sentry
    */
   private async initializeSentry(): Promise<void> {
-    if (this.config.sentry?.enabled) {
+    if (this.config.sentry?.enabled && this.config.sentry?.dsn) {
       initSentry()
       console.log('🔧 Sentry错误监控已初始化')
+    } else {
+      console.log('ℹ️ Sentry错误监控已禁用 (DSN未配置或已禁用)')
     }
   }
 
@@ -146,6 +148,8 @@ export class MonitoringManager {
       }
 
       console.log('📊 Google Analytics已初始化')
+    } else {
+      console.log('ℹ️ Google Analytics已禁用 (Measurement ID未配置或已禁用)')
     }
   }
 

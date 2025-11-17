@@ -5,7 +5,7 @@
 
 import { Hono } from 'hono'
 import type { Env } from '../types/env'
-import { createSupabaseClient } from '../lib/supabase'
+import { getSupabaseClient } from '../lib/supabase'
 
 const search = new Hono<{ Bindings: Env }>()
 
@@ -49,7 +49,7 @@ search.get('/autocomplete', async (c) => {
   }
 
   try {
-    const supabase = createSupabaseClient(c.env)
+    const supabase = getSupabaseClient(c.env)
     // 转义 PostgreSQL ILIKE 特殊字符以防止 SQL 注入
     const searchTerm = query.replace(/[%_]/g, '\\$&')
 

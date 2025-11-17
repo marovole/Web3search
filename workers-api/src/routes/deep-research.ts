@@ -16,7 +16,7 @@ import type {
   ResearchListParams,
   ResearchListResponse,
 } from '../types/deep-research'
-import { createSupabaseClient } from '../lib/supabase'
+import { getSupabaseClient } from '../lib/supabase'
 import { createOpenRouterClient } from '../lib/openrouter'
 import { ROUTING_STRATEGIES, getModelConfig } from '../lib/model-routing'
 import { executeOpenRouterRequest } from '../lib/resilience'
@@ -91,7 +91,7 @@ deepResearch.post(
     }
 
     try {
-      const supabase = createSupabaseClient(c.env)
+      const supabase = getSupabaseClient(c.env)
 
       // Determine model and provider
       const useCase = 'deep-research' as const
@@ -238,7 +238,7 @@ deepResearch.get(
     }
 
     try {
-      const supabase = createSupabaseClient(c.env)
+      const supabase = getSupabaseClient(c.env)
 
       // Determine model configuration
       const useCase = 'deep-research' as const
@@ -324,7 +324,7 @@ deepResearch.get('/:id', async (c) => {
   }
 
   try {
-    const supabase = createSupabaseClient(c.env)
+    const supabase = getSupabaseClient(c.env)
 
     const { data: task, error } = await supabase
       .from('deep_research_tasks')
@@ -370,7 +370,7 @@ deepResearch.get('/:id', async (c) => {
  */
 deepResearch.get('/', async (c) => {
   try {
-    const supabase = createSupabaseClient(c.env)
+    const supabase = getSupabaseClient(c.env)
 
     // Parse query parameters
     const limit = Math.min(parseInt(c.req.query('limit') || '20'), 100)

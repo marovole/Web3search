@@ -57,8 +57,8 @@ vi.mock('../../src/routes/deep-research', async () => {
 })
 
 // Mock Supabase client
-vi.mock('../../src/lib/supabase', () => ({
-  createSupabaseClient: vi.fn(() => {
+vi.mock('../../src/lib/supabase', () => {
+  const mockClient = vi.fn(() => {
     const conversationUpsert = vi.fn(async () => ({ error: null }))
     const createBuilder = () => {
       const promise = Promise.resolve({ data: [], error: null })
@@ -83,8 +83,13 @@ vi.mock('../../src/lib/supabase', () => ({
         return { upsert: vi.fn(async () => ({ error: null })) }
       }),
     }
-  }),
-}))
+  })
+
+  return {
+    createSupabaseClient: mockClient,
+    getSupabaseClient: mockClient
+  }
+})
 
 import deepResearch from '../../src/routes/deep-research'
 

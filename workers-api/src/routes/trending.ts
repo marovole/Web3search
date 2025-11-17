@@ -5,7 +5,7 @@
 
 import { Hono } from 'hono'
 import type { Env } from '../types/env'
-import { createSupabaseClient } from '../lib/supabase'
+import { getSupabaseClient } from '../lib/supabase'
 
 const trending = new Hono<{ Bindings: Env }>()
 
@@ -18,7 +18,7 @@ trending.get('/hotspots', async (c) => {
   const forceRefresh = c.req.query('force_refresh') === 'true'
 
   try {
-    const supabase = createSupabaseClient(c.env)
+    const supabase = getSupabaseClient(c.env)
 
     // Check cache first (if not force refresh)
     if (!forceRefresh && c.env.CACHE) {

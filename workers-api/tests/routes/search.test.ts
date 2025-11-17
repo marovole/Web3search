@@ -7,8 +7,8 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import type { Env } from '../../src/types/env'
 
 // Mock Supabase
-vi.mock('../../src/lib/supabase', () => ({
-  createSupabaseClient: vi.fn(() => ({
+vi.mock('../../src/lib/supabase', () => {
+  const mockClient = vi.fn(() => ({
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         or: vi.fn(() => ({
@@ -33,7 +33,12 @@ vi.mock('../../src/lib/supabase', () => ({
       }))
     }))
   }))
-}))
+
+  return {
+    createSupabaseClient: mockClient,
+    getSupabaseClient: mockClient
+  }
+})
 
 import search from '../../src/routes/search'
 

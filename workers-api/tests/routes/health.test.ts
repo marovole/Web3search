@@ -25,13 +25,14 @@ describe('Health Check Routes', () => {
   describe('GET /', () => {
     it('returns 200 when database is connected', async () => {
       const response = await fetchHealth()
-      expect(response.status).toBe(200)
-
       const body = await response.json()
+
+      expect(response.status).toBe(200)
       expect(body.status).toBe('healthy')
       expect(body).toHaveProperty('version')
       expect(body).toHaveProperty('timestamp')
       expect(body).toHaveProperty('responseTime')
+      expect(body.cached).toBe(false)
     })
 
     it('includes database status information', async () => {
@@ -84,6 +85,39 @@ describe('Health Check Routes', () => {
       expect(body.status).toBe('unhealthy')
       expect(body).toHaveProperty('error')
     })
+
+    it('returns cached response on second call', async () => {
+      const { testDatabaseConnection } = await import('../../src/lib/supabase')
+      const mockDbCheck = vi.mocked(testDatabaseConnection)
+
+      // Reset call count
+      mockDbCheck.mockClear()
+
+      // Create shared env instance so both calls use the same KV storage
+      const sharedEnv = createMockEnv()
+
+      // First call - should hit database and cache the result
+      const response1 = await fetchHealth('/', sharedEnv)
+      const body1 = await response1.json()
+
+      expect(response1.status).toBe(200)
+      expect(body1.cached).toBe(false)
+      expect(mockDbCheck).toHaveBeenCalledTimes(1)
+
+      // Wait for cache write to complete (async operation)
+      await new Promise(resolve => setTimeout(resolve, 50))
+
+      // Second call - should return cached result (within 10s TTL)
+      // Use the same env to access the same KV storage
+      const response2 = await fetchHealth('/', sharedEnv)
+      const body2 = await response2.json()
+
+      expect(response2.status).toBe(200)
+      expect(body2.cached).toBe(true)
+      expect(body2.status).toBe('healthy')
+      // Database check should still be called only once (cached)
+      expect(mockDbCheck).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('GET /ready', () => {
@@ -118,13 +152,41 @@ describe('Health Check Routes', () => {
   })
 })
 
+function createMockKV(): KVNamespace {
+  const storage = new Map<string, string>()
+
+  return {
+    get: async (key: string, type?: string) => {
+      const value = storage.get(key)
+      if (!value) return null
+      if (type === 'json') {
+        try {
+          return JSON.parse(value)
+        } catch {
+          return null
+        }
+      }
+      return value
+    },
+    put: async (key: string, value: string, options?: any) => {
+      storage.set(key, value)
+    },
+    delete: async (key: string) => {
+      storage.delete(key)
+    },
+    list: async () => ({ keys: [], list_complete: true, cursor: '' }),
+    getWithMetadata: async () => ({ value: null, metadata: null }),
+    // Add other required KV methods as no-op stubs
+  } as unknown as KVNamespace
+}
+
 function createMockEnv(overrides: Partial<Env> = {}): Env {
   return {
     ENVIRONMENT: 'test',
     SUPABASE_URL: 'https://example.supabase.co',
     SUPABASE_ANON_KEY: 'anon',
     OPENROUTER_API_KEY: 'test',
-    CACHE: {} as KVNamespace,
+    CACHE: createMockKV(),
     ...overrides,
   } as Env
 }

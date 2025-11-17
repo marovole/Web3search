@@ -28,10 +28,15 @@ export interface Env {
 
   // Sentry Error Monitoring (Optional)
   SENTRY_DSN?: string
+  SENTRY_TRACES_SAMPLE_RATE?: string // Performance monitoring sample rate (0.0-1.0)
 
   // Client Session Tracking
   CLIENT_SESSION_ID?: string
 
   // Optional: Durable Objects (if needed in the future)
   // CHAT_CACHE?: DurableObjectNamespace
+
+  // Performance monitoring thresholds (milliseconds)
+  REQUEST_SLOW_THRESHOLD_MS?: string
+  REQUEST_WARN_THRESHOLD_MS?: string
 }

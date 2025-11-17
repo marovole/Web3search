@@ -6,6 +6,7 @@
 import { Hono } from 'hono'
 import type { Env } from './types/env'
 import { loggerMiddleware } from './middlewares/logger'
+import { sentryMiddleware, getSentry, createToucanForScheduled } from './lib/sentry'
 import { corsMiddleware } from './middlewares/cors'
 import healthRoutes from './routes/health'
 import searchRoutes from './routes/search'
@@ -22,6 +23,7 @@ const app = new Hono<{ Bindings: Env }>()
 // Global Middlewares
 // ============================================
 app.use('*', loggerMiddleware)
+app.use('*', sentryMiddleware) // Must be after logger (for requestId) and before cors
 app.use('*', corsMiddleware)
 
 // ============================================
@@ -79,6 +81,9 @@ app.notFound((c) => {
 export async function scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
   console.log(`[Scheduled] Cron job triggered: ${event.cron}`)
 
+  // Create Sentry instance for scheduled tasks
+  const sentry = createToucanForScheduled(env, event)
+
   try {
     switch (event.cron) {
       case '*/5 * * * *': // Every 5 minutes - Health checks
@@ -91,6 +96,8 @@ export async function scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionC
         console.log(`[Scheduled] Unknown cron schedule: ${event.cron}`)
     }
   } catch (error) {
+    // Capture cron job errors to Sentry
+    sentry?.captureException(error as Error)
     console.error(`[Scheduled] Error executing cron job ${event.cron}:`, error)
   }
 }
@@ -99,14 +106,14 @@ export async function scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionC
  * Run health checks for all services
  */
 async function runHealthChecks(env: Env, ctx: ExecutionContext) {
-  const { createSupabaseClient } = await import('./lib/supabase')
+  const { getSupabaseClient } = await import('./lib/supabase')
   const { createOpenRouterClient } = await import('./lib/openrouter')
 
   const results = []
 
   // Check Supabase
   try {
-    const supabase = createSupabaseClient(env)
+    const supabase = getSupabaseClient(env)
     const { error } = await supabase.from('conversations').select('id').limit(1)
 
     results.push({
@@ -181,7 +188,7 @@ async function runHealthChecks(env: Env, ctx: ExecutionContext) {
 
   // Save results to Supabase if possible
   try {
-    const supabase = createSupabaseClient(env)
+    const supabase = getSupabaseClient(env)
     await supabase.from('healthcheck_events').insert(
       results.map(check => ({
         ...check,
@@ -228,14 +235,22 @@ async function runKvCacheCleanup(env: Env, ctx: ExecutionContext) {
 // Error Handler
 // ============================================
 app.onError((err, c) => {
+  // Capture exception to Sentry
+  const sentry = getSentry(c)
+  sentry?.captureException(err)
+
   console.error('Unhandled error:', err)
+
+  // Use Sentry event ID as trace_id if available, otherwise use requestId
+  const eventId = sentry?.lastEventId()
+  const traceId = eventId || c.get('requestId') || 'unknown'
 
   return c.json(
     {
       error: {
         code: 'INTERNAL_ERROR',
         message: 'An internal error occurred',
-        trace_id: c.get('requestId') || 'unknown',
+        trace_id: traceId,
         status: 500,
       },
     },
