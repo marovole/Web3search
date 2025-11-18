@@ -63,6 +63,28 @@ function getEnvVar(key: string, defaultValue?: string): string {
   return value
 }
 
+// 强制使用正确的API URL（临时修复方案）
+function getApiBaseUrl(): string {
+  // 强制返回正确的API URL
+  const correctUrl = 'https://web3search-api.marovole.workers.dev'
+  
+  // 检查当前读取的环境变量
+  const currentUrl = import.meta.env.VITE_API_BASE_URL
+  
+  if (currentUrl && currentUrl.includes('onrender')) {
+    console.log(`🔄 检测到错误的API URL: ${currentUrl}`)
+    console.log(`✅ 强制使用正确的API URL: ${correctUrl}`)
+    return correctUrl
+  }
+  
+  if (currentUrl && currentUrl !== correctUrl) {
+    console.log(`⚠️  API URL可能不正确: ${currentUrl}`)
+    console.log(`✅ 建议使用: ${correctUrl}`)
+  }
+  
+  return currentUrl || correctUrl
+}
+
 /**
  * 解析布尔值环境变量
  */
@@ -109,7 +131,7 @@ export function loadEnvConfig(): EnvConfig {
     const config: EnvConfig = {
       ENVIRONMENT: getEnvVar('VITE_ENVIRONMENT', DEFAULT_CONFIG.ENVIRONMENT) as EnvConfig['ENVIRONMENT'],
       USE_MOCK_API: parseBool(getEnvVar('VITE_USE_MOCK_API', String(DEFAULT_CONFIG.USE_MOCK_API))),
-      API_BASE_URL: getEnvVar('VITE_API_BASE_URL', DEFAULT_CONFIG.API_BASE_URL),
+      API_BASE_URL: getApiBaseUrl(),
       ENABLE_SENTRY: parseBool(getEnvVar('VITE_ENABLE_SENTRY', String(DEFAULT_CONFIG.ENABLE_SENTRY))),
       ENABLE_ANALYTICS: parseBool(getEnvVar('VITE_ENABLE_ANALYTICS', String(DEFAULT_CONFIG.ENABLE_ANALYTICS))),
       ENABLE_EXPERIMENTAL_FEATURES: parseBool(getEnvVar('VITE_ENABLE_EXPERIMENTAL_FEATURES', String(DEFAULT_CONFIG.ENABLE_EXPERIMENTAL_FEATURES))),
