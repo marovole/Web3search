@@ -11,8 +11,8 @@ import { testDatabaseConnection } from '../lib/supabase'
 
 // Health check cache configuration
 const CACHE_KEY_PREFIX = 'health:check'
-const CACHE_TTL_MS = 10 * 1000 // 10 seconds (fast failure detection)
-const CACHE_TTL_SECONDS = 10
+const CACHE_TTL_MS = 60 * 1000 // 60 seconds (aligned with documentation)
+const CACHE_TTL_SECONDS = 60
 
 const health = new Hono<{ Bindings: Env }>()
 
@@ -47,7 +47,11 @@ health.get('/', async (c) => {
       // Validate timestamp and check expiration
       const cachedAt = new Date(cached.timestamp).getTime()
       if (Number.isNaN(cachedAt)) return null
-      if (Date.now() - cachedAt > CACHE_TTL_MS) return null
+      const cacheAgeMs = Date.now() - cachedAt
+      if (cacheAgeMs > CACHE_TTL_MS) {
+        console.debug('[Health] Cache expired', { cacheKey, ageMs: cacheAgeMs, ttlMs: CACHE_TTL_MS })
+        return null
+      }
 
       return cached
     } catch (error) {
@@ -127,6 +131,9 @@ health.get('/', async (c) => {
       const cacheWritePromise = cache
         .put(cacheKey, JSON.stringify(cachePayload), {
           expirationTtl: CACHE_TTL_SECONDS,
+        })
+        .then(() => {
+          console.debug('[Health] Cache write success', { cacheKey, ttl: CACHE_TTL_SECONDS })
         })
         .catch((err) => {
           // Cache write failure - log but don't fail the request
