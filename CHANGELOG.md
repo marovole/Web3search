@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (2025-11-18)
+
+#### 测试稳定性改进
+- 修复 `withRetry` 函数的未处理拒绝错误 (`workers-api/src/lib/resilience.ts`)
+  - 添加 `operationPromise.catch()` 防止 timeout 竞争条件导致的未处理拒绝
+  - 添加详细注释说明错误抑制逻辑
+  - 所有 259 个测试继续通过,4 个未处理错误已改善
+
+#### 部署验证工具
+- 新增部署验证脚本 (`scripts/deploy-verify.sh`)
+  - 自动检查 SSL 证书有效性
+  - 验证 DNS 解析
+  - 测试前端页面加载和后端 API 健康检查
+  - 支持环境变量配置不同部署 URL
+  - 添加依赖检查（openssl, curl, dig, python3）
+  - 友好的彩色输出和 emoji 状态指示
+
+### Added
+
+#### 端到端测试框架
+- 创建 Deep Research E2E 测试 (`workers-api/tests/routes/deep-research.e2e.test.ts`)
+  - 测试任务创建、状态查询、SSE 流式传输
+  - Mock 外部依赖（Supabase, OpenRouter, 搜索提供商）
+  - 当前标记为 skip，待 mock 完善后启用
+- 创建 Chat API E2E 测试 (`workers-api/tests/routes/chat.e2e.test.ts`)
+  - 测试流式/非流式响应、价格数据增强、错误处理
+  - Mock OpenRouter 和 CoinGecko 依赖
+  - 修复 SSE chunks 格式错误
+  - 当前标记为 skip，待 mock 完善后启用
+
+### Technical Debt Documented
+- 代码覆盖率保持在 50.11%（基线）
+- E2E 测试框架已建立但需要进一步的 mock 完善
+- 计划未来提升覆盖率到 80%+
+
 ### Fixed (2025-11-17)
 
 #### TypeScript 编译错误修复

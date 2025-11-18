@@ -207,13 +207,22 @@ export async function withRetry<T>(
   config: RetryConfig = DEFAULT_RETRY_CONFIG,
   attempt = 1
 ): Promise<T> {
+  const timeoutMs = config.timeoutMs ?? 30000
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+  const operationPromise = operation()
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('Operation timeout')), timeoutMs)
+  })
+
+  const clearTimer = () => {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId)
+      timeoutId = undefined
+    }
+  }
+
   try {
-    const result = await Promise.race([
-      operation(),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Operation timeout')), config.timeoutMs || 30000)
-      )
-    ])
+    const result = await Promise.race([operationPromise, timeoutPromise])
     return result
   } catch (error) {
     const isRetryable =
@@ -233,6 +242,13 @@ export async function withRetry<T>(
     }
 
     throw error
+  } finally {
+    clearTimer()
+    // Suppress unhandled rejection from the "loser" promise in the race.
+    // When timeout wins, the operation promise may still reject later.
+    // This catch handler prevents Node from throwing an UnhandledPromiseRejectionWarning.
+    // The actual error (if needed) was already caught and handled above.
+    void operationPromise.catch(() => {})
   }
 }
 

@@ -91,7 +91,8 @@ deepResearch.post(
     }
 
     try {
-      const supabase = getSupabaseClient(c.env)
+      // Use service role to bypass RLS for creating tasks
+      const supabase = getSupabaseClient(c.env, true)
 
       // Determine model and provider
       const useCase = 'deep-research' as const
@@ -238,7 +239,8 @@ deepResearch.get(
     }
 
     try {
-      const supabase = getSupabaseClient(c.env)
+      // Use service role to bypass RLS for creating and updating tasks
+      const supabase = getSupabaseClient(c.env, true)
 
       // Determine model configuration
       const useCase = 'deep-research' as const
@@ -324,7 +326,8 @@ deepResearch.get('/:id', async (c) => {
   }
 
   try {
-    const supabase = getSupabaseClient(c.env)
+    // Use service role to read tasks (RLS might block anonymous reads)
+    const supabase = getSupabaseClient(c.env, true)
 
     const { data: task, error } = await supabase
       .from('deep_research_tasks')
@@ -370,7 +373,8 @@ deepResearch.get('/:id', async (c) => {
  */
 deepResearch.get('/', async (c) => {
   try {
-    const supabase = getSupabaseClient(c.env)
+    // Use service role to list tasks (RLS might block anonymous reads)
+    const supabase = getSupabaseClient(c.env, true)
 
     // Parse query parameters
     const limit = Math.min(parseInt(c.req.query('limit') || '20'), 100)

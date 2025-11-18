@@ -8,7 +8,12 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Env } from '../types/env'
 import type { ChatRequestBody, ChatCompletionMessage } from '../types/chat'
 import { getSupabaseClient } from '../lib/supabase'
-import { createOpenRouterClient, OpenRouterError } from '../lib/openrouter'
+import {
+  createOpenRouterClient,
+  OpenRouterError,
+  type OpenRouterClient,
+  type OpenRouterPayload,
+} from '../lib/openrouter'
 import { createRateLimitMiddleware } from '../middlewares/rate-limit'
 import { createCoinGeckoClient } from '../lib/coingecko'
 import { ROUTING_STRATEGIES, getModelConfig } from '../lib/model-routing'
@@ -23,6 +28,11 @@ const MAX_HISTORY_MESSAGES = 10
 const SYSTEM_PROMPT = `You are Web3search, an AI researcher focused on cryptocurrency fundamentals.
 - Provide concise answers with evidence or metrics where possible.
 - Highlight uncertainty and refuse malicious requests (phishing, scams, sensitive data).`
+
+const OPENROUTER_MAX_ATTEMPTS = 5
+const OPENROUTER_RETRY_BASE_DELAY_MS = 1000
+const OPENROUTER_RETRY_MAX_DELAY_MS = 5000
+const OPENROUTER_RETRYABLE_STATUSES = new Set([408, 500, 502, 503, 504])
 
 const chat = new Hono<{ Bindings: Env }>()
 
@@ -141,7 +151,7 @@ Please use this real-time data in your response.
     try {
       if (shouldStream) {
         // Streaming response (SSE)
-        const upstream = await openrouter.request(payload)
+        const upstream = await requestWithRetry(openrouter, payload)
         return await streamChatResponse({
           upstream,
           supabase,
@@ -150,7 +160,7 @@ Please use this real-time data in your response.
       }
 
       // Non-streaming response
-      const response = await openrouter.request(payload)
+      const response = await requestWithRetry(openrouter, payload)
       const result = await response.json<{
         choices: Array<{ message?: { content?: string } }>
       }>()
@@ -336,5 +346,62 @@ async function streamChatResponse({
       'Connection': 'keep-alive',
     },
   })
+}
+
+/**
+ * Execute OpenRouter request with retry logic
+ * Retries on transient errors (5xx, 408) with exponential backoff
+ */
+async function requestWithRetry(
+  openrouter: OpenRouterClient,
+  payload: OpenRouterPayload
+): Promise<Response> {
+  let lastError: unknown
+
+  for (let attempt = 1; attempt <= OPENROUTER_MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await openrouter.request(payload)
+      if (attempt > 1) {
+        console.log(`OpenRouter request succeeded on attempt ${attempt}`)
+      }
+      return response
+    } catch (error) {
+      lastError = error
+      const status = error instanceof OpenRouterError ? error.status : null
+      const errorName = error instanceof Error ? error.name : 'Unknown'
+      const errorMessage = error instanceof Error ? error.message : String(error)
+
+      console.warn(
+        `OpenRouter request failed (attempt ${attempt}/${OPENROUTER_MAX_ATTEMPTS}):`,
+        `${errorName} - ${errorMessage}`,
+        status ? `Status: ${status}` : ''
+      )
+
+      const canRetry =
+        attempt < OPENROUTER_MAX_ATTEMPTS &&
+        (status === null || OPENROUTER_RETRYABLE_STATUSES.has(status))
+
+      if (!canRetry) {
+        console.error('OpenRouter request exhausted retries or non-retryable error')
+        break
+      }
+
+      const delay = Math.min(
+        OPENROUTER_RETRY_BASE_DELAY_MS * attempt,
+        OPENROUTER_RETRY_MAX_DELAY_MS
+      )
+      console.log(`Retrying OpenRouter request in ${delay}ms...`)
+      await sleep(delay)
+    }
+  }
+
+  throw lastError ?? new Error('OpenRouter request failed')
+}
+
+/**
+ * Sleep helper for retry delays
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 

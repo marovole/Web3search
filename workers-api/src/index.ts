@@ -38,8 +38,8 @@ app.get('/', (c) => {
     endpoints: {
       health: '/api/v1/health',
       search: '/api/v1/search/autocomplete',
-      chat: '/api/v1/chat/quick-chat',
-      chatV2: '/api/v2/chat/quick-chat (Enhanced with model routing)',
+      chat: '/api/v1/chat/quick-chat (Uses v2 implementation with resilience)',
+      chatV2: '/api/v2/chat/quick-chat (Same as v1, enhanced with model routing)',
       deepResearch: '/api/v1/deep-research (Async research tasks)',
       reports: '/api/v1/reports/generate',
       trending: '/api/v1/trending/hotspots',
@@ -52,7 +52,8 @@ app.get('/', (c) => {
 // ============================================
 app.route('/api/v1/health', healthRoutes)
 app.route('/api/v1/search', searchRoutes)
-app.route('/api/v1/chat', chatRoutes)
+// V1 chat now uses V2 implementation for better stability
+app.route('/api/v1/chat', chatV2Routes)
 app.route('/api/v2/chat', chatV2Routes)
 app.route('/api/v1/deep-research', deepResearchRoutes)
 app.route('/api/v1/reports', reportRoutes)

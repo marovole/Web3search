@@ -7,7 +7,7 @@ import type { Env } from '../types/env'
 import type { ChatCompletionMessage } from '../types/chat'
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
-const DEFAULT_TIMEOUT_MS = 30_000
+const DEFAULT_TIMEOUT_MS = 60_000
 
 /**
  * Payload for OpenRouter chat completion request
@@ -66,7 +66,11 @@ export const createOpenRouterClient = (env: Env): OpenRouterClient => {
 
   const request: OpenRouterClient['request'] = async (payload) => {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
+    // Disable timeout for streaming requests to allow long-running responses
+    // Non-streaming requests use 60s timeout to prevent cold-start failures
+    const timeoutMs = payload.stream ? 0 : DEFAULT_TIMEOUT_MS
+    const timeout =
+      timeoutMs > 0 ? setTimeout(() => controller.abort(), timeoutMs) : undefined
 
     try {
       const response = await fetch(OPENROUTER_URL, {
@@ -88,7 +92,7 @@ export const createOpenRouterClient = (env: Env): OpenRouterClient => {
 
       return response
     } finally {
-      clearTimeout(timeout)
+      if (timeout) clearTimeout(timeout)
     }
   }
 
