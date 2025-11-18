@@ -26,11 +26,46 @@ const HotspotPanel: React.FC<HotspotPanelProps> = ({ onSelectHotspot }) => {
     try {
       setLoading(true)
       const response = await getHotspots(10, false)
-      setHotspots(response.hotspots)
+
+      // 验证响应数据结构
+      if (!response || !Array.isArray(response.hotspots)) {
+        console.error('Invalid hotspots response:', response)
+        throw new Error('Invalid response format')
+      }
+
+      // 验证每个热点数据的完整性
+      const validHotspots = response.hotspots.filter((hotspot) => {
+        const isValid =
+          hotspot &&
+          typeof hotspot.coin_id === 'string' &&
+          typeof hotspot.symbol === 'string' &&
+          typeof hotspot.name === 'string' &&
+          typeof hotspot.total_score === 'number'
+
+        if (!isValid) {
+          console.warn('Invalid hotspot data:', hotspot)
+        }
+        return isValid
+      })
+
+      if (validHotspots.length === 0 && response.hotspots.length > 0) {
+        console.error('All hotspots failed validation')
+        throw new Error('Data validation failed')
+      }
+
+      setHotspots(validHotspots)
       setError(null)
+
+      // 记录成功加载
+      console.log(`✅ Loaded ${validHotspots.length} hotspots successfully`)
     } catch (err) {
-      setError('加载热点失败')
-      console.error('Failed to load hotspots:', err)
+      const errorMessage = err instanceof Error ? err.message : '未知错误'
+      setError(`加载热点失败: ${errorMessage}`)
+      console.error('Failed to load hotspots:', {
+        error: err,
+        message: errorMessage,
+        timestamp: new Date().toISOString(),
+      })
     } finally {
       setLoading(false)
     }
@@ -40,10 +75,32 @@ const HotspotPanel: React.FC<HotspotPanelProps> = ({ onSelectHotspot }) => {
     try {
       setLoading(true)
       const response = await getHotspots(10, true) // 强制刷新
-      setHotspots(response.hotspots)
+
+      // 验证响应数据
+      if (!response || !Array.isArray(response.hotspots)) {
+        console.error('Invalid refresh response:', response)
+        throw new Error('Invalid response format')
+      }
+
+      // 验证数据完整性
+      const validHotspots = response.hotspots.filter((hotspot) => {
+        return (
+          hotspot &&
+          typeof hotspot.coin_id === 'string' &&
+          typeof hotspot.symbol === 'string' &&
+          typeof hotspot.name === 'string' &&
+          typeof hotspot.total_score === 'number'
+        )
+      })
+
+      setHotspots(validHotspots)
       setError(null)
+
+      console.log(`✅ Refreshed ${validHotspots.length} hotspots`)
     } catch (err) {
-      setError('刷新失败')
+      const errorMessage = err instanceof Error ? err.message : '未知错误'
+      setError(`刷新失败: ${errorMessage}`)
+      console.error('Failed to refresh hotspots:', err)
     } finally {
       setLoading(false)
     }
@@ -86,6 +143,30 @@ const HotspotPanel: React.FC<HotspotPanelProps> = ({ onSelectHotspot }) => {
         </div>
         <div className="text-center py-4 text-red-600">
           {error}
+        </div>
+      </div>
+    )
+  }
+
+  // 处理空状态
+  if (!loading && !error && hotspots.length === 0) {
+    return (
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-4 no-print">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+            🔥 市场热点
+          </h3>
+          <button
+            onClick={handleRefresh}
+            className="text-sm text-primary hover:text-blue-700 font-medium"
+          >
+            刷新
+          </button>
+        </div>
+        <div className="text-center py-8 text-gray-500">
+          <div className="text-2xl mb-2">📊</div>
+          <div className="text-sm">暂无热点数据</div>
+          <div className="text-xs mt-1">稍后再试或点击刷新</div>
         </div>
       </div>
     )

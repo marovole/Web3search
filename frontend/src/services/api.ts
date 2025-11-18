@@ -19,26 +19,15 @@ import * as mockApi from './api.mock'
 import { getApiConfig, isDevelopment } from '../utils/env'
 import tokenManager from '../utils/tokenManager'
 
-let apiConfig = getApiConfig()
+const apiConfig = getApiConfig()
 const isDevMode = isDevelopment()
 
-// 🔧 临时修复：强制使用正确的API URL
-if (apiConfig.baseUrl && apiConfig.baseUrl.includes('onrender')) {
-  console.log('🔄 检测到错误的API URL，强制修复')
-  console.log(`❌ 旧URL: ${apiConfig.baseUrl}`)
-  apiConfig = {
-    baseUrl: 'https://web3search-api.marovole.workers.dev',
-    useMock: false
-  }
-  console.log(`✅ 新URL: ${apiConfig.baseUrl}`)
-}
-
-// 仅在开发环境输出 API 模式信息
+// 在开发环境输出 API 模式信息
 if (isDevMode) {
   if (apiConfig.useMock) {
-    console.log('🎭 Mock API Mode Enabled - Using mock data instead of real backend')
+    console.log('🎭 Mock API Mode - Using mock data')
   } else {
-    console.log('🌐 Real API Mode - Connecting to backend at', apiConfig.baseUrl)
+    console.log('🌐 Real API Mode - Backend:', apiConfig.baseUrl)
   }
 }
 

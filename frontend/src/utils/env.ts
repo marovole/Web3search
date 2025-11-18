@@ -63,26 +63,29 @@ function getEnvVar(key: string, defaultValue?: string): string {
   return value
 }
 
-// 强制使用正确的API URL（临时修复方案）
+/**
+ * 获取API Base URL
+ * 支持环境变量配置和运行时检测
+ */
 function getApiBaseUrl(): string {
-  // 强制返回正确的API URL
-  const correctUrl = 'https://web3search-api.marovole.workers.dev'
-  
-  // 检查当前读取的环境变量
-  const currentUrl = import.meta.env.VITE_API_BASE_URL
-  
-  if (currentUrl && currentUrl.includes('onrender')) {
-    console.log(`🔄 检测到错误的API URL: ${currentUrl}`)
-    console.log(`✅ 强制使用正确的API URL: ${correctUrl}`)
-    return correctUrl
+  const envUrl = import.meta.env.VITE_API_BASE_URL
+  const defaultUrl = 'https://web3search-api.marovole.workers.dev'
+
+  // 如果没有配置环境变量，使用默认值
+  if (!envUrl) {
+    console.warn('⚠️ VITE_API_BASE_URL not configured, using default:', defaultUrl)
+    return defaultUrl
   }
-  
-  if (currentUrl && currentUrl !== correctUrl) {
-    console.log(`⚠️  API URL可能不正确: ${currentUrl}`)
-    console.log(`✅ 建议使用: ${correctUrl}`)
+
+  // 验证URL格式
+  try {
+    new URL(envUrl)
+    return envUrl
+  } catch {
+    console.error('❌ Invalid VITE_API_BASE_URL:', envUrl)
+    console.log('✅ Fallback to default:', defaultUrl)
+    return defaultUrl
   }
-  
-  return currentUrl || correctUrl
 }
 
 /**
@@ -198,32 +201,35 @@ export function getEnvConfig(): EnvConfig {
   if (!envConfig) {
     envConfig = loadEnvConfig()
 
-    // 运行时检测：如果在浏览器且非localhost，强制使用生产API
+    // 运行时验证：确保API URL格式正确
     if (typeof window !== 'undefined') {
       const hostname = window.location.hostname
-      const isProduction = hostname !== 'localhost' && hostname !== '127.0.0.1'
+      const isProductionDomain = hostname !== 'localhost' && hostname !== '127.0.0.1'
 
-      if (isProduction && (envConfig.API_BASE_URL.includes('onrender') || !envConfig.API_BASE_URL.startsWith('https://'))) {
-        console.log(`🔄 Runtime detection: hostname is ${hostname}, switching to production API`)
-        console.log(`🔄 Old API URL: ${envConfig.API_BASE_URL}`)
-        envConfig.API_BASE_URL = 'https://web3search-api.marovole.workers.dev'
-        console.log(`✅ New API URL: ${envConfig.API_BASE_URL}`)
-      }
-
-      // 再次验证：确保URL格式正确
+      // 验证URL不包含重复的API路径
       if (envConfig.API_BASE_URL.includes('/api/v1') || envConfig.API_BASE_URL.includes('/api/api')) {
-        console.error('❌ Runtime check failed: API_BASE_URL contains API path!')
-        console.error(`   Current: ${envConfig.API_BASE_URL}`)
+        console.error('❌ API_BASE_URL contains duplicate API path!')
+        console.error(`   Invalid: ${envConfig.API_BASE_URL}`)
         envConfig.API_BASE_URL = 'https://web3search-api.marovole.workers.dev'
-        console.log(`✅ Fixed to: ${envConfig.API_BASE_URL}`)
+        console.log(`✅ Corrected to: ${envConfig.API_BASE_URL}`)
       }
 
-      console.log(`🌐 Final API Configuration:`, {
-        hostname,
-        isProduction,
-        apiBaseUrl: envConfig.API_BASE_URL,
-        environment: envConfig.ENVIRONMENT
-      })
+      // 验证生产环境使用HTTPS
+      if (isProductionDomain && !envConfig.API_BASE_URL.startsWith('https://')) {
+        console.warn('⚠️  Production detected but API URL is not HTTPS')
+        console.warn(`   Current: ${envConfig.API_BASE_URL}`)
+        envConfig.API_BASE_URL = 'https://web3search-api.marovole.workers.dev'
+        console.log(`✅ Switched to: ${envConfig.API_BASE_URL}`)
+      }
+
+      // 输出最终配置（仅在非生产环境或DEBUG模式）
+      if (envConfig.DEBUG_MODE || !isProductionDomain) {
+        console.log(`🌐 API Configuration:`, {
+          hostname,
+          environment: envConfig.ENVIRONMENT,
+          apiBaseUrl: envConfig.API_BASE_URL,
+        })
+      }
     }
   }
   return envConfig

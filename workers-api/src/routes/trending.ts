@@ -6,6 +6,7 @@
 import { Hono } from 'hono'
 import type { Env } from '../types/env'
 import { getSupabaseClient } from '../lib/supabase'
+import { createCoinGeckoClient } from '../lib/coingecko'
 
 const trending = new Hono<{ Bindings: Env }>()
 
@@ -56,14 +57,14 @@ trending.get('/hotspots', async (c) => {
       )
     }
 
-    // Extract keywords and count frequency
+    // Extract crypto keywords and count frequency
     const keywordCounts = new Map<string, number>()
     const cryptoKeywords = [
       'bitcoin', 'btc', 'ethereum', 'eth', 'solana', 'sol',
       'cardano', 'ada', 'polygon', 'matic', 'avalanche', 'avax',
       'polkadot', 'dot', 'chainlink', 'link', 'uniswap', 'uni',
-      'defi', 'nft', 'dao', 'web3', 'metaverse', 'staking',
-      'yield', 'liquidity', 'smart contract', 'dex', 'cefi'
+      'bnb', 'ripple', 'xrp', 'dogecoin', 'doge', 'tron', 'trx',
+      'near', 'algorand', 'algo', 'cosmos', 'atom'
     ]
 
     hotTopics?.forEach((msg) => {
@@ -75,21 +76,66 @@ trending.get('/hotspots', async (c) => {
       })
     })
 
-    // Sort by frequency and get top N
-    const sortedHotspots = Array.from(keywordCounts.entries())
+    // Sort by frequency and get top keywords
+    const topKeywords = Array.from(keywordCounts.entries())
       .sort((a, b) => b[1] - a[1])
-      .slice(0, limit)
-      .map(([keyword, count], index) => ({
-        id: index + 1,
-        keyword,
-        count,
-        trend: 'up' as const, // Simplified, could calculate based on historical data
-        category: getCategoryForKeyword(keyword),
-      }))
+      .slice(0, Math.min(limit * 2, 20)) // Fetch more than needed to account for API failures
+
+    // Fetch real crypto data from CoinGecko
+    const coinGecko = createCoinGeckoClient()
+    const hotspotPromises = topKeywords.map(async ([keyword, searchCount]) => {
+      try {
+        // Resolve keyword to coin ID and fetch market data
+        const coinId = (coinGecko as any).resolveCoinId(keyword)
+        const coinData = await coinGecko.getCoinPrice(coinId)
+
+        if ('error' in coinData) {
+          console.warn(`[Trending] Failed to fetch data for ${keyword}:`, coinData.message)
+          return null
+        }
+
+        // Calculate total score based on search count and market rank
+        // Higher search count = higher score, lower market cap rank = higher score
+        const searchScore = searchCount * 10 // Weight for search frequency
+        const rankScore = coinData.market_cap_rank
+          ? Math.max(0, 100 - coinData.market_cap_rank) // Top 100 coins get bonus
+          : 0
+        const totalScore = searchScore + rankScore
+
+        return {
+          coin_id: coinId,
+          symbol: coinData.symbol,
+          name: coinData.name,
+          market_cap_rank: coinData.market_cap_rank || 9999,
+          price_usd: coinData.price_usd,
+          price_change_24h: coinData.price_change_24h,
+          volume_24h: 0, // CoinGecko free API doesn't provide volume in this endpoint
+          total_score: totalScore,
+          scores_breakdown: {
+            twitter: 0,
+            reddit: 0,
+            price: Math.abs(coinData.price_change_24h) * 5, // Price volatility as score
+            volume: 0,
+            news: searchScore / 2, // Search count as proxy for news activity
+          },
+          timestamp: new Date().toISOString(),
+        }
+      } catch (err) {
+        console.error(`[Trending] Error processing ${keyword}:`, err)
+        return null
+      }
+    })
+
+    // Wait for all API calls and filter out failures
+    const hotspotResults = await Promise.all(hotspotPromises)
+    const validHotspots = hotspotResults
+      .filter((h): h is NonNullable<typeof h> => h !== null)
+      .sort((a, b) => b.total_score - a.total_score) // Sort by total score
+      .slice(0, limit) // Get top N
 
     const response = {
-      hotspots: sortedHotspots,
-      count: sortedHotspots.length,
+      hotspots: validHotspots,
+      count: validHotspots.length,
       updated_at: new Date().toISOString(),
     }
 
@@ -116,25 +162,5 @@ trending.get('/hotspots', async (c) => {
     )
   }
 })
-
-/**
- * Helper function to categorize keywords
- */
-function getCategoryForKeyword(keyword: string): string {
-  const categories: Record<string, string[]> = {
-    'Layer 1': ['bitcoin', 'btc', 'ethereum', 'eth', 'solana', 'sol', 'cardano', 'ada', 'avalanche', 'avax', 'polkadot', 'dot'],
-    'DeFi': ['defi', 'uniswap', 'uni', 'yield', 'liquidity', 'staking', 'dex'],
-    'Infrastructure': ['chainlink', 'link', 'polygon', 'matic', 'smart contract'],
-    'Trends': ['nft', 'dao', 'web3', 'metaverse', 'cefi'],
-  }
-
-  for (const [category, keywords] of Object.entries(categories)) {
-    if (keywords.includes(keyword)) {
-      return category
-    }
-  }
-
-  return 'Other'
-}
 
 export default trending
