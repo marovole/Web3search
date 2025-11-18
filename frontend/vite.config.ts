@@ -8,6 +8,12 @@ import path from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   base: '/', // Vercel 部署到根路径
+  define: {
+    // 强制设置正确的API URL（覆盖环境变量）
+    __VITE_API_BASE_URL__: JSON.stringify('https://web3search-api.marovole.workers.dev'),
+    __VITE_ENVIRONMENT__: JSON.stringify('production'),
+    __VITE_USE_MOCK_API__: JSON.stringify('false'),
+  },
   plugins: [
     react(),
     tsconfigPaths(), // 支持 TypeScript 路径别名解析
