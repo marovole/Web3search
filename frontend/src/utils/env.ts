@@ -203,9 +203,11 @@ export function getEnvConfig(): EnvConfig {
       const hostname = window.location.hostname
       const isProduction = hostname !== 'localhost' && hostname !== '127.0.0.1'
 
-      if (isProduction && !envConfig.API_BASE_URL.startsWith('https://')) {
+      if (isProduction && (envConfig.API_BASE_URL.includes('onrender') || !envConfig.API_BASE_URL.startsWith('https://'))) {
         console.log(`🔄 Runtime detection: hostname is ${hostname}, switching to production API`)
+        console.log(`🔄 Old API URL: ${envConfig.API_BASE_URL}`)
         envConfig.API_BASE_URL = 'https://web3search-api.marovole.workers.dev'
+        console.log(`✅ New API URL: ${envConfig.API_BASE_URL}`)
       }
 
       // 再次验证：确保URL格式正确
