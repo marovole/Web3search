@@ -1,14 +1,9 @@
-/**
- * 搜索自动补全输入组件
- * 支持键盘导航、防抖搜索、点击选择、移动端触摸优化
- */
-
 import React, { useState, useRef, useEffect, KeyboardEvent } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { searchAutocomplete } from '../../services/api'
-import { Loader, Send, X } from 'lucide-react'
+import { Loader, Send, X, Sparkles } from 'lucide-react'
 import { useKeyboardDetection } from '../../hooks/useTouchGestures'
 import type { AutocompleteItem } from '../../types/autocomplete'
 
@@ -19,7 +14,6 @@ interface AutocompleteInputProps {
   disabled?: boolean
   placeholder?: string
   maxLength?: number
-  /** 是否启用移动端优化（默认启用） */
   mobileOptimized?: boolean
 }
 
@@ -28,7 +22,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   onChange,
   onSend,
   disabled = false,
-  placeholder = '输入消息...',
+  placeholder = 'Ask anything...',
   maxLength = 1000,
   mobileOptimized = true,
 }) => {
@@ -41,34 +35,22 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null)
   const debounceTimerRef = useRef<number>()
 
-  // 检测移动设备
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
-    }
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
     checkMobile()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // 键盘检测
-  const { isKeyboardOpen, keyboardHeight } = useKeyboardDetection()
+  const { isKeyboardOpen } = useKeyboardDetection()
 
-  // 防抖搜索
   const debouncedSearch = (query: string) => {
-    // 清除之前的定时器
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current)
-    }
-
-    // 如果查询为空或太短，不搜索
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
     if (query.trim().length < 2) {
       setSuggestions([])
       setShowDropdown(false)
       return
     }
-
-    // 设置新的定时器（300ms延迟）
     debounceTimerRef.current = window.setTimeout(async () => {
       try {
         setIsSearching(true)
@@ -86,17 +68,13 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
     }, 300)
   }
 
-  // 处理输入变化
   const handleInputChange = (value: string) => {
     if (value.length <= maxLength) {
       onChange(value)
-
-      // 触发防抖搜索
       debouncedSearch(value)
     }
   }
 
-  // 选择建议
   const selectSuggestion = (item: AutocompleteItem) => {
     const selectedText = `${item.symbol} (${item.name})`
     onChange(selectedText)
@@ -105,9 +83,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
     textareaRef.current?.focus()
   }
 
-  // 键盘导航
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // 如果下拉框显示，处理方向键和Enter
     if (showDropdown && suggestions.length > 0) {
       if (e.key === 'ArrowDown') {
         e.preventDefault()
@@ -127,14 +103,12 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
       }
     }
 
-    // 正常的Enter发送逻辑
     if (e.key === 'Enter' && !e.shiftKey && !showDropdown) {
       e.preventDefault()
       handleSend()
     }
   }
 
-  // 发送消息
   const handleSend = () => {
     if (value.trim() && !disabled) {
       onSend(value.trim())
@@ -144,7 +118,6 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
     }
   }
 
-  // 点击外部关闭下拉框
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -156,17 +129,13 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
         setShowDropdown(false)
       }
     }
-
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // 清理定时器
   useEffect(() => {
     return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current)
-      }
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
     }
   }, [])
 
@@ -174,180 +143,98 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   const isOverLimit = charactersRemaining < 0
 
   return (
-    <div className={cn(
-      "space-y-2",
-      mobileOptimized && "safe-area-padding",
-      isKeyboardOpen && isMobile && "pb-4"
-    )}>
-      {/* Input area with mobile optimization */}
-      <div className="flex gap-2 items-end">
-        <div className="flex-1 relative">
-          {/* Enhanced Textarea with auto-resize */}
-          <Textarea
-            ref={textareaRef}
-            value={value}
-            onChange={(e) => handleInputChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            disabled={disabled}
-            loading={isSearching}
-            error={isOverLimit ? "超出字符限制" : undefined}
-            helperText={isOverLimit ? `已超出 ${Math.abs(charactersRemaining)} 个字符` : undefined}
-            className={cn(
-              "min-h-[44px] md:min-h-[48px]",
-              mobileOptimized && "mobile-input",
-              "resize-none"
-            )}
-            autoResize={true}
-            maxHeight={isMobile ? 120 : 200}
-            rows={1}
-          />
-
-          {/* Enhanced dropdown for mobile */}
-          {showDropdown && suggestions.length > 0 && (
-            <div
-              ref={dropdownRef}
-              className={cn(
-                "absolute bottom-full left-0 right-0 mb-2 bg-card border border-border rounded-lg shadow-lg z-50",
-                "max-h-64 overflow-y-auto",
-                // Mobile optimization
-                isMobile && "max-h-48",
-                // Smooth animations
-                "animate-slide-down animate-fade-in"
-              )}
-              style={{ animationDuration: '200ms' }}
-            >
-              <div className="p-2">
-                <div className="flex items-center justify-between px-2 py-1 mb-2 border-b">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    搜索建议
-                  </span>
-                  <button
-                    onClick={() => {
-                      setShowDropdown(false)
-                      setSuggestions([])
-                    }}
-                    className="p-1 rounded hover:bg-muted touch-manipulation"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-
-                <div className={cn(
-                  "space-y-1",
-                  isMobile && "touch-button-group"
-                )}>
-                  {suggestions.map((item, index) => (
-                    <button
-                      key={item.coingecko_id}
-                      onClick={() => selectSuggestion(item)}
-                      className={cn(
-                        "w-full text-left hover:bg-muted border border-transparent rounded-lg transition-all duration-150",
-                        "flex items-center gap-3 p-3",
-                        isMobile ? "mobile-list-item touch-feedback" : "min-h-[48px]",
-                        index === selectedIndex && "bg-primary/10 border-primary/20"
-                      )}
-                    >
-                      {/* 图标 */}
-                      {item.thumb && (
-                        <img
-                          src={item.thumb}
-                          alt={item.symbol}
-                          className="w-8 h-8 md:w-6 md:h-6 rounded-full flex-shrink-0"
-                        />
-                      )}
-
-                      {/* 信息 */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground text-sm md:text-sm">
-                            {item.symbol.toUpperCase()}
-                          </span>
-                          {item.market_cap_rank && (
-                            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                              #{item.market_cap_rank}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-sm text-muted-foreground truncate">
-                          {item.name}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+    <div className={cn("relative", isKeyboardOpen && isMobile && "pb-2")}>
+      {/* Glass Capsule Container */}
+      <div className={cn(
+        "flex items-end gap-2 p-2 rounded-3xl transition-all duration-300",
+        "bg-background/40 backdrop-blur-md border border-white/10",
+        "focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/50 focus-within:bg-background/60"
+      )}>
+        
+        {/* Textarea */}
+        <Textarea
+          ref={textareaRef}
+          value={value}
+          onChange={(e) => handleInputChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          disabled={disabled}
+          className={cn(
+            "flex-1 min-h-[44px] max-h-[120px] py-3 px-4",
+            "bg-transparent border-none shadow-none resize-none focus-visible:ring-0",
+            "text-base placeholder:text-muted-foreground/70",
+            "custom-scrollbar"
           )}
-        </div>
+          autoResize={true}
+          rows={1}
+        />
 
-        {/* Enhanced send button with mobile optimization */}
+        {/* Send Button */}
         <Button
           onClick={handleSend}
           disabled={disabled || !value.trim() || isOverLimit}
           className={cn(
-            "flex-shrink-0 transition-all duration-200",
-            mobileOptimized ? "h-12 w-12 md:w-auto md:px-6" : "h-12 px-6",
-            "hover:scale-105 active:scale-95 disabled:scale-100 touch-feedback"
+            "h-10 w-10 rounded-full shrink-0 mb-1 mr-1 transition-all duration-300",
+            value.trim() 
+              ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_15px_rgba(0,242,255,0.3)]" 
+              : "bg-muted text-muted-foreground hover:bg-muted/80"
           )}
-          size={mobileOptimized && isMobile ? "icon" : "sm"}
+          size="icon"
         >
           {disabled ? (
-            <Loader size={16} className="animate-spin" />
+            <Loader size={18} className="animate-spin" />
           ) : (
-            <>
-              <Send className="h-4 w-4" />
-              {!isMobile && <span className="ml-2">发送</span>}
-            </>
+            <Send size={18} className={cn(value.trim() && "ml-0.5")} />
           )}
         </Button>
       </div>
 
-      {/* Enhanced character count and hints with mobile optimization */}
-      <div className="flex justify-between items-center text-xs">
-        <div className="text-muted-foreground">
-          {isMobile ? (
-            <p className="flex items-center gap-2">
-              {showDropdown ? (
-                <>
-                  <span>↑↓ 选择</span>
-                  <span>•</span>
-                  <span>Esc 关闭</span>
-                </>
-              ) : (
-                <>
-                  <span>Enter 发送</span>
-                  <span>•</span>
-                  <span>Shift+Enter 换行</span>
-                </>
-              )}
-            </p>
-          ) : (
-            <p>
-              提示：按 Enter 发送，Shift + Enter 换行
-              {showDropdown && '，↑↓ 选择，Esc 关闭'}
-            </p>
-          )}
-        </div>
-
-        <p
+      {/* Dropdown Suggestions */}
+      {showDropdown && suggestions.length > 0 && (
+        <div
+          ref={dropdownRef}
           className={cn(
-            "font-medium transition-colors",
-            isOverLimit
-              ? "text-destructive"
-              : charactersRemaining < 100
-              ? "text-warning"
-              : "text-muted-foreground"
+            "absolute bottom-full left-0 right-0 mb-2 mx-2",
+            "bg-card/90 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden",
+            "animate-slide-up z-50"
           )}
         >
-          {charactersRemaining} 字符剩余
-        </p>
-      </div>
+          <div className="max-h-60 overflow-y-auto custom-scrollbar p-1">
+            {suggestions.map((item, index) => (
+              <button
+                key={item.coingecko_id}
+                onClick={() => selectSuggestion(item)}
+                className={cn(
+                  "w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3",
+                  index === selectedIndex ? "bg-primary/10 text-primary" : "hover:bg-white/5 text-foreground"
+                )}
+              >
+                {item.thumb ? (
+                  <img src={item.thumb} alt={item.symbol} className="w-6 h-6 rounded-full" />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs">?</div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold">{item.symbol.toUpperCase()}</span>
+                    <span className="text-xs opacity-50 truncate">{item.name}</span>
+                  </div>
+                </div>
+                {item.market_cap_rank && (
+                  <span className="text-xs px-1.5 py-0.5 rounded bg-white/5 text-muted-foreground">
+                    #{item.market_cap_rank}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-      {/* Mobile keyboard padding indicator */}
-      {isKeyboardOpen && isMobile && (
-        <div className="text-center text-xs text-muted-foreground animate-pulse">
-          虚拟键盘已打开 ({Math.round(keyboardHeight)}px)
+      {/* Character Count (Only show when close to limit) */}
+      {charactersRemaining < 100 && (
+        <div className="absolute -top-6 right-2 text-xs font-medium text-warning animate-fade-in">
+          {charactersRemaining}
         </div>
       )}
     </div>

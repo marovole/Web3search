@@ -5,15 +5,13 @@ import type { Message } from '../../types'
 import CodeBlock from '../Common/CodeBlock'
 import { useTypewriter } from '../../hooks/useTypewriter'
 import { useTouchGestures } from '../../hooks/useTouchGestures'
-import { Copy, Check, X } from 'lucide-react'
+import { Copy, Check, X, Share2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface MessageBubbleProps {
   message: Message
-  /** 是否启用打字机效果（默认启用） */
   enableTypewriter?: boolean
-  /** 是否显示复制按钮（移动端默认显示） */
   showCopyButton?: boolean
-  /** 长按回调 */
   onLongPress?: (message: Message) => void
 }
 
@@ -27,33 +25,29 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const [copied, setCopied] = useState(false)
   const [showActions, setShowActions] = useState(false)
 
-  // 为助手消息启用打字机效果
   const { displayedText, isTyping, skipAnimation } = useTypewriter(
     message.content,
     {
       enabled: enableTypewriter && !isUser,
-      speed: 40, // 40ms/字符
+      speed: 20, // Faster typing for tech feel
       isStreaming: message.isStreaming,
     }
   )
 
-  // 使用打字机文本（如果启用），否则使用原始内容
   const contentToDisplay = (enableTypewriter && !isUser) ? displayedText : message.content
 
-  // 触摸手势处理
   const { handleTouchStart, handleTouchMove, handleTouchEnd } = useTouchGestures({
     onLongPress: () => {
       onLongPress?.(message)
       setShowActions(true)
     },
     onTouchEnd: () => {
-      setTimeout(() => setShowActions(false), 2000) // 2秒后隐藏操作按钮
+      setTimeout(() => setShowActions(false), 3000)
     }
   }, {
     longPressConfig: { duration: 400, moveThreshold: 15 }
   })
 
-  // 复制功能
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(message.content)
@@ -65,155 +59,135 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   }
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} group`}>
+    <div className={cn(
+      "flex w-full mb-6 group animate-fade-in",
+      isUser ? "justify-end" : "justify-start"
+    )}>
       <div
-        className={`
-          ${isUser ? 'message-user' : 'message-assistant'}
-          max-w-[85%] md:max-w-[75%]
-          transition-all duration-200
-          relative
-          touch-manipulation
-          mobile-list-item
-          ${showActions ? 'ring-2 ring-primary/20' : ''}
-        `}
+        className={cn(
+          "relative max-w-[90%] md:max-w-[80%] transition-all duration-200",
+          isUser ? "message-user" : "message-assistant tech-card p-6",
+          showActions && "ring-2 ring-primary/50"
+        )}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* 操作按钮 */}
+        {/* Mobile Actions Overlay */}
         {showActions && (
-          <div className="absolute -top-2 -right-2 z-10 flex gap-1 p-1">
+          <div className="absolute -top-3 -right-3 z-20 flex gap-2 p-1 animate-scale-in">
             <button
               onClick={handleCopy}
-              className="p-2 bg-primary text-white rounded-full shadow-lg touch-manipulation touch-feedback"
-              title="复制"
+              className="p-2 bg-primary text-primary-foreground rounded-full shadow-lg"
             >
-              {copied ? (
-                <Check size={16} />
-              ) : (
-                <Copy size={16} />
-              )}
+              {copied ? <Check size={14} /> : <Copy size={14} />}
             </button>
             <button
               onClick={() => setShowActions(false)}
-              className="p-2 bg-gray-600 text-white rounded-full shadow-lg touch-manipulation touch-feedback"
-              title="关闭"
+              className="p-2 bg-muted text-muted-foreground rounded-full shadow-lg"
             >
-              <X size={16} />
+              <X size={14} />
             </button>
           </div>
         )}
 
         {isUser ? (
-          // User message - plain text with mobile optimization
-          <p className="whitespace-pre-wrap text-base md:text-sm select-text">
+          // User Message: Minimal, clean text
+          <div className="text-base md:text-lg font-medium leading-relaxed whitespace-pre-wrap">
             {message.content}
-          </p>
+          </div>
         ) : (
-          // Assistant message - Markdown rendering with typewriter effect
-          <div
-            className="prose prose-sm max-w-none cursor-pointer select-text"
-            onClick={isTyping ? skipAnimation : undefined}
-            title={isTyping ? '点击跳过动画' : undefined}
-          >
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                // Code block with syntax highlighting - using type-safe CodeBlock component
-                code: CodeBlock,
-                // Table styling with mobile optimization
-                table({ children }) {
-                  return (
-                    <div className="overflow-x-auto my-4 -mx-4 px-4 md:mx-0 md:px-0">
-                      <table className="min-w-full divide-y divide-gray-200 border border-gray-300 text-sm">
-                        {children}
-                      </table>
-                    </div>
-                  )
-                },
-                thead({ children }) {
-                  return <thead className="bg-gray-50">{children}</thead>
-                },
-                th({ children }) {
-                  return (
-                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-gray-300">
-                      {children}
-                    </th>
-                  )
-                },
-                td({ children }) {
-                  return (
-                    <td className="px-2 py-2 text-sm text-gray-900 border-b border-gray-200">
-                      {children}
-                    </td>
-                  )
-                },
-                // Image handling with mobile optimization
-                img({ src, alt }) {
-                  return (
-                    <img
-                      src={src}
-                      alt={alt}
-                      className="max-w-full h-auto rounded-lg my-4 cursor-zoom-in"
-                      loading="lazy"
-                    />
-                  )
-                },
-                // Links with mobile touch targets
-                a({ href, children }) {
-                  return (
-                    <a
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline inline-block touch-target min-h-[44px] min-w-[44px] p-1 -m-1"
-                    >
-                      {children}
-                    </a>
-                  )
-                },
-              }}
-            >
-              {contentToDisplay}
-            </ReactMarkdown>
+          // Assistant Message: Rich Tech Card
+          <div className="w-full">
+            {/* Header with Icon */}
+            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-white/5">
+              <div className="w-5 h-5 rounded bg-primary/20 flex items-center justify-center">
+                <span className="text-xs text-primary">AI</span>
+              </div>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Analysis Result
+              </span>
+              <span className="ml-auto text-xs text-muted-foreground/50 font-mono">
+                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
 
-            {/* Typing indicator or Streaming indicator */}
-            {(isTyping || message.isStreaming) && (
-              <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1"></span>
+            {/* Content */}
+            <div
+              className="prose prose-invert prose-sm md:prose-base max-w-none 
+                prose-headings:text-primary prose-headings:font-bold prose-headings:tracking-tight
+                prose-a:text-secondary prose-a:no-underline hover:prose-a:underline
+                prose-strong:text-white prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:rounded
+                prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10"
+              onClick={isTyping ? skipAnimation : undefined}
+            >
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  code: CodeBlock,
+                  table({ children }) {
+                    return (
+                      <div className="overflow-x-auto my-4 border border-white/10 rounded-lg bg-black/20">
+                        <table className="min-w-full divide-y divide-white/10 text-sm">
+                          {children}
+                        </table>
+                      </div>
+                    )
+                  },
+                  thead({ children }) {
+                    return <thead className="bg-white/5">{children}</thead>
+                  },
+                  th({ children }) {
+                    return (
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        {children}
+                      </th>
+                    )
+                  },
+                  td({ children }) {
+                    return (
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground/80 border-t border-white/5">
+                        {children}
+                      </td>
+                    )
+                  },
+                  a({ href, children }) {
+                    return (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1"
+                      >
+                        {children}
+                        <Share2 size={10} className="opacity-50" />
+                      </a>
+                    )
+                  },
+                }}
+              >
+                {contentToDisplay}
+              </ReactMarkdown>
+              
+              {(isTyping || message.isStreaming) && (
+                <span className="inline-block w-1.5 h-4 bg-primary animate-pulse ml-1 align-middle"></span>
+              )}
+            </div>
+
+            {/* Footer Actions (Desktop) */}
+            {!isTyping && !message.isStreaming && (
+              <div className="mt-4 pt-3 border-t border-white/5 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={handleCopy}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors"
+                >
+                  {copied ? <Check size={14} /> : <Copy size={14} />}
+                  {copied ? 'Copied' : 'Copy'}
+                </button>
+              </div>
             )}
           </div>
         )}
-
-        {/* Timestamp and Copy Button */}
-        <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-          <span>
-            {message.timestamp.toLocaleTimeString('zh-CN', {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </span>
-
-          {/* Copy button for desktop */}
-          {showCopyButton && !isUser && (
-            <button
-              onClick={handleCopy}
-              className="hidden md:flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors touch-manipulation"
-              title="复制消息"
-            >
-              {copied ? (
-                <>
-                  <Check size={12} />
-                  <span>已复制</span>
-                </>
-              ) : (
-                <>
-                  <Copy size={12} />
-                  <span>复制</span>
-                </>
-              )}
-            </button>
-          )}
-        </div>
       </div>
     </div>
   )

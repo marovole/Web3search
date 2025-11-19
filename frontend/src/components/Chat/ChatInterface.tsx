@@ -3,33 +3,24 @@ import type { Message, ChatMode } from '../../types'
 import { quickChat, deepResearchStream } from '../../services/api'
 import useNetworkRetry from '../../hooks/useNetworkRetry'
 import * as Sentry from '../../services/sentry-lite'
-import { Card } from '@/components/ui/card'
 import ModeSwitch from './ModeSwitch'
 import MessageList from './MessageList'
 import AutocompleteInput from './AutocompleteInput'
 import LoadingAnimation from '../Shared/LoadingAnimation'
 import HotspotPanel from '../Hotspot/HotspotPanel'
 import NetworkErrorRetry from '../Error/NetworkErrorRetry'
+import { cn } from '@/lib/utils'
 
 /**
  * Minimum acceptable length for Quick Chat responses
- * Responses shorter than this indicate truncation or API issues
  */
 const MIN_QUICK_CHAT_RESPONSE_LENGTH = 10
 
-/**
- * Normalizes Quick Chat API responses to ensure minimum quality
- * @param rawContent - Raw response content from API
- * @returns Normalized content that meets minimum length requirement
- */
 const normalizeQuickChatResponse = (rawContent?: string): string => {
   const normalized = rawContent?.trim() ?? ''
-
   if (normalized.length >= MIN_QUICK_CHAT_RESPONSE_LENGTH) {
     return normalized
   }
-
-  // If response is too short, provide user-friendly fallback
   return [
     '⚠️ 快速回复异常：AI返回内容过短，请稍后再试或切换到深度研究模式。',
     normalized ? `原始响应：${normalized}` : '原始响应为空。'
@@ -41,7 +32,6 @@ const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
   const [mode, setMode] = useState<ChatMode>(() => {
-    // Load from localStorage
     const saved = localStorage.getItem('chatMode')
     return (saved as ChatMode) || 'quick'
   })
@@ -50,7 +40,7 @@ const ChatInterface: React.FC = () => {
   const [conversationId, setConversationId] = useState<string>()
   const [lastFailedQuery, setLastFailedQuery] = useState<string>('')
 
-  // 网络请求重试 hook
+  // Network retry hook
   const quickChatWithRetry = useNetworkRetry(quickChat, {
     maxRetries: 3,
     retryDelay: 1000,
@@ -59,38 +49,32 @@ const ChatInterface: React.FC = () => {
 
   // Refs
   const eventSourceRef = useRef<EventSource | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Handle mode change
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, isLoading])
+
   const handleModeChange = (newMode: ChatMode) => {
     setMode(newMode)
     localStorage.setItem('chatMode', newMode)
   }
 
-  // Handle send message
   const handleSendMessage = async (userInput: string) => {
     if (!userInput.trim()) return
 
-    // 开始性能监控事务（暂时简化）
     Sentry.startTransaction(`chat-${mode}`, 'chat')
-    // 注意：在新版本中，性能监控已简化
-
-    // 添加面包屑导航
     Sentry.addBreadcrumb({
       message: 'User sent chat message',
       category: 'chat',
       level: 'info',
-      data: {
-        mode,
-        queryLength: userInput.length,
-        messageCount: messages.length,
-      },
+      data: { mode, queryLength: userInput.length, messageCount: messages.length },
     })
 
-    // Clear input immediately
     setInputValue('')
-    setLastFailedQuery('') // 清除之前的失败查询
+    setLastFailedQuery('')
 
-    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -104,26 +88,19 @@ const ChatInterface: React.FC = () => {
 
     try {
       if (mode === 'quick') {
-        // Quick Chat mode with retry
         const response = await quickChatWithRetry.execute({
           query: userInput,
           conversation_id: conversationId,
         })
 
-        // Normalize response to ensure minimum quality
         const sanitizedContent = normalizeQuickChatResponse(response.content)
-
-        // Log warning if response was sanitized
+        
         if (sanitizedContent !== (response.content?.trim() ?? '')) {
           Sentry.addBreadcrumb({
             message: 'Quick chat response sanitized',
             category: 'chat',
             level: 'warning',
-            data: {
-              rawLength: response.content?.length || 0,
-              normalizedLength: sanitizedContent.length,
-              sessionId: response.session_id,
-            },
+            data: { rawLength: response.content?.length || 0, normalizedLength: sanitizedContent.length, sessionId: response.session_id },
           })
         }
 
@@ -135,51 +112,15 @@ const ChatInterface: React.FC = () => {
         }
         setMessages((prev) => [...prev, assistantMessage])
         setConversationId(response.session_id)
-
-        // 记录成功的面包屑
-        Sentry.addBreadcrumb({
-          message: 'Quick chat completed successfully',
-          category: 'chat',
-          level: 'info',
-          data: {
-            responseLength: sanitizedContent.length,
-            sessionId: response.session_id,
-          },
-        })
       } else {
-        // Deep Research mode (SSE streaming)
         handleDeepResearchStream(userInput)
       }
-
-      // 完成事务（在新版本中已简化）
-      // transaction.finish() // 新版本中已不需要
     } catch (error) {
       console.error('Error sending message:', error)
-
-      // 记录错误到 Sentry
       if (error instanceof Error) {
-        Sentry.captureException(error, {
-          query: userInput,
-          mode,
-          conversationId,
-          retryCount: quickChatWithRetry.state.retryCount,
-        })
+        Sentry.captureException(error, { query: userInput, mode, conversationId, retryCount: quickChatWithRetry.state.retryCount })
       }
-
-      // 添加面包屑导航用于调试
-      Sentry.addBreadcrumb({
-        message: 'Chat message failed',
-        category: 'chat',
-        level: 'error',
-        data: {
-          query: userInput,
-          mode,
-          retryCount: quickChatWithRetry.state.retryCount,
-        },
-      })
-
-      setLastFailedQuery(userInput) // 保存失败的查询用于重试
-
+      setLastFailedQuery(userInput)
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -194,11 +135,8 @@ const ChatInterface: React.FC = () => {
     }
   }
 
-  // 重试最后一次失败的请求
   const handleRetry = async () => {
     if (!lastFailedQuery.trim()) return
-
-    // 移除最后一条错误消息
     setMessages((prev) => {
       const newMessages = [...prev]
       if (newMessages.length > 0 && newMessages[newMessages.length - 1].content.includes('❌ 抱歉，发生错误')) {
@@ -206,20 +144,10 @@ const ChatInterface: React.FC = () => {
       }
       return newMessages
     })
-
-    // 重新发送请求
     await handleSendMessage(lastFailedQuery)
   }
 
-  // 重置错误状态（保留供未来使用）
-  // const resetError = () => {
-  //   setLastFailedQuery('')
-  //   quickChatWithRetry.reset()
-  // }
-
-  // Handle Deep Research streaming
   const handleDeepResearchStream = (query: string) => {
-    // Create placeholder message
     const assistantMessage: Message = {
       id: (Date.now() + 1).toString(),
       role: 'assistant',
@@ -229,7 +157,6 @@ const ChatInterface: React.FC = () => {
     }
     setMessages((prev) => [...prev, assistantMessage])
 
-    // Create EventSource
     const eventSource = deepResearchStream({
       query,
       conversation_id: conversationId,
@@ -237,79 +164,31 @@ const ChatInterface: React.FC = () => {
     eventSourceRef.current = eventSource
 
     let accumulatedContent = ''
-    const loadingStages = [
-      '正在采集市场数据...',
-      '正在分析链上活动...',
-      '正在评估社交情绪...',
-      '正在生成技术面分析...',
-      '正在组装报告...',
-    ]
+    const loadingStages = ['正在采集市场数据...', '正在分析链上活动...', '正在评估社交情绪...', '正在生成技术面分析...', '正在组装报告...']
 
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-
-        // Handle different types of SSE events
         if (data.type === 'progress') {
-          // Update loading stage based on progress
-          if (data.stage === 'data_collection') {
-            setLoadingStage(1)
-          } else if (data.stage === 'analysis') {
-            setLoadingStage(2)
-          } else if (data.stage === 'report_generation') {
-            setLoadingStage(3)
-          }
-
-          // Show progress message in content
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMessage.id
-                ? { ...msg, content: data.content || `${loadingStages[loadingStage] || '处理中...'}` }
-                : msg
-            )
-          )
+          if (data.stage === 'data_collection') setLoadingStage(1)
+          else if (data.stage === 'analysis') setLoadingStage(2)
+          else if (data.stage === 'report_generation') setLoadingStage(3)
+          
+          setMessages((prev) => prev.map((msg) => msg.id === assistantMessage.id ? { ...msg, content: data.content || `${loadingStages[loadingStage] || '处理中...'}` } : msg))
         } else if (data.type === 'content') {
-          // Append actual content
           if (data.content) {
-            accumulatedContent = data.content // Replace with full content
-            setMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === assistantMessage.id
-                  ? { ...msg, content: accumulatedContent }
-                  : msg
-              )
-            )
+            accumulatedContent = data.content
+            setMessages((prev) => prev.map((msg) => msg.id === assistantMessage.id ? { ...msg, content: accumulatedContent } : msg))
           }
         } else if (data.type === 'error') {
-          // Handle error
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMessage.id
-                ? {
-                    ...msg,
-                    content: `❌ 错误：${data.content}`,
-                    isStreaming: false,
-                  }
-                : msg
-            )
-          )
+          setMessages((prev) => prev.map((msg) => msg.id === assistantMessage.id ? { ...msg, content: `❌ 错误：${data.content}`, isStreaming: false } : msg))
           setIsLoading(false)
           eventSource.close()
           eventSourceRef.current = null
-          return
         } else if (data.type === 'complete' || data.done) {
-          // Handle completion
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMessage.id
-                ? { ...msg, isStreaming: false }
-                : msg
-            )
-          )
+          setMessages((prev) => prev.map((msg) => msg.id === assistantMessage.id ? { ...msg, isStreaming: false } : msg))
           setIsLoading(false)
-          if (data.session_id) {
-            setConversationId(data.session_id)
-          }
+          if (data.session_id) setConversationId(data.session_id)
           eventSource.close()
           eventSourceRef.current = null
         }
@@ -320,33 +199,13 @@ const ChatInterface: React.FC = () => {
 
     eventSource.onerror = (error) => {
       console.error('EventSource error:', error)
-
-      // Check if it's a connection error that might be worth retrying
-      if (eventSource.readyState === EventSource.CLOSED) {
-        // Optionally implement retry logic here
-        console.log('EventSource connection closed')
-      }
-
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === assistantMessage.id
-            ? {
-                ...msg,
-                content:
-                  accumulatedContent ||
-                  '❌ 抱歉，连接中断。请检查网络连接后重试。',
-                isStreaming: false,
-              }
-            : msg
-        )
-      )
+      setMessages((prev) => prev.map((msg) => msg.id === assistantMessage.id ? { ...msg, content: accumulatedContent || '❌ 抱歉，连接中断。请检查网络连接后重试。', isStreaming: false } : msg))
       setIsLoading(false)
       eventSource.close()
       eventSourceRef.current = null
     }
   }
 
-  // Cleanup on unmount and mode change
   useEffect(() => {
     return () => {
       if (eventSourceRef.current) {
@@ -357,97 +216,81 @@ const ChatInterface: React.FC = () => {
   }, [mode])
 
   return (
-    <div className="flex flex-col h-full bg-card rounded-xl shadow-sm border animate-fade-in">
-      {/* Mode Switch */}
-      <div className="px-4 py-3 sm:px-6 border-b no-print">
-        <ModeSwitch mode={mode} onChange={handleModeChange} />
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4 custom-scrollbar">
-        {messages.length === 0 ? (
-          <div className="h-full flex flex-col">
-            {/* 热点面板 */}
-            <HotspotPanel
-              onSelectHotspot={(symbol, name) => {
-                setInputValue(`${symbol} (${name})`)
-              }}
-            />
-
-            {/* 欢迎信息 */}
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center max-w-lg px-2">
-                <div className="mb-4 sm:mb-6">
-                  <div className="text-4xl sm:text-5xl mb-3 animate-bounce-subtle">👋</div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-3 sm:mb-4">
-                    欢迎使用 Web3 AI 搜索引擎
-                  </h2>
-                  <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 max-w-md mx-auto">
-                    {mode === 'quick'
-                      ? '输入问题，3秒内获得快速回答'
-                      : '输入项目名称，生成30秒深度研究报告'}
-                  </p>
+    <div className="flex flex-col h-full relative">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar pb-32">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+          {messages.length === 0 ? (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center animate-fade-in">
+              {/* Branding */}
+              <div className="text-center mb-12">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 mb-6 animate-float">
+                  <span className="text-3xl">⚡️</span>
                 </div>
+                <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">Web3</span>
+                  <span className="text-primary ml-3 neon-text">AI Search</span>
+                </h1>
+                <p className="text-muted-foreground text-lg max-w-md mx-auto">
+                  Deep insights for the decentralized web.
+                </p>
+              </div>
 
-                <Card className="text-left p-4 sm:p-6 bg-muted/30 border-muted">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-sm">💡</span>
-                    </div>
-                    <p className="text-sm font-medium text-foreground">
-                      试试这些问题：
-                    </p>
-                  </div>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5">•</span>
-                      <span>分析比特币最近的价格走势</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5">•</span>
-                      <span>ETH 的链上数据如何？</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5">•</span>
-                      <span>UNI 和其他 DEX 代币对比</span>
-                    </li>
-                  </ul>
-                </Card>
+              {/* Mode Switcher - Centered for initial view */}
+              <div className="mb-8">
+                <ModeSwitch mode={mode} onChange={handleModeChange} />
+              </div>
+
+              {/* Hotspots / Suggestions */}
+              <div className="w-full max-w-2xl">
+                <HotspotPanel
+                  onSelectHotspot={(symbol, name) => {
+                    setInputValue(`${symbol} (${name})`)
+                  }}
+                />
               </div>
             </div>
-          </div>
-        ) : (
-          <>
-            <MessageList messages={messages} />
+          ) : (
+            <div className="space-y-6">
+              <MessageList messages={messages} />
+              
+              {quickChatWithRetry.state.error && lastFailedQuery && (
+                <NetworkErrorRetry
+                  onRetry={handleRetry}
+                  error={quickChatWithRetry.state.error}
+                  isRetrying={quickChatWithRetry.state.isLoading}
+                  retryCount={quickChatWithRetry.state.retryCount}
+                />
+              )}
 
-            {/* 网络错误重试组件 */}
-            {quickChatWithRetry.state.error && lastFailedQuery && (
-              <NetworkErrorRetry
-                onRetry={handleRetry}
-                error={quickChatWithRetry.state.error}
-                isRetrying={quickChatWithRetry.state.isLoading}
-                retryCount={quickChatWithRetry.state.retryCount}
-              />
-            )}
-
-            {isLoading && <LoadingAnimation stage={loadingStage} mode={mode} />}
-          </>
-        )}
+              {isLoading && <LoadingAnimation stage={loadingStage} mode={mode} />}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Input Box */}
-      <div className="border-t p-3 sm:p-4 no-print bg-card/50 backdrop-blur-sm supports-[backdrop-filter]:bg-card/60">
-        <AutocompleteInput
-          value={inputValue}
-          onChange={setInputValue}
-          onSend={handleSendMessage}
-          disabled={isLoading}
-          placeholder={
-            mode === 'quick'
-              ? '输入你的问题...'
-              : '输入加密货币项目名称（如：BTC, ETH, UNI）...'
-          }
-        />
+      {/* Floating Input Area */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background/80 to-transparent z-10">
+        <div className="max-w-3xl mx-auto">
+          <div className={cn(
+            "glass-card p-2 transition-all duration-300",
+            isLoading ? "opacity-80 pointer-events-none" : "opacity-100"
+          )}>
+            <AutocompleteInput
+              value={inputValue}
+              onChange={setInputValue}
+              onSend={handleSendMessage}
+              disabled={isLoading}
+              placeholder={mode === 'quick' ? 'Ask anything about crypto...' : 'Enter project name for deep research...'}
+            />
+          </div>
+          <div className="text-center mt-2">
+             <p className="text-xs text-muted-foreground/50">
+               AI-generated content may be inaccurate. DYOR.
+             </p>
+          </div>
+        </div>
       </div>
     </div>
   )
