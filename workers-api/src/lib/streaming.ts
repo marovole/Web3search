@@ -175,7 +175,8 @@ export async function aggregateStream(
  */
 export function createStreamingResponse(
   body: ReadableStream<Uint8Array>,
-  onChunk?: (chunk: StreamChunk) => void
+  onChunk?: (chunk: StreamChunk) => void,
+  onComplete?: () => Promise<void>
 ): Response {
   const stream = new ReadableStream({
     async start(controller) {
@@ -194,6 +195,11 @@ export function createStreamingResponse(
 
         // Send [DONE] message
         controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'))
+
+        // Notify completion
+        if (onComplete) {
+          await onComplete()
+        }
       } catch (error) {
         console.error('Streaming error:', error)
 

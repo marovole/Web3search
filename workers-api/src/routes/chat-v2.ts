@@ -54,15 +54,15 @@ chatV2.post(
     try {
       body = await c.req.json()
     } catch {
-      return c.json({ error: { code: 'INVALID_JSON', message: 'Body must be valid JSON', status: 400 }}, 400)
+      return c.json({ error: { code: 'INVALID_JSON', message: 'Body must be valid JSON', status: 400 } }, 400)
     }
 
     const query = body.query?.trim()
     if (!query) {
-      return c.json({ error: { code: 'MISSING_QUERY', message: 'Field "query" is required', status: 400 }}, 400)
+      return c.json({ error: { code: 'MISSING_QUERY', message: 'Field "query" is required', status: 400 } }, 400)
     }
     if (query.length > 10_000) {
-      return c.json({ error: { code: 'QUERY_TOO_LONG', message: 'Query exceeds 10,000 characters', status: 400 }}, 400)
+      return c.json({ error: { code: 'QUERY_TOO_LONG', message: 'Query exceeds 10,000 characters', status: 400 } }, 400)
     }
 
     // Initialize clients
@@ -198,7 +198,7 @@ chatV2.post(
 
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       const statusCode = errorMessage.includes('Circuit breaker') ? 503 :
-                         errorMessage.includes('429') ? 429 : 500
+        errorMessage.includes('429') ? 429 : 500
 
       return c.json({
         error: {
@@ -254,13 +254,34 @@ async function handleStreamingResponse({
   }
 
   // Create streaming response with our adapter
-  return createStreamingResponse(upstream.body, async (chunk) => {
-    // Monitor streaming chunks in background
-    console.log('Streaming chunk:', {
-      model: modelConfig.model,
-      hasContent: !!chunk.choices?.[0]?.delta?.content
-    })
-  })
+  let fullContent = ''
+
+  // Create streaming response with our adapter
+  return createStreamingResponse(
+    upstream.body,
+    (chunk) => {
+      // Accumulate content
+      const content = chunk.choices?.[0]?.delta?.content
+      if (content) {
+        fullContent += content
+      }
+    },
+    async () => {
+      // Save full message to Supabase on completion
+      if (fullContent) {
+        try {
+          await persistMessage(supabase, {
+            conversation_id: conversationId,
+            role: 'assistant',
+            content: fullContent,
+          })
+          console.log('Streamed response saved to database')
+        } catch (error) {
+          console.error('Failed to save streamed response:', error)
+        }
+      }
+    }
+  )
 }
 
 interface NonStreamingResponseParams {
