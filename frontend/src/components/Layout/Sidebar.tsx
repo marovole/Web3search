@@ -88,11 +88,19 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   // Handle swipe gestures
   const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.targetTouches[0].clientX
+    const touch = e.targetTouches[0]
+    if (touch) {
+      touchStartX.current = touch.clientX
+    }
   }
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    touchEndX.current = e.changedTouches[0].clientX
+    const touch = e.changedTouches[0]
+    if (touch) {
+      touchEndX.current = touch.clientX
+    } else {
+      return
+    }
     const diff = touchStartX.current - touchEndX.current
 
     // Swipe threshold
@@ -124,6 +132,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
+    return undefined
   }, [isMobile, isOpen, onToggle])
 
   // Handle escape key
@@ -138,6 +147,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       document.addEventListener('keydown', handleEscape)
       return () => document.removeEventListener('keydown', handleEscape)
     }
+    return undefined
   }, [isMobile, isOpen, onToggle])
 
   const menuItems = [
@@ -224,13 +234,13 @@ const Sidebar: React.FC<SidebarProps> = ({
           // Desktop styles
           "md:w-64",
           // Mobile styles
-          "w-64 md:relative",
+          "w-64",
           // Transform based on state
           isOpen
             ? "translate-x-0 opacity-100"
             : isMobile
-            ? "-translate-x-full opacity-0"
-            : "-translate-x-full md:translate-x-0 opacity-0 md:opacity-100"
+              ? "-translate-x-full opacity-0"
+              : "-translate-x-full md:translate-x-0 opacity-0 md:opacity-100"
         )}
         style={{
           transition: "transform 0.3s ease-in-out, opacity 0.3s ease-in-out"
