@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import type { Message, ChatMode } from '../../types'
 import { quickChat, deepResearchStream } from '../../services/api'
 import useNetworkRetry from '../../hooks/useNetworkRetry'
@@ -11,9 +12,6 @@ import HotspotPanel from '../Hotspot/HotspotPanel'
 import NetworkErrorRetry from '../Error/NetworkErrorRetry'
 import { cn } from '@/lib/utils'
 
-/**
- * Minimum acceptable length for Quick Chat responses
- */
 const MIN_QUICK_CHAT_RESPONSE_LENGTH = 10
 
 const normalizeQuickChatResponse = (rawContent?: string): string => {
@@ -94,7 +92,7 @@ const ChatInterface: React.FC = () => {
         })
 
         const sanitizedContent = normalizeQuickChatResponse(response.content)
-        
+
         if (sanitizedContent !== (response.content?.trim() ?? '')) {
           Sentry.addBreadcrumb({
             message: 'Quick chat response sanitized',
@@ -173,7 +171,7 @@ const ChatInterface: React.FC = () => {
           if (data.stage === 'data_collection') setLoadingStage(1)
           else if (data.stage === 'analysis') setLoadingStage(2)
           else if (data.stage === 'report_generation') setLoadingStage(3)
-          
+
           setMessages((prev) => prev.map((msg) => msg.id === assistantMessage.id ? { ...msg, content: data.content || `${loadingStages[loadingStage] || '处理中...'}` } : msg))
         } else if (data.type === 'content') {
           if (data.content) {
@@ -219,64 +217,84 @@ const ChatInterface: React.FC = () => {
     <div className="flex flex-col h-full relative">
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto custom-scrollbar pb-32">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-          {messages.length === 0 ? (
-            <div className="min-h-[60vh] flex flex-col items-center justify-center animate-fade-in">
-              {/* Branding */}
-              <div className="text-center mb-12">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 mb-6 animate-float">
-                  <span className="text-3xl">⚡️</span>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+          <AnimatePresence mode='wait'>
+            {messages.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="min-h-[60vh] flex flex-col items-center justify-center"
+              >
+                {/* Branding */}
+                <div className="text-center mb-12 relative">
+                  <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary/20 rounded-full blur-[100px] pointer-events-none" />
+
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                    className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-white/10 mb-8 shadow-2xl shadow-primary/10 animate-float"
+                  >
+                    <span className="text-4xl">⚡️</span>
+                  </motion.div>
+
+                  <h1 className="text-5xl md:text-6xl font-bold mb-6 tracking-tight">
+                    <span className="text-foreground">Web3</span>
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary ml-3 neon-text">AI Search</span>
+                  </h1>
+
+                  <p className="text-muted-foreground text-lg md:text-xl max-w-lg mx-auto leading-relaxed">
+                    Deep insights for the decentralized web. <br />
+                    <span className="text-sm opacity-70">Powered by advanced AI agents.</span>
+                  </p>
                 </div>
-                <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">Web3</span>
-                  <span className="text-primary ml-3 neon-text">AI Search</span>
-                </h1>
-                <p className="text-muted-foreground text-lg max-w-md mx-auto">
-                  Deep insights for the decentralized web.
-                </p>
-              </div>
 
-              {/* Mode Switcher - Centered for initial view */}
-              <div className="mb-8">
-                <ModeSwitch mode={mode} onChange={handleModeChange} />
-              </div>
+                {/* Mode Switcher */}
+                <div className="mb-12">
+                  <ModeSwitch mode={mode} onChange={handleModeChange} />
+                </div>
 
-              {/* Hotspots / Suggestions */}
-              <div className="w-full max-w-2xl">
-                <HotspotPanel
-                  onSelectHotspot={(symbol, name) => {
-                    setInputValue(`${symbol} (${name})`)
-                  }}
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <MessageList messages={messages} />
-              
-              {quickChatWithRetry.state.error && lastFailedQuery && (
-                <NetworkErrorRetry
-                  onRetry={handleRetry}
-                  error={quickChatWithRetry.state.error}
-                  isRetrying={quickChatWithRetry.state.isLoading}
-                  retryCount={quickChatWithRetry.state.retryCount}
-                />
-              )}
+                {/* Hotspots */}
+                <div className="w-full max-w-4xl">
+                  <HotspotPanel
+                    onSelectHotspot={(symbol, name) => {
+                      setInputValue(`${symbol} (${name})`)
+                    }}
+                  />
+                </div>
+              </motion.div>
+            ) : (
+              <div className="space-y-8">
+                <MessageList messages={messages} />
 
-              {isLoading && <LoadingAnimation stage={loadingStage} mode={mode} />}
-              <div ref={messagesEndRef} />
-            </div>
-          )}
+                {quickChatWithRetry.state.error && lastFailedQuery && (
+                  <NetworkErrorRetry
+                    onRetry={handleRetry}
+                    error={quickChatWithRetry.state.error}
+                    isRetrying={quickChatWithRetry.state.isLoading}
+                    retryCount={quickChatWithRetry.state.retryCount}
+                  />
+                )}
+
+                {isLoading && <LoadingAnimation stage={loadingStage} mode={mode} />}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
       {/* Floating Input Area */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background/80 to-transparent z-10">
+      <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background via-background/95 to-transparent z-20">
         <div className="max-w-3xl mx-auto">
-          <div className={cn(
-            "glass-card p-2 transition-all duration-300",
-            isLoading ? "opacity-80 pointer-events-none" : "opacity-100"
-          )}>
+          <motion.div
+            layout
+            className={cn(
+              "glass-card p-2 transition-all duration-300 ring-1 ring-white/10 focus-within:ring-primary/50 focus-within:shadow-[0_0_30px_-10px_rgba(0,242,255,0.3)]",
+              isLoading ? "opacity-80 pointer-events-none grayscale" : "opacity-100"
+            )}
+          >
             <AutocompleteInput
               value={inputValue}
               onChange={setInputValue}
@@ -284,11 +302,11 @@ const ChatInterface: React.FC = () => {
               disabled={isLoading}
               placeholder={mode === 'quick' ? 'Ask anything about crypto...' : 'Enter project name for deep research...'}
             />
-          </div>
-          <div className="text-center mt-2">
-             <p className="text-xs text-muted-foreground/50">
-               AI-generated content may be inaccurate. DYOR.
-             </p>
+          </motion.div>
+          <div className="text-center mt-3">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-medium">
+              AI-generated content may be inaccurate. DYOR.
+            </p>
           </div>
         </div>
       </div>

@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
-import { Button } from '@/components/ui/button'
+import React from 'react'
+import { motion } from 'framer-motion'
 import { Zap, Search } from 'lucide-react'
 import type { ChatMode } from '../../types'
+import { cn } from '@/lib/utils'
 
 interface ModeSwitchProps {
   mode: ChatMode
@@ -9,106 +10,66 @@ interface ModeSwitchProps {
 }
 
 const ModeSwitch: React.FC<ModeSwitchProps> = ({ mode, onChange }) => {
-  const [isTransitioning, setIsTransitioning] = useState(false)
-
-  const handleModeChange = (newMode: ChatMode) => {
-    if (newMode !== mode && !isTransitioning) {
-      setIsTransitioning(true)
-
-      // 添加短暂的延迟以确保动画完成
-      setTimeout(() => {
-        onChange(newMode)
-        setTimeout(() => {
-          setIsTransitioning(false)
-        }, 100)
-      }, 150)
-    }
-  }
-
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-foreground">模式选择</span>
-      </div>
-
-      <div className="relative">
-        {/* 背景滑动指示器 */}
-        <div
-          className={`
-            absolute top-1 bottom-1 bg-primary rounded-md shadow-sm transition-all duration-300 ease-in-out
-            ${isTransitioning ? 'scale-95' : 'scale-100'}
-          `}
-          style={{
-            left: mode === 'quick' ? '4px' : '50%',
-            width: 'calc(50% - 4px)',
-            transform: mode === 'quick' ? 'translateX(0)' : 'translateX(-100%)',
+    <div className="flex flex-col items-center gap-4">
+      <div className="relative flex bg-muted/50 p-1 rounded-xl border border-white/5 backdrop-blur-sm">
+        {/* Sliding Background */}
+        <motion.div
+          className="absolute top-1 bottom-1 bg-primary rounded-lg shadow-lg shadow-primary/20"
+          initial={false}
+          animate={{
+            x: mode === 'quick' ? 0 : '100%',
+            width: 'calc(50% - 4px)'
           }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          style={{ left: 4 }}
         />
 
-        <div className="flex bg-muted rounded-lg p-1 relative z-10">
-          {/* Quick Chat */}
-          <Button
-            data-testid="mode-switch-quick"
-            variant="ghost"
-            size="sm"
-            onClick={() => handleModeChange('quick')}
-            disabled={isTransitioning}
-            aria-pressed={mode === 'quick'}
-            className={`
-              px-4 py-2 text-sm font-medium transition-all duration-200 relative z-20
-              ${mode === 'quick' ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}
-              ${isTransitioning ? 'opacity-70' : 'opacity-100'}
-            `}
-          >
-            <span className="flex items-center gap-2">
-              <Zap className="h-4 w-4" />
-              <span className="hidden sm:inline">Quick Chat</span>
-              <span className="sm:hidden">快速</span>
-            </span>
-          </Button>
-
-          {/* Deep Research */}
-          <Button
-            data-testid="mode-switch-deep"
-            variant="ghost"
-            size="sm"
-            onClick={() => handleModeChange('deep')}
-            disabled={isTransitioning}
-            aria-pressed={mode === 'deep'}
-            className={`
-              px-4 py-2 text-sm font-medium transition-all duration-200 relative z-20
-              ${mode === 'deep' ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}
-              ${isTransitioning ? 'opacity-70' : 'opacity-100'}
-            `}
-          >
-            <span className="flex items-center gap-2">
-              <Search className="h-4 w-4" />
-              <span className="hidden sm:inline">Deep Research</span>
-              <span className="sm:hidden">深度</span>
-            </span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Mode Description with animation */}
-      <div
-        className="text-xs text-muted-foreground transition-all duration-300"
-        key={mode}
-      >
-        <div className="flex items-center gap-1 animate-fade-in">
-          {mode === 'quick' ? (
-            <>
-              <Zap className="h-3 w-3" />
-              <span>3秒快速回答</span>
-            </>
-          ) : (
-            <>
-              <Search className="h-3 w-3" />
-              <span>30秒深度报告</span>
-            </>
+        {/* Quick Chat Button */}
+        <button
+          onClick={() => onChange('quick')}
+          className={cn(
+            "relative z-10 flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 w-36",
+            mode === 'quick' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
           )}
-        </div>
+        >
+          <Zap className="w-4 h-4" />
+          <span>Quick Chat</span>
+        </button>
+
+        {/* Deep Research Button */}
+        <button
+          onClick={() => onChange('deep')}
+          className={cn(
+            "relative z-10 flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 w-36",
+            mode === 'deep' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Search className="w-4 h-4" />
+          <span>Deep Research</span>
+        </button>
       </div>
+
+      {/* Mode Description */}
+      <motion.div
+        key={mode}
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -5 }}
+        className="text-xs font-medium text-muted-foreground/80 flex items-center gap-1.5 bg-muted/30 px-3 py-1 rounded-full border border-white/5"
+      >
+        {mode === 'quick' ? (
+          <>
+            <Zap className="w-3 h-3 text-primary" />
+            <span>3s Instant Response</span>
+          </>
+        ) : (
+          <>
+            <Search className="w-3 h-3 text-secondary" />
+            <span>Comprehensive Report</span>
+          </>
+        )}
+      </motion.div>
     </div>
   )
 }

@@ -1,12 +1,15 @@
 /**
- * 市场热点展示面板
- * 显示当前最热门的加密货币项目
+ * Market Hotspots Panel
+ * Displays trending crypto projects with premium UI
  */
 
 import React, { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { TrendingUp, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
 import { getHotspots } from '../../services/api'
 import type { HotspotItem } from '../../types/hotspot'
 import { formatPrice, formatPriceChange, formatScore } from '../../lib/safeFormatters'
+import { cn } from '@/lib/utils'
 
 interface HotspotPanelProps {
   onSelectHotspot?: (symbol: string, name: string) => void
@@ -27,222 +30,126 @@ const HotspotPanel: React.FC<HotspotPanelProps> = ({ onSelectHotspot }) => {
       setLoading(true)
       const response = await getHotspots(10, false)
 
-      // 验证响应数据结构
-      if (!response || !Array.isArray(response.hotspots)) {
-        console.error('Invalid hotspots response:', response)
-        throw new Error('Invalid response format')
+      if (response?.hotspots && Array.isArray(response.hotspots)) {
+        const validHotspots = response.hotspots.filter(h => h && h.symbol && h.name)
+        setHotspots(validHotspots)
+        setError(null)
       }
-
-      // 验证每个热点数据的完整性
-      const validHotspots = response.hotspots.filter((hotspot) => {
-        const isValid =
-          hotspot &&
-          typeof hotspot.coin_id === 'string' &&
-          typeof hotspot.symbol === 'string' &&
-          typeof hotspot.name === 'string' &&
-          typeof hotspot.total_score === 'number'
-
-        if (!isValid) {
-          console.warn('Invalid hotspot data:', hotspot)
-        }
-        return isValid
-      })
-
-      if (validHotspots.length === 0 && response.hotspots.length > 0) {
-        console.error('All hotspots failed validation')
-        throw new Error('Data validation failed')
-      }
-
-      setHotspots(validHotspots)
-      setError(null)
-
-      // 记录成功加载
-      console.log(`✅ Loaded ${validHotspots.length} hotspots successfully`)
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '未知错误'
-      setError(`加载热点失败: ${errorMessage}`)
-      console.error('Failed to load hotspots:', {
-        error: err,
-        message: errorMessage,
-        timestamp: new Date().toISOString(),
-      })
+      setError('Failed to load trending data')
     } finally {
       setLoading(false)
     }
   }
 
   const handleRefresh = async () => {
+    setLoading(true)
     try {
-      setLoading(true)
-      const response = await getHotspots(10, true) // 强制刷新
-
-      // 验证响应数据
-      if (!response || !Array.isArray(response.hotspots)) {
-        console.error('Invalid refresh response:', response)
-        throw new Error('Invalid response format')
+      const response = await getHotspots(10, true)
+      if (response?.hotspots && Array.isArray(response.hotspots)) {
+        setHotspots(response.hotspots.filter(h => h && h.symbol && h.name))
+        setError(null)
       }
-
-      // 验证数据完整性
-      const validHotspots = response.hotspots.filter((hotspot) => {
-        return (
-          hotspot &&
-          typeof hotspot.coin_id === 'string' &&
-          typeof hotspot.symbol === 'string' &&
-          typeof hotspot.name === 'string' &&
-          typeof hotspot.total_score === 'number'
-        )
-      })
-
-      setHotspots(validHotspots)
-      setError(null)
-
-      console.log(`✅ Refreshed ${validHotspots.length} hotspots`)
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '未知错误'
-      setError(`刷新失败: ${errorMessage}`)
-      console.error('Failed to refresh hotspots:', err)
+      setError('Refresh failed')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleHotspotClick = (hotspot: HotspotItem) => {
-    if (onSelectHotspot) {
-      onSelectHotspot(hotspot.symbol, hotspot.name)
-    }
-  }
-
   if (loading && hotspots.length === 0) {
     return (
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            🔥 市场热点
-          </h3>
-        </div>
-        <div className="text-center py-4 text-gray-500">
-          加载中...
+      <div className="w-full glass-card p-6 animate-pulse">
+        <div className="h-6 w-32 bg-white/10 rounded mb-4" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-24 bg-white/5 rounded-xl" />
+          ))}
         </div>
       </div>
     )
   }
 
-  if (error) {
-    return (
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            🔥 市场热点
-          </h3>
-          <button
-            onClick={handleRefresh}
-            className="text-sm text-primary hover:text-blue-700 font-medium"
-          >
-            重试
-          </button>
-        </div>
-        <div className="text-center py-4 text-red-600">
-          {error}
-        </div>
-      </div>
-    )
-  }
-
-  // 处理空状态
-  if (!loading && !error && hotspots.length === 0) {
-    return (
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-4 no-print">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            🔥 市场热点
-          </h3>
-          <button
-            onClick={handleRefresh}
-            className="text-sm text-primary hover:text-blue-700 font-medium"
-          >
-            刷新
-          </button>
-        </div>
-        <div className="text-center py-8 text-gray-500">
-          <div className="text-2xl mb-2">📊</div>
-          <div className="text-sm">暂无热点数据</div>
-          <div className="text-xs mt-1">稍后再试或点击刷新</div>
-        </div>
-      </div>
-    )
-  }
+  if (error && hotspots.length === 0) return null
 
   const displayHotspots = showAll ? hotspots : hotspots.slice(0, 5)
 
   return (
-    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-4 no-print">
-      {/* 标题栏 */}
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-          🔥 市场热点
-          <span className="text-xs font-normal text-gray-500">
-            每小时更新
-          </span>
-        </h3>
+    <div className="w-full">
+      <div className="flex items-center justify-between mb-4 px-2">
+        <div className="flex items-center gap-2 text-primary">
+          <TrendingUp className="w-5 h-5" />
+          <h3 className="font-semibold tracking-wide">Market Hotspots</h3>
+        </div>
         <button
           onClick={handleRefresh}
           disabled={loading}
-          className="text-sm text-primary hover:text-blue-700 font-medium disabled:opacity-50"
+          className={cn(
+            "p-2 rounded-full hover:bg-white/5 transition-colors text-muted-foreground hover:text-primary",
+            loading && "animate-spin"
+          )}
         >
-          {loading ? '刷新中...' : '刷新'}
+          <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
-      {/* 热点列表 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2">
-        {displayHotspots.map((hotspot) => (
-          <button
-            key={hotspot.coin_id}
-            onClick={() => handleHotspotClick(hotspot)}
-            className="bg-white rounded-lg p-3 hover:shadow-md transition-shadow text-left border border-gray-200 hover:border-primary"
-          >
-            {/* 排名和名称 */}
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-gray-500">
-                  #{hotspot.market_cap_rank}
-                </span>
-                <span className="font-semibold text-gray-900">
-                  {hotspot.symbol}
-                </span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <AnimatePresence mode='popLayout'>
+          {displayHotspots.map((hotspot, index) => (
+            <motion.button
+              key={hotspot.coin_id}
+              layout
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.2, delay: index * 0.05 }}
+              onClick={() => onSelectHotspot?.(hotspot.symbol, hotspot.name)}
+              className="group relative flex flex-col p-3 rounded-xl bg-card/40 border border-white/5 hover:border-primary/30 hover:bg-card/60 transition-all duration-300 text-left overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+              <div className="relative z-10 w-full">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-mono text-muted-foreground/70">#{hotspot.market_cap_rank}</span>
+                    <span className="font-bold text-foreground group-hover:text-primary transition-colors">{hotspot.symbol}</span>
+                  </div>
+                  <div className={cn(
+                    "text-xs font-medium px-1.5 py-0.5 rounded-md",
+                    hotspot.price_change_24h >= 0
+                      ? "bg-green-500/10 text-green-400"
+                      : "bg-red-500/10 text-red-400"
+                  )}>
+                    {formatPriceChange(hotspot.price_change_24h)}
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-end">
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground truncate max-w-[80px]">{hotspot.name}</span>
+                    <span className="text-sm font-medium text-foreground/90">{formatPrice(hotspot.price_usd)}</span>
+                  </div>
+                  <div className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                    Score: {formatScore(hotspot.total_score, 0, 'N/A')}
+                  </div>
+                </div>
               </div>
-              {/* 热度分数 */}
-              <span className="text-xs font-semibold text-orange-600 bg-orange-100 px-2 py-0.5 rounded">
-                {formatScore(hotspot.total_score, 0, 'N/A')}
-              </span>
-            </div>
-
-            {/* 价格和变化 */}
-            <div className="flex items-baseline justify-between">
-              <span className="text-sm font-medium text-gray-700">
-                {formatPrice(hotspot.price_usd)}
-              </span>
-              <span className="text-xs">
-                {formatPriceChange(hotspot.price_change_24h)}
-              </span>
-            </div>
-
-            {/* 项目名称 */}
-            <div className="text-xs text-gray-500 truncate mt-1">
-              {hotspot.name}
-            </div>
-          </button>
-        ))}
+            </motion.button>
+          ))}
+        </AnimatePresence>
       </div>
 
-      {/* 展开/收起按钮 */}
       {hotspots.length > 5 && (
-        <div className="mt-3 text-center">
+        <div className="flex justify-center mt-4">
           <button
             onClick={() => setShowAll(!showAll)}
-            className="text-sm text-primary hover:text-blue-700 font-medium"
+            className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-full hover:bg-white/5"
           >
-            {showAll ? '收起 ↑' : `查看更多 (${hotspots.length - 5}) ↓`}
+            {showAll ? (
+              <>Show Less <ChevronUp className="w-3 h-3" /></>
+            ) : (
+              <>View All ({hotspots.length}) <ChevronDown className="w-3 h-3" /></>
+            )}
           </button>
         </div>
       )}
