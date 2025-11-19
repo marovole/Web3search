@@ -11,29 +11,29 @@ interface ModeSwitchProps {
 
 const ModeSwitch: React.FC<ModeSwitchProps> = ({ mode, onChange }) => {
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="relative flex bg-muted/50 p-1 rounded-xl border border-white/5 backdrop-blur-sm">
+    <div className="flex flex-col items-center gap-6">
+      <div className="relative flex bg-secondary/30 p-1.5 rounded-full border border-border/50 backdrop-blur-md">
         {/* Sliding Background */}
         <motion.div
-          className="absolute top-1 bottom-1 bg-primary rounded-lg shadow-lg shadow-primary/20"
+          className="absolute top-1.5 bottom-1.5 bg-background rounded-full shadow-sm border border-border/50"
           initial={false}
           animate={{
             x: mode === 'quick' ? 0 : '100%',
-            width: 'calc(50% - 4px)'
+            width: 'calc(50% - 6px)'
           }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          style={{ left: 4 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          style={{ left: 6 }}
         />
 
         {/* Quick Chat Button */}
         <button
           onClick={() => onChange('quick')}
           className={cn(
-            "relative z-10 flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 w-36",
-            mode === 'quick' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            "relative z-10 flex items-center justify-center gap-2 px-8 py-2.5 text-sm font-medium rounded-full transition-colors duration-200 w-40",
+            mode === 'quick' ? "text-foreground" : "text-muted-foreground hover:text-foreground/80"
           )}
         >
-          <Zap className="w-4 h-4" />
+          <Zap className={cn("w-4 h-4", mode === 'quick' ? "text-amber-500 fill-amber-500" : "text-muted-foreground")} />
           <span>Quick Chat</span>
         </button>
 
@@ -41,11 +41,11 @@ const ModeSwitch: React.FC<ModeSwitchProps> = ({ mode, onChange }) => {
         <button
           onClick={() => onChange('deep')}
           className={cn(
-            "relative z-10 flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 w-36",
-            mode === 'deep' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            "relative z-10 flex items-center justify-center gap-2 px-8 py-2.5 text-sm font-medium rounded-full transition-colors duration-200 w-40",
+            mode === 'deep' ? "text-foreground" : "text-muted-foreground hover:text-foreground/80"
           )}
         >
-          <Search className="w-4 h-4" />
+          <Search className={cn("w-4 h-4", mode === 'deep' ? "text-blue-500" : "text-muted-foreground")} />
           <span>Deep Research</span>
         </button>
       </div>
@@ -56,17 +56,17 @@ const ModeSwitch: React.FC<ModeSwitchProps> = ({ mode, onChange }) => {
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -5 }}
-        className="text-xs font-medium text-muted-foreground/80 flex items-center gap-1.5 bg-muted/30 px-3 py-1 rounded-full border border-white/5"
+        className="text-xs font-medium text-muted-foreground/80 flex items-center gap-2 bg-secondary/20 px-4 py-1.5 rounded-full border border-border/30"
       >
         {mode === 'quick' ? (
           <>
-            <Zap className="w-3 h-3 text-primary" />
-            <span>3s Instant Response</span>
+            <Zap className="w-3.5 h-3.5 text-amber-500" />
+            <span>3s Instant AI Response</span>
           </>
         ) : (
           <>
-            <Search className="w-3 h-3 text-secondary" />
-            <span>Comprehensive Report</span>
+            <Search className="w-3.5 h-3.5 text-blue-500" />
+            <span>Comprehensive Deep Research Report</span>
           </>
         )}
       </motion.div>

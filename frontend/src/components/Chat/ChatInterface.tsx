@@ -137,7 +137,7 @@ const ChatInterface: React.FC = () => {
     if (!lastFailedQuery.trim()) return
     setMessages((prev) => {
       const newMessages = [...prev]
-      if (newMessages.length > 0 && newMessages[newMessages.length - 1].content.includes('❌ 抱歉，发生错误')) {
+      if (newMessages.length > 0 && newMessages[newMessages.length - 1]?.content.includes('❌ 抱歉，发生错误')) {
         newMessages.pop()
       }
       return newMessages
@@ -224,39 +224,37 @@ const ChatInterface: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="min-h-[60vh] flex flex-col items-center justify-center"
+                className="min-h-[70vh] flex flex-col items-center justify-center py-12"
               >
                 {/* Branding */}
-                <div className="text-center mb-12 relative">
-                  <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary/20 rounded-full blur-[100px] pointer-events-none" />
+                <div className="text-center mb-16 relative w-full max-w-2xl mx-auto">
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
 
                   <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ duration: 0.5 }}
-                    className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-white/10 mb-8 shadow-2xl shadow-primary/10 animate-float"
+                    className="inline-flex items-center justify-center w-24 h-24 rounded-[2rem] bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-10 shadow-2xl shadow-blue-500/10 animate-float backdrop-blur-sm"
                   >
-                    <span className="text-4xl">⚡️</span>
+                    <span className="text-5xl filter drop-shadow-lg">⚡️</span>
                   </motion.div>
 
-                  <h1 className="text-5xl md:text-6xl font-bold mb-6 tracking-tight">
-                    <span className="text-foreground">Web3</span>
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary ml-3 neon-text">AI Search</span>
+                  <h1 className="text-6xl md:text-7xl font-bold mb-8 tracking-tight">
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 drop-shadow-sm">AI Search</span>
                   </h1>
 
-                  <p className="text-muted-foreground text-lg md:text-xl max-w-lg mx-auto leading-relaxed">
-                    Deep insights for the decentralized web. <br />
-                    <span className="text-sm opacity-70">Powered by advanced AI agents.</span>
+                  <p className="text-muted-foreground/80 text-xl md:text-2xl max-w-xl mx-auto leading-relaxed font-light tracking-wide">
+                    Deep insights for the decentralized web.
                   </p>
                 </div>
 
                 {/* Mode Switcher */}
-                <div className="mb-12">
+                <div className="mb-16 w-full flex justify-center">
                   <ModeSwitch mode={mode} onChange={handleModeChange} />
                 </div>
 
                 {/* Hotspots */}
-                <div className="w-full max-w-4xl">
+                <div className="w-full max-w-5xl px-4">
                   <HotspotPanel
                     onSelectHotspot={(symbol, name) => {
                       setInputValue(`${symbol} (${name})`)
