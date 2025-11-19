@@ -64,7 +64,7 @@ export class CSPManager {
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "https:"],
     "font-src": ["'self'", "data:", "https:"],
-    "connect-src": ["'self'", "https://web3search-api.marovole.workers.dev"],
+    "connect-src": ["'self'", "https://api.lulaai.xyz"],
     "frame-src": ["'none'"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],

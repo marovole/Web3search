@@ -25,7 +25,7 @@ vars = { ENVIRONMENT = "development" }
 [env.production]
 name = "web3search-api"
 workers_dev = true
-# route = "api.web3search.com/*"  # Uncomment when custom domain is ready
+route = "api.lulaai.xyz/*"  # Custom domain configured
 vars = { ENVIRONMENT = "production" }
 
 [[env.production.kv_namespaces]]

@@ -73,7 +73,7 @@ export class SecurityHeaderManager {
     },
     {
       name: 'Content-Security-Policy',
-      value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://web3search-api.marovole.workers.dev; font-src 'self' data: https:; frame-ancestors 'none';",
+      value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.lulaai.xyz; font-src 'self' data: https:; frame-ancestors 'none';",
       enabled: true,
       description: '内容安全策略，防止XSS和数据注入',
       importance: 'critical'
@@ -262,7 +262,7 @@ export class SecurityHeaderManager {
     const validTo = new Date(now.getTime() + 335 * 24 * 60 * 60 * 1000) // 335天后
 
     return {
-      subject: 'CN=web3search-api.marovole.workers.dev',
+      subject: 'CN=api.lulaai.xyz',
       issuer: 'CN=Let\'s Encrypt Authority X3',
       validFrom,
       validTo,

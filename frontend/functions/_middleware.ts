@@ -19,20 +19,20 @@ export async function onRequest(context: {
 
   // API 请求代理到后端
   if (pathname.startsWith('/api/')) {
-    const backendUrl = 'https://web3search-api.marovole.workers.dev' + pathname + url.search;
-    
+    const backendUrl = 'https://api.lulaai.xyz' + pathname + url.search;
+
     try {
       // 创建新的请求，保留原始请求的方法、头部和body
       const backendRequest = new Request(backendUrl, {
         method: context.request.method,
         headers: context.request.headers,
-        body: context.request.method !== 'GET' && context.request.method !== 'HEAD' 
-          ? context.request.body 
+        body: context.request.method !== 'GET' && context.request.method !== 'HEAD'
+          ? context.request.body
           : undefined,
       });
 
       const response = await fetch(backendRequest);
-      
+
       // 添加 CORS 头部
       const headers = new Headers(response.headers);
       headers.set('Access-Control-Allow-Origin', '*');
@@ -46,7 +46,7 @@ export async function onRequest(context: {
       });
     } catch (error) {
       console.error('API proxy error:', error);
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         error: 'API proxy error',
         message: error instanceof Error ? error.message : 'Unknown error'
       }), {

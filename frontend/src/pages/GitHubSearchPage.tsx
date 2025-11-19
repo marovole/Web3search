@@ -92,7 +92,7 @@ const GitHubSearchPage: React.FC = () => {
     setError(null)
 
     try {
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://web3search-api.marovole.workers.dev'
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.lulaai.xyz'
       const apiKey = import.meta.env.VITE_API_KEY || 'test123'
 
       const url = new URL(`${apiUrl}/api/v1/github/search`)
@@ -100,7 +100,7 @@ const GitHubSearchPage: React.FC = () => {
       url.searchParams.append('search_type', searchType)
       url.searchParams.append('page', page.toString())
       url.searchParams.append('per_page', perPage.toString())
-      
+
       // 添加过滤器参数
       if (filters.languages.length > 0) {
         url.searchParams.append('language', filters.languages.join(','))
@@ -136,7 +136,7 @@ const GitHubSearchPage: React.FC = () => {
       }
 
       setResults(data)
-      
+
       // 无限滚动模式：追加结果；分页模式：替换结果
       if (useInfiniteScrollMode && page > 1) {
         setAllItems(prev => [...prev, ...data.data.items])

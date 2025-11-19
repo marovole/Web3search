@@ -7,7 +7,7 @@
  */
 import { test, expect } from '@playwright/test';
 
-const PROD_API_BASE_URL = 'https://web3search-api.marovole.workers.dev/api/v1';
+const PROD_API_BASE_URL = 'https://api.lulaai.xyz/api/v1';
 
 const normalizeBaseUrl = (url: string) => url.replace(/\/$/, '');
 

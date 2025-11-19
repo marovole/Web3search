@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const PROD_API_BASE_URL = 'https://web3search-api.marovole.workers.dev/api/v1'
+const PROD_API_BASE_URL = 'https://api.lulaai.xyz/api/v1'
 
 // Default to the production API unless a local backend is explicitly requested.
 if (!process.env.TEST_ENV) {

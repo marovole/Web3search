@@ -69,7 +69,7 @@ function getEnvVar(key: string, defaultValue?: string): string {
  */
 function getApiBaseUrl(): string {
   const envUrl = import.meta.env.VITE_API_BASE_URL
-  const defaultUrl = 'https://web3search-api.marovole.workers.dev'
+  const defaultUrl = 'https://api.lulaai.xyz'
 
   // 如果没有配置环境变量，使用默认值
   if (!envUrl) {
@@ -151,18 +151,18 @@ export function loadEnvConfig(): EnvConfig {
     // 生产环境配置：自动检测并使用完整后端URL
     // 注意：不使用相对路径，避免与API路径前缀重复（/api + /api/v1 = /api/api/v1）
     const isProduction = config.ENVIRONMENT === 'production' ||
-                        (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+      (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
 
     if (isProduction && !config.API_BASE_URL.startsWith('http')) {
       console.warn('⚠️ Production environment detected but API_BASE_URL is not a complete URL. Using default backend URL.')
-      config.API_BASE_URL = 'https://web3search-api.marovole.workers.dev'
+      config.API_BASE_URL = 'https://api.lulaai.xyz'
     }
 
     // 验证URL格式：确保没有路径重复
     if (config.API_BASE_URL.includes('/api/v1') || config.API_BASE_URL.includes('/api/api')) {
       console.error('❌ API_BASE_URL contains API path! This will cause path duplication.')
       console.error(`   Current: ${config.API_BASE_URL}`)
-      console.error(`   Expected: https://web3search-api.marovole.workers.dev`)
+      console.error(`   Expected: https://api.lulaai.xyz`)
       throw new Error('Invalid API_BASE_URL configuration: contains API path')
     }
 
@@ -210,7 +210,7 @@ export function getEnvConfig(): EnvConfig {
       if (envConfig.API_BASE_URL.includes('/api/v1') || envConfig.API_BASE_URL.includes('/api/api')) {
         console.error('❌ API_BASE_URL contains duplicate API path!')
         console.error(`   Invalid: ${envConfig.API_BASE_URL}`)
-        envConfig.API_BASE_URL = 'https://web3search-api.marovole.workers.dev'
+        envConfig.API_BASE_URL = 'https://api.lulaai.xyz'
         console.log(`✅ Corrected to: ${envConfig.API_BASE_URL}`)
       }
 
@@ -218,7 +218,7 @@ export function getEnvConfig(): EnvConfig {
       if (isProductionDomain && !envConfig.API_BASE_URL.startsWith('https://')) {
         console.warn('⚠️  Production detected but API URL is not HTTPS')
         console.warn(`   Current: ${envConfig.API_BASE_URL}`)
-        envConfig.API_BASE_URL = 'https://web3search-api.marovole.workers.dev'
+        envConfig.API_BASE_URL = 'https://api.lulaai.xyz'
         console.log(`✅ Switched to: ${envConfig.API_BASE_URL}`)
       }
 
