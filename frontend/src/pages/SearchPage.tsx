@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -10,10 +10,9 @@ import {
   FileText,
   BarChart3,
   Trash2,
-  TrendingUp
+  Sparkles
 } from 'lucide-react'
 import { useSearchHistory } from '@/contexts/SearchHistoryContext'
-import { cn } from '@/lib/utils'
 
 // 搜索类型
 type SearchType = 'all' | 'chat' | 'report' | 'watchlist'
@@ -46,17 +45,17 @@ interface SearchSectionProps {
 
 function SearchSection({ icon, title, count, results, isExpanded, onToggle }: SearchSectionProps) {
   return (
-    <div className="bg-card dark:bg-card/90 rounded-lg border border-border dark:border-border/80 overflow-hidden">
+    <div className="glass-card overflow-hidden border border-white/5">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 hover:bg-muted/50 dark:hover:bg-muted/40 transition-colors"
+        className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors group"
       >
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg text-primary">
+          <div className="p-2 bg-primary/10 rounded-lg text-primary shadow-[0_0_10px_rgba(0,255,255,0.2)] group-hover:shadow-[0_0_15px_rgba(0,255,255,0.4)] transition-all duration-300">
             {icon}
           </div>
           <div className="text-left">
-            <h3 className="font-medium">{title}</h3>
+            <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">{title}</h3>
             <p className="text-sm text-muted-foreground">{count} 条结果</p>
           </div>
         </div>
@@ -64,7 +63,7 @@ function SearchSection({ icon, title, count, results, isExpanded, onToggle }: Se
           animate={{ rotate: isExpanded ? 180 : 0 }}
           transition={{ duration: 0.2 }}
         >
-          <Filter size={20} className="text-muted-foreground" />
+          <Filter size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
         </motion.div>
       </button>
 
@@ -77,9 +76,9 @@ function SearchSection({ icon, title, count, results, isExpanded, onToggle }: Se
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="p-4 border-t border-border dark:border-border/80 space-y-3">
+            <div className="p-4 border-t border-white/5 space-y-3 bg-black/20">
               {results.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground dark:text-muted-foreground/90">
+                <div className="text-center py-8 text-muted-foreground">
                   <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p>暂无搜索结果</p>
                 </div>
@@ -89,22 +88,24 @@ function SearchSection({ icon, title, count, results, isExpanded, onToggle }: Se
                     key={result.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-3 bg-muted/50 dark:bg-muted/40 rounded-lg hover:bg-muted dark:hover:bg-muted/60 transition-colors cursor-pointer"
+                    className="p-4 bg-white/5 rounded-xl hover:bg-white/10 hover:border-primary/30 border border-transparent transition-all duration-300 cursor-pointer group"
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="p-1.5 bg-primary/10 rounded text-primary">
-                        {result.type === 'chat' && <MessageSquare size={14} />}
-                        {result.type === 'report' && <FileText size={14} />}
-                        {result.type === 'watchlist' && <BarChart3 size={14} />}
+                    <div className="flex items-start gap-4">
+                      <div className="p-2 bg-primary/10 rounded-lg text-primary mt-1">
+                        {result.type === 'chat' && <MessageSquare size={16} />}
+                        {result.type === 'report' && <FileText size={16} />}
+                        {result.type === 'watchlist' && <BarChart3 size={16} />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm truncate text-foreground dark:text-foreground/90">{result.title}</h4>
-                        <p className="text-xs text-muted-foreground dark:text-muted-foreground/90 mt-1 line-clamp-2">
+                        <h4 className="font-medium text-base truncate text-foreground group-hover:text-primary transition-colors">{result.title}</h4>
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2 group-hover:text-muted-foreground/80">
                           {result.excerpt}
                         </p>
-                        <p className="text-xs text-muted-foreground dark:text-muted-foreground/80 mt-2">
-                          {new Date(result.timestamp).toLocaleString()}
-                        </p>
+                        <div className="flex items-center gap-2 mt-3">
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-muted-foreground border border-white/5">
+                            {new Date(result.timestamp).toLocaleString()}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -124,11 +125,11 @@ function SearchSection({ icon, title, count, results, isExpanded, onToggle }: Se
 export default function SearchPage() {
   const { history, removeFromHistory, clearHistory } = useSearchHistory()
   const [query, setQuery] = useState('')
-  const [filters, setFilters] = useState<SearchFilters>({
-    type: 'all',
-    dateRange: 'all',
-    sortBy: 'relevance'
-  })
+  const filters = {
+    type: 'all' as SearchType,
+    dateRange: 'all' as const,
+    sortBy: 'relevance' as const
+  }
   const [expandedSections, setExpandedSections] = useState<Set<SearchType>>(new Set(['chat', 'report', 'watchlist']))
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -179,9 +180,9 @@ export default function SearchPage() {
     // 根据搜索词过滤结果
     const filteredResults = searchQuery
       ? mockResults.filter(result =>
-          result.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          result.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+        result.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        result.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
+      )
       : []
 
     // 根据类型过滤
@@ -210,19 +211,21 @@ export default function SearchPage() {
 
   // 处理输入变化
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setQuery(value)
-
-    // 实时搜索（防抖）
-    if (value.trim()) {
-      const timeoutId = setTimeout(() => {
-        performSearch(value, filters)
-      }, 300)
-      return () => clearTimeout(timeoutId)
-    } else {
-      setSearchResults([])
-    }
+    setQuery(e.target.value)
   }
+
+  // 实时搜索（防抖）
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (query.trim()) {
+        performSearch(query, filters)
+      } else {
+        setSearchResults([])
+      }
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [query])
 
   // 切换展开/折叠
   const toggleSection = (type: SearchType) => {
@@ -248,53 +251,50 @@ export default function SearchPage() {
   const recentHistory = history.slice(0, 5)
 
   return (
-    <div className="container mx-auto max-w-4xl p-6 space-y-6">
+    <div className="container mx-auto max-w-5xl p-6 space-y-8">
       {/* 页面标题 */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="p-3 bg-primary/10 rounded-lg">
-          <Search className="w-6 h-6 text-primary" />
+      <div className="flex items-center gap-4 mb-8 animate-fade-in">
+        <div className="p-4 bg-primary/10 rounded-2xl shadow-[0_0_20px_rgba(0,255,255,0.2)] border border-primary/20">
+          <Sparkles className="w-8 h-8 text-primary animate-pulse-glow" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">搜索</h1>
-          <p className="text-sm text-muted-foreground">搜索聊天记录、报告和监控列表</p>
+          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">搜索中心</h1>
+          <p className="text-base text-muted-foreground mt-1">探索您的Web3数据、报告和对话记录</p>
         </div>
       </div>
 
       {/* 搜索框 */}
-      <form onSubmit={handleSearch} className="relative">
+      <form onSubmit={handleSearch} className="relative group animate-slide-up">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
+          <div className="absolute inset-0 bg-primary/20 blur-xl rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={24} />
           <input
             ref={searchInputRef}
             type="text"
             value={query}
             onChange={handleInputChange}
             placeholder="搜索内容、关键词或话题..."
-            className={cn(
-              "w-full pl-12 pr-12 py-4 bg-background border border-border rounded-lg",
-              "focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent",
-              "text-base"
-            )}
+            className="w-full pl-14 pr-14 py-5 bg-background/40 backdrop-blur-xl border border-white/10 rounded-2xl focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 text-lg placeholder:text-muted-foreground/50 shadow-lg transition-all duration-300 relative z-10"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-5 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground z-20"
             >
-              <X size={20} />
+              <X size={24} />
             </button>
           )}
         </div>
 
         {/* 搜索建议和历史 */}
         {!query && recentHistory.length > 0 && (
-          <div className="mt-4 p-4 bg-card rounded-lg border border-border">
-            <div className="flex items-center gap-2 mb-3">
-              <Clock size={16} className="text-muted-foreground" />
-              <h3 className="font-medium text-sm">最近搜索</h3>
+          <div className="mt-6 p-6 glass-card animate-fade-in">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock size={18} className="text-primary" />
+              <h3 className="font-medium text-base">最近搜索</h3>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               {recentHistory.map(item => (
                 <button
                   key={item.id}
@@ -302,19 +302,19 @@ export default function SearchPage() {
                     setQuery(item.query)
                     performSearch(item.query, filters)
                   }}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-muted hover:bg-muted/80 rounded-lg text-sm transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-primary/10 hover:border-primary/30 border border-white/10 rounded-xl text-sm transition-all duration-200 group"
                 >
-                  <History size={14} className="text-muted-foreground" />
-                  {item.query}
-                  <button
+                  <History size={14} className="text-muted-foreground group-hover:text-primary" />
+                  <span className="group-hover:text-primary transition-colors">{item.query}</span>
+                  <div
                     onClick={(e) => {
                       e.stopPropagation()
                       removeFromHistory(item.id)
                     }}
-                    className="text-muted-foreground hover:text-foreground"
+                    className="ml-1 p-0.5 rounded-full hover:bg-white/10 text-muted-foreground hover:text-destructive transition-colors"
                   >
                     <X size={14} />
-                  </button>
+                  </div>
                 </button>
               ))}
             </div>
@@ -323,25 +323,28 @@ export default function SearchPage() {
       </form>
 
       {/* 搜索结果 */}
-      <div className="space-y-4">
+      <div className="space-y-6 animate-slide-up" style={{ animationDelay: '0.1s' }}>
         {isSearching ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="flex items-center gap-3">
-              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              <span className="text-muted-foreground">搜索中...</span>
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-8 h-8 bg-primary/20 rounded-full animate-pulse" />
+              </div>
             </div>
+            <span className="mt-4 text-muted-foreground animate-pulse">正在搜索全网数据...</span>
           </div>
         ) : searchResults.length > 0 ? (
           <>
             {/* 结果统计 */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between px-2">
               <p className="text-sm text-muted-foreground">
-                找到 <span className="font-medium">{searchResults.length}</span> 条结果
+                找到 <span className="font-bold text-primary">{searchResults.length}</span> 条结果
               </p>
               {history.length > 0 && (
                 <button
                   onClick={clearHistory}
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-destructive transition-colors px-3 py-1.5 rounded-lg hover:bg-white/5"
                 >
                   <Trash2 size={14} />
                   清空历史
@@ -350,38 +353,42 @@ export default function SearchPage() {
             </div>
 
             {/* 按类型分组的搜索结果 */}
-            <SearchSection
-              icon={<MessageSquare size={20} />}
-              title="对话记录"
-              count={resultsByType.chat.length}
-              results={resultsByType.chat}
-              isExpanded={expandedSections.has('chat')}
-              onToggle={() => toggleSection('chat')}
-            />
+            <div className="grid gap-6">
+              <SearchSection
+                icon={<MessageSquare size={20} />}
+                title="对话记录"
+                count={resultsByType.chat.length}
+                results={resultsByType.chat}
+                isExpanded={expandedSections.has('chat')}
+                onToggle={() => toggleSection('chat')}
+              />
 
-            <SearchSection
-              icon={<FileText size={20} />}
-              title="研究报告"
-              count={resultsByType.report.length}
-              results={resultsByType.report}
-              isExpanded={expandedSections.has('report')}
-              onToggle={() => toggleSection('report')}
-            />
+              <SearchSection
+                icon={<FileText size={20} />}
+                title="研究报告"
+                count={resultsByType.report.length}
+                results={resultsByType.report}
+                isExpanded={expandedSections.has('report')}
+                onToggle={() => toggleSection('report')}
+              />
 
-            <SearchSection
-              icon={<BarChart3 size={20} />}
-              title="监控列表"
-              count={resultsByType.watchlist.length}
-              results={resultsByType.watchlist}
-              isExpanded={expandedSections.has('watchlist')}
-              onToggle={() => toggleSection('watchlist')}
-            />
+              <SearchSection
+                icon={<BarChart3 size={20} />}
+                title="监控列表"
+                count={resultsByType.watchlist.length}
+                results={resultsByType.watchlist}
+                isExpanded={expandedSections.has('watchlist')}
+                onToggle={() => toggleSection('watchlist')}
+              />
+            </div>
           </>
         ) : query ? (
-          <div className="text-center py-12">
-            <Search className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="font-medium mb-2">未找到相关结果</h3>
-            <p className="text-sm text-muted-foreground">
+          <div className="text-center py-20 glass-card">
+            <div className="w-20 h-20 mx-auto mb-6 bg-white/5 rounded-full flex items-center justify-center">
+              <Search className="w-10 h-10 text-muted-foreground opacity-50" />
+            </div>
+            <h3 className="text-xl font-medium mb-2">未找到相关结果</h3>
+            <p className="text-muted-foreground">
               尝试使用不同的关键词或检查拼写
             </p>
           </div>

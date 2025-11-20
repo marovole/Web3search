@@ -52,7 +52,9 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }, [registerShortcut])
 
   return (
-    <div className="min-h-screen bg-background font-sans antialiased">
+    <div className="min-h-screen font-sans antialiased text-foreground">
+      {/* Background is handled in index.css body, but we can add a subtle overlay if needed */}
+
       <Sidebar
         isOpen={isOpen}
         onToggle={toggle}
@@ -61,17 +63,18 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       />
 
       <div className={cn(
-        "transition-all duration-300 ease-in-out min-h-screen",
-        // Add padding for desktop sidebar
-        !isMobile && "md:ml-72 lg:ml-80"
+        "transition-all duration-300 ease-in-out min-h-screen flex flex-col",
+        // Add padding for desktop sidebar (updated to match new sidebar width w-72)
+        !isMobile && "md:ml-72"
       )}>
-        <div className="relative flex min-h-screen flex-col">
-          <main className="flex-1 overflow-hidden">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-full">
-              {children}
-            </div>
-          </main>
-        </div>
+        <main className="flex-1 relative">
+          {/* Top gradient fade for smooth scrolling appearance */}
+          <div className="fixed top-0 left-0 right-0 h-24 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none md:ml-72" />
+
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full relative z-0">
+            {children}
+          </div>
+        </main>
       </div>
 
       {/* 全局搜索对话框 */}
@@ -93,7 +96,7 @@ function App() {
   // const { updateAvailable: _updateAvailable, offline: _offline, activateUpdate: _activateUpdate } = useServiceWorker()
   const _updateAvailable = false
   const _offline = false
-  const _activateUpdate = () => {}
+  const _activateUpdate = () => { }
 
   // UX增强配置（轻量占位，避免引入复杂 Provider）
   const uxConfig = { features: {} as Record<string, boolean> }
@@ -146,15 +149,14 @@ function App() {
   }, [uxConfig])
 
   return (
-    <>
-      <AuthProvider>
-        <LoadingProvider>
-          <UserPreferencesProvider>
-            <SearchHistoryProvider>
-              <SearchFavoritesProvider>
-                <KeyboardShortcutsProvider>
+    <AuthProvider>
+      <LoadingProvider>
+        <UserPreferencesProvider>
+          <SearchHistoryProvider>
+            <SearchFavoritesProvider>
+              <KeyboardShortcutsProvider>
                 <Router>
-                  <ThemeProvider defaultTheme="system" storageKey="web3search-theme">
+                  <ThemeProvider defaultTheme="dark" storageKey="web3search-theme">
                     <ToastProvider>
                       <OfflineIndicator />
                       <ErrorBoundary>
@@ -228,12 +230,11 @@ function App() {
                   </ThemeProvider>
                 </Router>
               </KeyboardShortcutsProvider>
-              </SearchFavoritesProvider>
-            </SearchHistoryProvider>
-          </UserPreferencesProvider>
-        </LoadingProvider>
-      </AuthProvider>
-    </>
+            </SearchFavoritesProvider>
+          </SearchHistoryProvider>
+        </UserPreferencesProvider>
+      </LoadingProvider>
+    </AuthProvider>
   )
 }
 

@@ -13,7 +13,8 @@ import {
   Command,
   Code,
   Clock,
-  Star
+  Star,
+  Menu
 } from 'lucide-react'
 import { useKeyboardShortcutsContext } from '@/contexts/KeyboardShortcutsContext'
 
@@ -44,23 +45,38 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
       onClick={onClick}
       data-testid={testId}
       className={cn(
-        "w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200",
-        "hover:bg-muted/50 active:bg-muted/80",
-        "touch-manipulation", // Improve touch responsiveness
-        isActive && "bg-primary/10 text-primary border-r-2 border-primary",
-        !isActive && "text-foreground/80 hover:text-foreground"
+        "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden",
+        "hover:bg-white/5",
+        isActive
+          ? "bg-primary/10 text-primary shadow-[0_0_15px_rgba(0,255,255,0.15)] border border-primary/20"
+          : "text-muted-foreground hover:text-foreground hover:shadow-[0_0_10px_rgba(255,255,255,0.05)] border border-transparent"
       )}
     >
-      <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
+      {isActive && (
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary shadow-[0_0_10px_#00FFFF]" />
+      )}
+
+      <span className={cn(
+        "flex-shrink-0 w-5 h-5 flex items-center justify-center transition-transform duration-300",
+        isActive ? "scale-110 drop-shadow-[0_0_5px_rgba(0,255,255,0.5)]" : "group-hover:scale-110"
+      )}>
         {icon}
       </span>
 
-      <span className="flex-1 text-left text-sm font-medium truncate">
+      <span className={cn(
+        "flex-1 text-left text-sm font-medium truncate transition-all duration-300",
+        isActive ? "translate-x-1" : "group-hover:translate-x-1"
+      )}>
         {label}
       </span>
 
       {badge && (
-        <span className="flex-shrink-0 bg-primary/20 text-primary text-xs px-2 py-1 rounded-full">
+        <span className={cn(
+          "flex-shrink-0 text-xs px-2 py-0.5 rounded-full border",
+          isActive
+            ? "bg-primary/20 text-primary border-primary/30 shadow-[0_0_5px_rgba(0,255,255,0.2)]"
+            : "bg-white/5 text-muted-foreground border-white/10"
+        )}>
           {badge}
         </span>
       )}
@@ -211,30 +227,30 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* Overlay for mobile - 使用 CSS transitions 替代 framer-motion */}
+      {/* Overlay for mobile */}
       {isMobile && isOpen && (
         <div
           className={cn(
-            "fixed inset-0 bg-black/50 z-40 md:hidden",
-            "transition-opacity duration-200",
+            "fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden",
+            "transition-opacity duration-300",
             isOpen ? "opacity-100" : "opacity-0"
           )}
           onClick={onToggle}
         />
       )}
 
-      {/* Sidebar - 使用 CSS transitions 替代 framer-motion */}
+      {/* Sidebar */}
       <aside
         ref={sidebarRef}
         className={cn(
           "fixed left-0 top-0 h-full z-50",
-          "bg-card border-r border-border",
+          "bg-background/60 backdrop-blur-xl border-r border-white/5 shadow-2xl", // Glassmorphism base
           "flex flex-col",
           "transition-all duration-300 ease-in-out",
           // Desktop styles
-          "md:w-64",
+          "md:w-72", // Slightly wider for premium feel
           // Mobile styles
-          "w-64",
+          "w-72",
           // Transform based on state
           isOpen
             ? "translate-x-0 opacity-100"
@@ -249,18 +265,22 @@ const Sidebar: React.FC<SidebarProps> = ({
         onTouchEnd={handleTouchEnd}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="text-lg font-semibold text-foreground">
-            Web3Search
-          </h2>
+        <div className="flex items-center justify-between p-6 border-b border-white/5">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-[0_0_15px_rgba(0,255,255,0.3)]">
+              <span className="font-bold text-black text-lg">W</span>
+            </div>
+            <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 tracking-tight">
+              Web3Search
+            </h2>
+          </div>
 
           <button
             onClick={onToggle}
             className={cn(
               "p-2 rounded-lg transition-all duration-200",
-              "hover:bg-muted/50 active:bg-muted/80",
-              "touch-manipulation",
-              "text-foreground/60 hover:text-foreground"
+              "hover:bg-white/10 active:bg-white/20",
+              "text-muted-foreground hover:text-foreground"
             )}
             aria-label={isOpen ? "关闭侧边栏" : "打开侧边栏"}
           >
@@ -275,12 +295,12 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-          <div className="mb-6">
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 px-3">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+          <div>
+            <h3 className="text-xs font-semibold text-primary/80 uppercase tracking-widest mb-4 px-4 neon-text">
               主要功能
             </h3>
-            <div className="space-y-1">
+            <div className="space-y-2">
               {menuItems.slice(0, 6).map((item) => (
                 <SidebarItem key={item.href} {...item} />
               ))}
@@ -288,10 +308,10 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           <div>
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 px-3">
+            <h3 className="text-xs font-semibold text-primary/80 uppercase tracking-widest mb-4 px-4 neon-text">
               其他
             </h3>
-            <div className="space-y-1">
+            <div className="space-y-2">
               {menuItems.slice(6).map((item) => (
                 <SidebarItem key={item.href} {...item} />
               ))}
@@ -300,29 +320,27 @@ const Sidebar: React.FC<SidebarProps> = ({
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border space-y-3">
+        <div className="p-4 border-t border-white/5 space-y-3 bg-black/20">
           {/* 快捷键帮助按钮 */}
           <button
             onClick={toggleHelp}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200",
-              "hover:bg-muted/50 active:bg-muted/80",
-              "touch-manipulation",
-              "text-foreground/60 hover:text-foreground",
-              "text-sm"
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+              "bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10",
+              "text-muted-foreground hover:text-foreground",
+              "text-sm group"
             )}
             aria-label="显示快捷键帮助"
           >
-            <Command size={18} />
+            <Command size={18} className="group-hover:text-primary transition-colors" />
             <span className="flex-1 text-left">快捷键帮助</span>
-            <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">
+            <kbd className="px-2 py-0.5 bg-black/40 rounded text-xs font-mono border border-white/10 text-primary/80">
               ?
             </kbd>
           </button>
 
-          <div className="text-xs text-muted-foreground pt-2 border-t border-border">
+          <div className="text-xs text-muted-foreground/60 pt-2 text-center">
             <p>© 2024 Web3Search</p>
-            <p className="mt-1">构建在Web3技术之上</p>
           </div>
         </div>
       </aside>

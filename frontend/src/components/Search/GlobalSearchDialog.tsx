@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, Clock, ArrowRight, Loader2, TrendingUp } from 'lucide-react'
 import { useSearchHistory } from '../../contexts/SearchHistoryContext'
@@ -140,22 +140,22 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/60 backdrop-blur-md z-50"
             onClick={onClose}
           />
 
           {/* 搜索弹窗 */}
-          <div className="fixed inset-x-0 top-20 z-50 flex justify-center px-4">
+          <div className="fixed inset-x-0 top-20 z-50 flex justify-center px-4 pointer-events-none">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: -20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -20 }}
-              className="w-full max-w-2xl bg-background rounded-lg shadow-xl border border-border overflow-hidden"
+              className="w-full max-w-2xl glass-panel rounded-2xl overflow-hidden pointer-events-auto border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]"
               onClick={(e) => e.stopPropagation()}
             >
               {/* 搜索输入框 */}
-              <div className="flex items-center gap-3 p-4 border-b border-border">
-                <Search className="w-5 h-5 text-muted-foreground" />
+              <div className="flex items-center gap-4 p-5 border-b border-white/5 bg-white/5">
+                <Search className="w-6 h-6 text-primary animate-pulse-glow" />
                 <input
                   ref={inputRef}
                   data-testid="search-input"
@@ -163,28 +163,31 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="搜索聊天记录、报告、监控..."
-                  className="flex-1 bg-transparent outline-none text-lg placeholder:text-muted-foreground"
+                  className="flex-1 bg-transparent outline-none text-xl placeholder:text-muted-foreground/50 text-foreground"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       handleSearch()
                     }
                   }}
                 />
+                <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground border border-white/10 px-2 py-1 rounded bg-black/20">
+                  <span className="text-xs">ESC</span>
+                  <span>关闭</span>
+                </div>
               </div>
 
               {/* 搜索结果 */}
-              <div className="max-h-96 overflow-y-auto">
+              <div className="max-h-[60vh] overflow-y-auto custom-scrollbar bg-black/20">
                 {loadingSuggestions && query ? (
-                  <div className="p-8 text-center text-muted-foreground">
-                    <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin opacity-50" />
-                    <p>加载搜索建议...</p>
+                  <div className="p-12 text-center text-muted-foreground">
+                    <Loader2 className="w-10 h-10 mx-auto mb-4 animate-spin text-primary opacity-80" />
+                    <p className="animate-pulse">正在搜索全网数据...</p>
                   </div>
                 ) : displayItems.length > 0 ? (
-                  <div className="p-2">
+                  <div className="p-2 space-y-1">
                     {displayItems.map((item, index) => {
                       const isSelected = index === selectedIndex
                       const title = 'query' in item ? item.query : item.title
-                      const type = 'type' in item ? item.type : 'history'
 
                       return (
                         <motion.button
@@ -192,51 +195,58 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           onClick={() => handleSelect(item)}
+                          onMouseEnter={() => setSelectedIndex(index)}
                           className={cn(
-                            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left",
-                            isSelected && "bg-primary/10"
+                            "w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 text-left group border border-transparent",
+                            isSelected
+                              ? "bg-primary/10 border-primary/20 shadow-[0_0_15px_rgba(0,255,255,0.1)]"
+                              : "hover:bg-white/5 hover:border-white/5"
                           )}
                         >
                           <div className={cn(
-                            "p-1.5 rounded",
-                            type === 'chat' && "bg-blue-500/10 text-blue-500",
-                            type === 'report' && "bg-purple-500/10 text-purple-500",
-                            type === 'watchlist' && "bg-green-500/10 text-green-500",
-                            type === 'repository' && "bg-orange-500/10 text-orange-500",
-                            type === 'history' && "bg-muted text-muted-foreground"
+                            "p-2 rounded-lg transition-colors",
+                            isSelected ? "bg-primary/20 text-primary" : "bg-white/5 text-muted-foreground group-hover:text-foreground"
                           )}>
                             {'query' in item ? (
-                              <Clock size={16} />
+                              <Clock size={18} />
                             ) : (
-                              <Search size={16} />
+                              <Search size={18} />
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{title}</p>
+                            <p className={cn(
+                              "font-medium truncate text-base transition-colors",
+                              isSelected ? "text-primary" : "text-foreground"
+                            )}>{title}</p>
                             {'timestamp' in item && (
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-muted-foreground mt-0.5">
                                 {new Date(item.timestamp).toLocaleString()}
                               </p>
                             )}
                             {'description' in item && item.description && (
-                              <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                                 {item.description}
                               </p>
                             )}
                           </div>
-                          <ArrowRight size={16} className="text-muted-foreground opacity-0 group-hover:opacity-100" />
+                          <ArrowRight size={18} className={cn(
+                            "transition-all duration-200",
+                            isSelected ? "text-primary opacity-100 translate-x-0" : "text-muted-foreground opacity-0 -translate-x-2 group-hover:opacity-50"
+                          )} />
                         </motion.button>
                       )
                     })}
                   </div>
                 ) : query ? (
-                  <div className="p-8 text-center text-muted-foreground">
-                    <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p>未找到相关结果</p>
+                  <div className="p-12 text-center text-muted-foreground">
+                    <Search className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                    <p className="text-lg font-medium mb-2">未找到相关结果</p>
+                    <p className="text-sm opacity-70">尝试使用不同的关键词</p>
+
                     {popularSearches.length > 0 && (
-                      <div className="mt-4">
-                        <p className="text-xs mb-2 flex items-center justify-center gap-1">
-                          <TrendingUp size={12} />
+                      <div className="mt-8 pt-8 border-t border-white/5">
+                        <p className="text-xs mb-4 flex items-center justify-center gap-2 text-primary/80 uppercase tracking-widest">
+                          <TrendingUp size={14} />
                           热门搜索
                         </p>
                         <div className="flex flex-wrap gap-2 justify-center">
@@ -248,7 +258,7 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
                                 navigate(`/search?q=${encodeURIComponent(term)}`)
                                 onClose()
                               }}
-                              className="px-2 py-1 text-xs bg-muted hover:bg-muted/80 rounded-md transition-colors"
+                              className="px-3 py-1.5 text-sm bg-white/5 hover:bg-primary/10 hover:text-primary border border-white/5 hover:border-primary/30 rounded-lg transition-all duration-200"
                             >
                               {term}
                             </button>
@@ -258,22 +268,26 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
                     )}
                   </div>
                 ) : (
-                  <div className="p-4">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-3">最近搜索</h4>
+                  <div className="p-6">
+                    <h4 className="text-xs font-semibold text-muted-foreground mb-4 uppercase tracking-widest px-2">最近搜索</h4>
                     {recentHistory.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">
+                      <p className="text-sm text-muted-foreground text-center py-8 opacity-50">
                         暂无搜索历史
                       </p>
                     ) : (
                       <div className="space-y-1">
-                        {recentHistory.map(item => (
+                        {recentHistory.map((item, index) => (
                           <button
                             key={item.id}
                             onClick={() => handleSelect(item)}
-                            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-left"
+                            onMouseEnter={() => setSelectedIndex(index)}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left group",
+                              index === selectedIndex ? "bg-white/10" : "hover:bg-white/5"
+                            )}
                           >
-                            <Clock size={16} className="text-muted-foreground" />
-                            <span className="flex-1">{item.query}</span>
+                            <Clock size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                            <span className="flex-1 text-sm text-foreground/80 group-hover:text-foreground transition-colors">{item.query}</span>
                           </button>
                         ))}
                       </div>
@@ -283,20 +297,19 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
               </div>
 
               {/* 底部提示 */}
-              <div className="p-3 bg-muted/50 border-t border-border text-xs text-muted-foreground flex items-center justify-between">
+              <div className="p-3 bg-white/5 border-t border-white/5 text-xs text-muted-foreground flex items-center justify-between backdrop-blur-sm">
                 <div className="flex items-center gap-4">
-                  <span className="flex items-center gap-1">
-                    <kbd className="px-1.5 py-0.5 bg-background rounded border">↑↓</kbd>
+                  <span className="flex items-center gap-1.5">
+                    <kbd className="px-1.5 py-0.5 bg-black/40 rounded border border-white/10 font-mono text-[10px]">↑↓</kbd>
                     导航
                   </span>
-                  <span className="flex items-center gap-1">
-                    <kbd className="px-1.5 py-0.5 bg-background rounded border">Enter</kbd>
+                  <span className="flex items-center gap-1.5">
+                    <kbd className="px-1.5 py-0.5 bg-black/40 rounded border border-white/10 font-mono text-[10px]">Enter</kbd>
                     选择
                   </span>
-                  <span className="flex items-center gap-1">
-                    <kbd className="px-1.5 py-0.5 bg-background rounded border">Esc</kbd>
-                    关闭
-                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-primary/50">Web3Search</span>
                 </div>
               </div>
             </motion.div>
