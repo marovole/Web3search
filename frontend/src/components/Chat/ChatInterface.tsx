@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Terminal, Zap, Search, ArrowRight } from 'lucide-react'
 import type { Message, ChatMode } from '../../types'
 import { quickChat, deepResearchStream } from '../../services/api'
 import useNetworkRetry from '../../hooks/useNetworkRetry'
@@ -221,45 +222,140 @@ const ChatInterface: React.FC = () => {
           <AnimatePresence mode='wait'>
             {messages.length === 0 ? (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="min-h-[70vh] flex flex-col items-center justify-center py-12"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="min-h-[75vh] flex flex-col justify-center py-8"
               >
-                {/* Branding */}
-                <div className="text-center mb-16 relative w-full max-w-2xl mx-auto">
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+                {/* Hero Section - Premium Terminal Style */}
+                <div className="w-full max-w-4xl mx-auto px-4 relative">
+                  {/* Decorative Grid Background */}
+                  <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+                    <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+                    <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-secondary/5 rounded-full blur-3xl" />
+                  </div>
 
+                  {/* Top Tag with Status */}
                   <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.5 }}
-                    className="inline-flex items-center justify-center w-24 h-24 rounded-[2rem] bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-10 shadow-2xl shadow-blue-500/10 animate-float backdrop-blur-sm"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1, ease: [0.19, 1, 0.22, 1] }}
+                    className="mb-8 flex items-center gap-3"
                   >
-                    <span className="text-5xl filter drop-shadow-lg">⚡️</span>
+                    <span className="terminal-tag">
+                      <Terminal className="w-3 h-3" />
+                      WEB3 INTELLIGENCE
+                    </span>
+                    <span className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground/50">
+                      <span className="status-dot status-dot-live" />
+                      LIVE
+                    </span>
                   </motion.div>
 
-                  <h1 className="text-6xl md:text-7xl font-bold mb-8 tracking-tight">
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 drop-shadow-sm">AI Search</span>
-                  </h1>
+                  {/* Main Title - Premium Display Typography */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15, duration: 0.6, ease: [0.19, 1, 0.22, 1] }}
+                    className="mb-10"
+                  >
+                    <h1 className="font-display text-display-xl text-foreground mb-6 tracking-tight">
+                      <motion.span 
+                        className="block"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2, duration: 0.5 }}
+                      >
+                        Research.
+                      </motion.span>
+                      <motion.span 
+                        className="block gradient-text-premium"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3, duration: 0.5 }}
+                      >
+                        Analyze.
+                      </motion.span>
+                      <motion.span 
+                        className="block text-muted-foreground/70"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4, duration: 0.5 }}
+                      >
+                        Discover.
+                      </motion.span>
+                    </h1>
+                    <p className="text-base md:text-lg text-muted-foreground max-w-xl font-sans leading-relaxed">
+                      AI-powered deep research for crypto markets. 
+                      <span className="text-foreground/80"> Real-time insights</span>, 
+                      <span className="text-primary/80"> on-chain analysis</span>, and 
+                      <span className="text-secondary/80"> sentiment data</span>.
+                    </p>
+                  </motion.div>
 
-                  <p className="text-muted-foreground/80 text-xl md:text-2xl max-w-xl mx-auto leading-relaxed font-light tracking-wide">
-                    Deep insights for the decentralized web.
-                  </p>
-                </div>
+                  {/* Mode Switcher */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4, ease: [0.19, 1, 0.22, 1] }}
+                    className="mb-12"
+                  >
+                    <ModeSwitch mode={mode} onChange={handleModeChange} />
+                  </motion.div>
 
-                {/* Mode Switcher */}
-                <div className="mb-16 w-full flex justify-center">
-                  <ModeSwitch mode={mode} onChange={handleModeChange} />
-                </div>
+                  {/* Quick Actions - Enhanced */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5, ease: [0.19, 1, 0.22, 1] }}
+                    className="mb-12"
+                  >
+                    <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 flex items-center gap-2">
+                      <span className="w-8 h-px bg-border" />
+                      Quick Start
+                    </p>
+                    <div className="flex flex-wrap gap-2.5">
+                      {[
+                        { label: 'BTC Analysis', icon: <Zap className="w-3.5 h-3.5" />, color: 'primary' },
+                        { label: 'ETH Sentiment', icon: <Search className="w-3.5 h-3.5" />, color: 'secondary' },
+                        { label: 'SOL Ecosystem', icon: <ArrowRight className="w-3.5 h-3.5" />, color: 'cyan' },
+                      ].map((item, i) => (
+                        <motion.button
+                          key={item.label}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.55 + i * 0.08, ease: [0.19, 1, 0.22, 1] }}
+                          onClick={() => setInputValue(item.label)}
+                          className={cn(
+                            "group inline-flex items-center gap-2.5 px-4 py-2",
+                            "font-mono text-sm text-muted-foreground",
+                            "bg-surface-2/50 border border-border/40 rounded-xl",
+                            "hover:border-primary/40 hover:text-foreground hover:bg-primary/[0.06]",
+                            "hover:shadow-glow-sm active:scale-[0.97]",
+                            "transition-all duration-250 ease-out-expo"
+                          )}
+                        >
+                          <span className="text-primary/70 group-hover:text-primary transition-colors">
+                            {item.icon}
+                          </span>
+                          {item.label}
+                        </motion.button>
+                      ))}
+                    </div>
+                  </motion.div>
 
-                {/* Hotspots */}
-                <div className="w-full max-w-5xl px-4">
-                  <HotspotPanel
-                    onSelectHotspot={(symbol, name) => {
-                      setInputValue(`${symbol} (${name})`)
-                    }}
-                  />
+                  {/* Hotspots Panel */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.65, duration: 0.5, ease: [0.19, 1, 0.22, 1] }}
+                  >
+                    <HotspotPanel
+                      onSelectHotspot={(symbol, name) => {
+                        setInputValue(`${symbol} (${name})`)
+                      }}
+                    />
+                  </motion.div>
                 </div>
               </motion.div>
             ) : (
@@ -284,13 +380,15 @@ const ChatInterface: React.FC = () => {
       </div>
 
       {/* Floating Input Area */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background via-background/95 to-transparent z-20">
+      <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 bg-gradient-to-t from-background via-background/98 to-transparent z-20">
         <div className="max-w-3xl mx-auto">
           <motion.div
             layout
             className={cn(
-              "glass-card p-2 transition-all duration-300 ring-1 ring-white/10 focus-within:ring-primary/50 focus-within:shadow-[0_0_30px_-10px_rgba(0,242,255,0.3)]",
-              isLoading ? "opacity-80 pointer-events-none grayscale" : "opacity-100"
+              "glass-card p-1.5 md:p-2 transition-all duration-300",
+              "ring-1 ring-white/[0.06]",
+              "focus-within:ring-primary/40 focus-within:shadow-glow-md",
+              isLoading ? "opacity-70 pointer-events-none" : "opacity-100"
             )}
           >
             <AutocompleteInput
@@ -301,9 +399,13 @@ const ChatInterface: React.FC = () => {
               placeholder={mode === 'quick' ? 'Ask anything about crypto...' : 'Enter project name for deep research...'}
             />
           </motion.div>
-          <div className="text-center mt-3">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-medium">
-              AI-generated content may be inaccurate. DYOR.
+          <div className="text-center mt-3 flex items-center justify-center gap-3">
+            <p className="text-[9px] md:text-[10px] uppercase tracking-[0.15em] text-muted-foreground/35 font-medium">
+              AI-generated content may be inaccurate
+            </p>
+            <span className="text-muted-foreground/20">·</span>
+            <p className="text-[9px] md:text-[10px] uppercase tracking-[0.15em] text-muted-foreground/35 font-medium">
+              DYOR
             </p>
           </div>
         </div>
