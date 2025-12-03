@@ -1,6 +1,7 @@
 import React, { Suspense, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { logger } from '@/utils/logger'
 import ErrorBoundary from './components/Error/ErrorBoundary'
 import OfflineIndicator from './components/Network/OfflineIndicator'
 import { ToastProvider } from './components/ui/toast'
@@ -13,11 +14,8 @@ import { SearchFavoritesProvider } from './contexts/SearchFavoritesContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { GlobalSearchDialog } from './components/Search/GlobalSearchDialog'
 import { useSidebar } from './hooks/useSidebar'
-import { useSmartPreload } from './hooks/usePreloadRoutes'
-import { useServiceWorker } from './hooks/useServiceWorker'
 import { useKeyboardShortcutsContext } from './contexts/KeyboardShortcutsContext'
 import Sidebar from './components/Layout/Sidebar'
-import { PageLoading, ChatLoading, ReportLoading } from './components/Loading/PageLoading'
 
 // 懒加载页面组件（已修复嵌套懒加载问题）
 const ChatPage = React.lazy(() => import('./pages/ChatPage'))
@@ -87,18 +85,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 }
 
 function App() {
-  // 启用智能预加载
-  // TODO: useSmartPreload Hook causes React initialization issues
-  // useSmartPreload()
-
-  // Service Worker管理
-  // TODO: useServiceWorker Hook causes React initialization issues
-  // const { updateAvailable: _updateAvailable, offline: _offline, activateUpdate: _activateUpdate } = useServiceWorker()
-  const _updateAvailable = false
-  const _offline = false
-  const _activateUpdate = () => { }
-
-  // UX增强配置（轻量占位，避免引入复杂 Provider）
+  // UX enhancement config
   const uxConfig = { features: {} as Record<string, boolean> }
 
   // 初始化监控服务（延迟导入，避免React初始化冲突）
@@ -106,7 +93,6 @@ function App() {
     const initMonitoring = async () => {
       try {
         const { initSentry, addBreadcrumb, setContext, trackCoreWebVitals, trackPageLoad, trackResourceLoading } = await import('./services/sentry-lite')
-        const getPerformanceMonitor = (await import('./services/performance')).default
 
         // 初始化Sentry错误监控和RUM
         initSentry()
@@ -136,7 +122,7 @@ function App() {
         trackPageLoad()
         trackResourceLoading()
       } catch (error) {
-        console.error('初始化监控失败:', error)
+        logger.error('初始化监控失败:', error)
       }
     }
 

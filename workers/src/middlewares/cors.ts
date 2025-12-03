@@ -64,17 +64,6 @@ const resolveAllowedOrigin = (
     return origin
   }
 
-  // 开发环境：严格验证 localhost 和 127.0.0.1
-  if (
-    !allowedOrigins.length &&
-    (origin.startsWith('http://localhost:') || 
-     origin.startsWith('http://127.0.0.1:') ||
-     origin.startsWith('https://localhost:') ||
-     origin.startsWith('https://127.0.0.1:'))
-  ) {
-    return origin
-  }
-
   return undefined
 }
 

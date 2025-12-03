@@ -3,9 +3,13 @@ Application Configuration
 Manages environment variables and application settings using Pydantic
 """
 
+import os
 from typing import List
 from pydantic import Field
 from pydantic_settings import BaseSettings
+
+# Determine environment
+IS_PRODUCTION = os.getenv("ENVIRONMENT", "development").lower() == "production"
 
 
 class Settings(BaseSettings):
@@ -58,10 +62,13 @@ class Settings(BaseSettings):
         default_factory=lambda: [
             "https://web3search.pages.dev",
             "https://*.web3search.pages.dev",
+        ] if IS_PRODUCTION else [
+            "https://web3search.pages.dev",
+            "https://*.web3search.pages.dev",
             "http://localhost:*",
             "http://127.0.0.1:*",
         ],
-        description="Allowed CORS origins"
+        description="Allowed CORS origins (localhost only in development)"
     )
     cors_allow_methods: List[str] = Field(
         default_factory=lambda: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],

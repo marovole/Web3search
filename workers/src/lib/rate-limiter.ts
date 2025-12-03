@@ -61,10 +61,10 @@ export class RateLimiter {
       }
     } catch (error) {
       console.error('Rate limiter error:', error)
-      // 降级处理：出错时允许请求
+      // Security: reject requests on error (fail-closed approach)
       return {
         limit: this.limit,
-        remaining: this.limit - 1,
+        remaining: 0,
         reset: windowStart + this.window,
       }
     }

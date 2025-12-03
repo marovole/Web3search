@@ -3,6 +3,7 @@
  * 整合CSP管理、XSS防护、依赖安全和安全头部配置
  */
 
+import { logger } from '@/utils/logger'
 import { cspManager } from './csp'
 import { xssProtection } from './xssProtection'
 import { dependencySecurity } from './dependencySecurity'
@@ -85,7 +86,7 @@ export class SecurityManager {
    */
   async initialize(config?: SecurityConfig): Promise<void> {
     if (this.isInitialized) {
-      console.warn('安全系统已经初始化')
+      logger.warn('安全系统已经初始化')
       return
     }
 
@@ -98,13 +99,13 @@ export class SecurityManager {
           reportOnly: this.config.csp.reportOnly,
           directives: this.config.csp.customDirectives
         })
-        console.log('🛡️ CSP管理器已初始化')
+        logger.info('CSP管理器已初始化')
       }
 
       // 初始化XSS防护
       if (this.config.xss?.enabled) {
         await xssProtection.initialize(this.config.xss.sanitizationConfig)
-        console.log('🔒 XSS防护已初始化')
+        logger.info('XSS防护已初始化')
       }
 
       // 初始化依赖安全管理
@@ -117,7 +118,7 @@ export class SecurityManager {
           }),
           notifyOnVulnerabilities: true
         })
-        console.log('📦 依赖安全管理已初始化')
+        logger.info('依赖安全管理已初始化')
       }
 
       // 初始化安全头部
@@ -131,7 +132,7 @@ export class SecurityManager {
             preload: true
           }
         })
-        console.log('🔐 安全头部已配置')
+        logger.info('安全头部已配置')
       }
 
       // 设置安全事件监听
@@ -143,7 +144,7 @@ export class SecurityManager {
       }
 
       this.isInitialized = true
-      console.log('✅ 安全系统初始化完成')
+      logger.info('安全系统初始化完成')
 
       // 记录初始化事件
       this.recordSecurityEvent({
@@ -156,7 +157,7 @@ export class SecurityManager {
       })
 
     } catch (error) {
-      console.error('❌ 安全系统初始化失败:', error)
+      logger.error('安全系统初始化失败:', error)
       throw error
     }
   }
@@ -196,19 +197,19 @@ export class SecurityManager {
     // 监听CSP违规
     if (this.config.csp?.enabled) {
       // 这里可以设置CSP违规事件监听
-      console.log('📡 CSP违规监听已设置')
+      logger.debug('CSP违规监听已设置')
     }
 
     // 监听XSS检测
     if (this.config.xss?.enabled) {
       // 这里可以设置XSS检测事件监听
-      console.log('📡 XSS检测监听已设置')
+      logger.debug('XSS检测监听已设置')
     }
 
     // 监听安全头部违规
     if (this.config.headers?.enabled) {
       // 这里可以设置安全头部违规监听
-      console.log('📡 安全头部监听已设置')
+      logger.debug('安全头部监听已设置')
     }
   }
 
@@ -223,7 +224,7 @@ export class SecurityManager {
       this.performSecurityCheck()
     }, 5 * 60 * 1000) // 每5分钟检查一次
 
-    console.log('🔍 安全监控已启动')
+    logger.info('安全监控已启动')
   }
 
   /**
@@ -262,7 +263,7 @@ export class SecurityManager {
       }
 
     } catch (error) {
-      console.error('安全检查失败:', error)
+      logger.error('安全检查失败:', error)
     }
   }
 
@@ -295,42 +296,22 @@ export class SecurityManager {
    * 输出安全事件日志
    */
   private logSecurityEvent(event: SecurityEvent): void {
-    const level = this.getLogLevel(event.severity)
-    const icon = this.getSeverityIcon(event.severity)
-
-    console[level](`${icon} 安全事件 [${event.severity.toUpperCase()}] ${event.source}: ${event.message}`)
-  }
-
-  /**
-   * 获取日志级别
-   */
-  private getLogLevel(severity: string): 'log' | 'warn' | 'error' {
-    switch (severity) {
+    const message = `安全事件 [${event.severity.toUpperCase()}] ${event.source}: ${event.message}`
+    
+    switch (event.severity) {
       case 'critical':
       case 'high':
-        return 'error'
+        logger.error(message)
+        break
       case 'medium':
-        return 'warn'
+        logger.warn(message)
+        break
       default:
-        return 'log'
+        logger.info(message)
     }
   }
 
-  /**
-   * 获取严重程度图标
-   */
-  private getSeverityIcon(severity: string): string {
-    switch (severity) {
-      case 'critical':
-        return '🚨'
-      case 'high':
-        return '⚠️'
-      case 'medium':
-        return '⚡'
-      default:
-        return 'ℹ️'
-    }
-  }
+
 
   /**
    * 手动执行安全扫描
@@ -343,7 +324,7 @@ export class SecurityManager {
     overallScore: number
     recommendations: string[]
   }> {
-    console.log('🔍 开始执行全面安全扫描...')
+    logger.info('开始执行全面安全扫描...')
 
     const results: any = {}
 
@@ -378,8 +359,8 @@ export class SecurityManager {
     // 生成建议
     const recommendations = this.generateSecurityRecommendations(results)
 
-    console.log('✅ 安全扫描完成')
-    console.log(`📊 总体安全评分: ${overallScore}/100`)
+    logger.info('安全扫描完成')
+    logger.info(`总体安全评分: ${overallScore}/100`)
 
     return {
       ...results,
@@ -582,7 +563,7 @@ export class SecurityManager {
     dependencySecurity.reset()
     securityHeaders.reset()
 
-    console.log('🔄 安全系统已重置')
+    logger.info('安全系统已重置')
   }
 }
 
