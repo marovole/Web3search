@@ -64,7 +64,7 @@ export class CSPManager {
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "https:"],
     "font-src": ["'self'", "data:", "https:"],
-    "connect-src": ["'self'", "https://api.lulaai.xyz"],
+    "connect-src": ["'self'", "https://web3search-api.marovole.workers.dev", "https://api.lulaai.xyz"],
     "frame-src": ["'none'"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
@@ -357,6 +357,13 @@ export class CSPManager {
    */
   private injectCSPHeader(): void {
     if (typeof document === 'undefined') return
+
+    // 检查服务器是否已经设置了 CSP 头（通过 _headers 文件）
+    // 如果是生产环境，不要注入 meta 标签，让服务器的 CSP 头生效
+    if (import.meta.env.PROD) {
+      console.log('🔒 生产环境：使用服务器 CSP 头，跳过 meta 标签注入')
+      return
+    }
 
     const metaTag = document.createElement('meta')
     metaTag.httpEquiv = this.config.reportOnly ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy'

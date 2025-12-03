@@ -73,7 +73,7 @@ export class SecurityHeaderManager {
     },
     {
       name: 'Content-Security-Policy',
-      value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.lulaai.xyz; font-src 'self' data: https:; frame-ancestors 'none';",
+      value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://web3search-api.marovole.workers.dev https://api.lulaai.xyz; font-src 'self' data: https:; frame-ancestors 'none';",
       enabled: true,
       description: '内容安全策略，防止XSS和数据注入',
       importance: 'critical'
@@ -403,6 +403,12 @@ export class SecurityHeaderManager {
    * 注入CSP meta标签
    */
   private injectCSPMetaTag(cspValue: string): void {
+    // 生产环境使用服务器 CSP 头，不注入 meta 标签
+    if (import.meta.env.PROD) {
+      console.log('🛡️ 生产环境：使用服务器 CSP 头，跳过 meta 标签注入')
+      return
+    }
+
     // 移除现有的CSP meta标签
     const existingTags = document.querySelectorAll('meta[http-equiv="Content-Security-Policy"]')
     existingTags.forEach(tag => tag.remove())

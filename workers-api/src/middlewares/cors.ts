@@ -9,10 +9,14 @@ import type { Env } from '../types/env'
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
   'https://lulaai.xyz', // Production domain
+  'https://www.lulaai.xyz', // Production domain with www
   'https://web3search.pages.dev', // Cloudflare Pages production
   'http://localhost:5173', // Local development (Vite default)
   'http://localhost:3000', // Alternative local port
 ]
+
+// Debug log for CORS issues
+const DEBUG_CORS = false
 
 export async function corsMiddleware(c: Context<{ Bindings: Env }>, next: Next) {
   const origin = c.req.header('origin') || ''
@@ -22,7 +26,11 @@ export async function corsMiddleware(c: Context<{ Bindings: Env }>, next: Next) 
     ALLOWED_ORIGINS.includes(origin) ||
     origin.endsWith('.lulaai.xyz') || // Allow subdomains
     origin.endsWith('.web3search.pages.dev') || // Allow preview deployments
-    (c.env.ENVIRONMENT === 'development' && origin.startsWith('http://localhost'))
+    origin.startsWith('http://localhost') // Allow all localhost for development
+  
+  if (DEBUG_CORS) {
+    console.log(`[CORS] Origin: ${origin}, Allowed: ${isAllowedOrigin}`)
+  }
 
   // Handle preflight requests
   if (c.req.method === 'OPTIONS') {
