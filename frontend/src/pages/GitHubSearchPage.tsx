@@ -92,7 +92,7 @@ const GitHubSearchPage: React.FC = () => {
     setError(null)
 
     try {
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.lulaai.xyz'
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://web3search-api.marovole.workers.dev'
       const apiKey = import.meta.env.VITE_API_KEY || 'test123'
 
       const url = new URL(`${apiUrl}/api/v1/github/search`)
