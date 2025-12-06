@@ -19,7 +19,8 @@ trending.get('/hotspots', async (c) => {
   const forceRefresh = c.req.query('force_refresh') === 'true'
 
   try {
-    const supabase = getSupabaseClient(c.env)
+    // Use service role to bypass RLS for backend queries
+    const supabase = getSupabaseClient(c.env, true)
 
     // Check cache first (if not force refresh)
     if (!forceRefresh && c.env.CACHE) {

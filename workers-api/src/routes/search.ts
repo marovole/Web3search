@@ -49,7 +49,8 @@ search.get('/autocomplete', async (c) => {
   }
 
   try {
-    const supabase = getSupabaseClient(c.env)
+    // Use service role to bypass RLS for backend queries
+    const supabase = getSupabaseClient(c.env, true)
     // 转义 PostgreSQL ILIKE 特殊字符以防止 SQL 注入
     const searchTerm = query.replace(/[%_]/g, '\\$&')
 
