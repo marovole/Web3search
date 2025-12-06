@@ -131,12 +131,12 @@ async function runTests() {
         body: JSON.stringify({ query: 'What is Bitcoin?', stream: false })
     });
 
-    // Deep Research
+    // Deep Research (expects 202 Accepted for async task creation)
     await testEndpoint('Deep Research', `${BACKEND_URL}/api/v1/deep-research`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ symbol: 'BTC', query: 'Research Bitcoin trends' })
-    });
+    }, 202);
 
     // Frontend Tests
     log('\n🌐 Frontend Tests', 'info');
