@@ -76,8 +76,8 @@ command = ""
 # Scheduled Events (Cron Triggers)
 # ============================================
 [triggers]
-# Health checks every 5 minutes + KV cache cleanup every hour
-crons = ["*/5 * * * *", "0 * * * *"]
+# Health checks every 5 minutes + KV cache cleanup every hour + Supabase keep-alive every 10 minutes
+crons = ["*/5 * * * *", "0 * * * *", "*/10 * * * *"]
 
 # ============================================
 # Limits

@@ -93,6 +93,9 @@ export async function scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionC
       case '0 * * * *': // Every hour - KV cache cleanup
         await runKvCacheCleanup(env, ctx)
         break
+      case '*/10 * * * *': // Every 10 minutes - Supabase keep-alive
+        await runSupabaseKeepAlive(env)
+        break
       default:
         console.log(`[Scheduled] Unknown cron schedule: ${event.cron}`)
     }
@@ -201,6 +204,44 @@ async function runHealthChecks(env: Env, ctx: ExecutionContext) {
   }
 
   console.log(`[Scheduled] Health check completed: ${results.length} services checked`)
+}
+
+/**
+ * Keep Supabase warm to avoid automatic hibernation
+ */
+async function runSupabaseKeepAlive(env: Env) {
+  const { getSupabaseClient } = await import('./lib/supabase')
+  const startTime = Date.now()
+
+  try {
+    const supabase = getSupabaseClient(env)
+
+    const { error } = await supabase
+      .from('conversations')
+      .select('id', { count: 'exact', head: true })
+      .limit(1)
+
+    const latency = Date.now() - startTime
+
+    if (error && !['PGRST116', 'PGRST301', '42P01'].includes(error.code || '')) {
+      console.warn('[KeepAlive] Supabase ping degraded', {
+        code: error.code,
+        message: error.message,
+        latency_ms: latency,
+      })
+      return
+    }
+
+    console.log('[KeepAlive] Supabase warm-up completed', {
+      latency_ms: latency,
+      table: 'conversations',
+      status: error ? 'ok-with-limited-table' : 'ok'
+    })
+  } catch (error) {
+    console.error('[KeepAlive] Supabase warm-up failed', {
+      message: error instanceof Error ? error.message : String(error),
+    })
+  }
 }
 
 /**
