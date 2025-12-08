@@ -23,6 +23,14 @@ import { executeOpenRouterRequest } from '../lib/resilience'
 import { parseStreamResponse, createStreamingResponse } from '../lib/streaming'
 import { createRateLimitMiddleware } from '../middlewares/rate-limit'
 import { ensureConversationExists, persistMessage } from '../lib/conversation'
+import {
+  fetchMarketContext,
+  extractContractAddress,
+  detectChainFromQuery,
+  formatMarketContextForPrompt,
+  type MarketContext,
+} from '../lib/context-builders/market-context'
+import { buildContextInjectedPrompt } from '../lib/research-prompts'
 
 const DEFAULT_RESEARCH_DEPTH: ResearchDepth = 'standard'
 const MAX_RESEARCH_QUERY_LENGTH = 5000
@@ -762,6 +770,8 @@ export async function synthesizeFindings(
     plan?: any
     depth?: 'quick' | 'standard' | 'deep'
     researchType?: 'general' | 'tokenomics' | 'security' | 'competitive'
+    marketContext?: MarketContext | null
+    systemPrompt?: string
   }
 ): Promise<{
   result: any
@@ -793,13 +803,14 @@ export async function synthesizeFindings(
     ? (typeof options.plan === 'string' ? options.plan : JSON.stringify(options.plan, null, 2))
     : ''
 
-  // Select system prompt based on research type
-  const systemPrompt = getSystemPromptByType(researchType)
-  
+  // Select system prompt - use provided one or get default
+  const systemPrompt = options?.systemPrompt || getSystemPromptByType(researchType)
+
   // Build user prompt based on research type
+  // Pass marketContext to buildSynthesisPrompt for context injection
   const userPrompt = isTokenomics
     ? buildTokenomicsPrompt(query) + `\n\n## 收集到的信息来源\n${sourcesContext}`
-    : buildSynthesisPrompt(query, planContext, sourcesContext)
+    : buildSynthesisPrompt(query, planContext, sourcesContext, options?.marketContext)
 
   const messages: ChatCompletionMessage[] = [
     {
@@ -1094,14 +1105,24 @@ function streamDeepResearch({
 
   const stream = new ReadableStream({
     start(controller) {
-      // SSE event emitter helper
+      // SSE event emitter helper (supports Glass Box events)
       const emit = (event: {
-        type: 'progress' | 'content' | 'complete' | 'error'
+        type: 'progress' | 'content' | 'complete' | 'error' | 'tool_call' | 'thinking'
         stage?: string
         section?: string
-        content: string
+        content?: string
         session_id?: string
         timestamp?: string
+        // Glass Box: tool_call fields
+        tool?: 'search' | 'market_data' | 'security_check' | 'synthesis' | 'plan_generation'
+        provider?: string
+        latency_ms?: number
+        result_summary?: string
+        source_count?: number
+        status?: 'started' | 'completed' | 'failed'
+        query?: string
+        // Glass Box: thinking fields
+        thought?: string
       }) => {
         // Skip if stream was cancelled
         if (isCancelled) return
@@ -1135,7 +1156,159 @@ function streamDeepResearch({
       // Execute research pipeline
       ;(async () => {
         try {
+          // ========================================
+          // Pre-Stage: Market Context & Cache Check
+          // ========================================
+
+          // Detect contract address and chain from query
+          const contractAddress = extractContractAddress(query)
+          const chain = contractAddress ? detectChainFromQuery(query) : null
+
+          // Check cache for contract-specific queries (include chain to avoid cross-chain collisions)
+          const cacheKey = contractAddress && chain && env.CACHE
+            ? `research:report:${chain}:${contractAddress.toLowerCase()}:${researchType}`
+            : null
+
+          if (cacheKey) {
+            try {
+              const cached = await env.CACHE!.get(cacheKey)
+              if (cached) {
+                const cachedReport = JSON.parse(cached)
+
+                emit({
+                  type: 'progress',
+                  stage: 'cache_hit',
+                  content: `命中缓存，直接返回研究结果（合约: ${contractAddress}）`,
+                })
+
+                // Emit cached answer for UI
+                if (cachedReport.answer) {
+                  emit({ type: 'content', section: 'answer', content: cachedReport.answer })
+                }
+
+                // Emit structured result if available
+                if (cachedReport.result?.key_findings || cachedReport.result?.scorecard) {
+                  emit({
+                    type: 'content',
+                    section: 'structured_result',
+                    content: JSON.stringify({
+                      key_findings: cachedReport.result?.key_findings,
+                      scorecard: cachedReport.result?.scorecard,
+                      risks: cachedReport.result?.risks_and_uncertainties,
+                      conclusion: cachedReport.result?.conclusion || cachedReport.result?.verdict,
+                    }),
+                  })
+                }
+
+                // Persist cached response to conversation
+                await persistMessage(supabase, {
+                  conversation_id: conversationId,
+                  role: 'assistant',
+                  content: cachedReport.answer || '',
+                  metadata: {
+                    research_result: cachedReport.result,
+                    citations: cachedReport.citations || [],
+                    cache_hit: true,
+                  },
+                })
+
+                emit({
+                  type: 'complete',
+                  content: cachedReport.summary || 'Research completed (from cache)',
+                  session_id: conversationId,
+                })
+
+                if (heartbeat) clearInterval(heartbeat)
+                controller.enqueue(
+                  encoder.encode('event: done\ndata: {"status":"completed","cache_hit":true}\n\n')
+                )
+                controller.close()
+                return // Exit early - cache hit
+              }
+            } catch (cacheError) {
+              console.warn('Deep Research cache read failed:', cacheError)
+              // Continue with fresh research
+            }
+          }
+
+          // Fetch market context (best-effort, non-blocking on failure)
+          let marketContext: MarketContext | null = null
+          if (contractAddress && chain) {
+            const marketStartTime = Date.now()
+
+            // Glass Box: tool_call started
+            emit({
+              type: 'tool_call',
+              tool: 'market_data',
+              provider: 'dexscreener+goplus',
+              status: 'started',
+              latency_ms: 0,
+              result_summary: `Fetching market data for ${contractAddress}...`,
+              query: contractAddress,
+            })
+
+            emit({
+              type: 'progress',
+              stage: 'market_data',
+              content: `正在获取合约 ${contractAddress} 的市场数据...`,
+            })
+
+            try {
+              marketContext = await fetchMarketContext(contractAddress, chain, env)
+              const marketLatency = Date.now() - marketStartTime
+
+              // Glass Box: tool_call completed
+              emit({
+                type: 'tool_call',
+                tool: 'market_data',
+                provider: 'dexscreener+goplus',
+                status: 'completed',
+                latency_ms: marketLatency,
+                result_summary: `Price: $${marketContext.price?.usd?.toFixed(6) || 'N/A'}, Risk: ${marketContext.security?.risk_level || 'unknown'}`,
+                query: contractAddress,
+              })
+
+              emit({
+                type: 'progress',
+                stage: 'market_data_fetched',
+                content: marketContext.from_cache
+                  ? `已获取市场数据（缓存）：$${marketContext.price?.usd?.toFixed(6) || 'N/A'}`
+                  : `已获取实时市场数据：$${marketContext.price?.usd?.toFixed(6) || 'N/A'}`,
+              })
+            } catch (marketError) {
+              const marketLatency = Date.now() - marketStartTime
+
+              // Glass Box: tool_call failed
+              emit({
+                type: 'tool_call',
+                tool: 'market_data',
+                provider: 'dexscreener+goplus',
+                status: 'failed',
+                latency_ms: marketLatency,
+                result_summary: 'Market data fetch failed, proceeding without context',
+                query: contractAddress,
+              })
+
+              console.warn('Market context fetch failed:', marketError)
+              emit({
+                type: 'progress',
+                stage: 'market_data_fetched',
+                content: '市场数据获取失败，继续执行通用研究流程。',
+              })
+            }
+          } else {
+            emit({
+              type: 'progress',
+              stage: 'market_data_fetched',
+              content: contractAddress
+                ? '未能识别区块链网络，跳过市场数据注入。'
+                : '未检测到合约地址，跳过市场数据注入。',
+            })
+          }
+
+          // ========================================
           // Stage 1: Data Collection - Generate Research Plan
+          // ========================================
           const { getSystemPromptByType, getTokenomicsSearchQueries, buildTokenomicsPrompt } = await import('../lib/research-prompts')
           
           emit({
@@ -1148,7 +1321,18 @@ function streamDeepResearch({
 
           // For tokenomics, use specialized search queries
           let plan: { search_queries: string[]; plan: string; parsed_plan?: any }
-          
+          const planStartTime = Date.now()
+
+          // Glass Box: plan generation started
+          emit({
+            type: 'tool_call',
+            tool: 'plan_generation',
+            status: 'started',
+            latency_ms: 0,
+            result_summary: 'Generating research plan...',
+            query: query,
+          })
+
           if (isTokenomics) {
             // Extract project/token from query for specialized search
             const tokenomicsQueries = getTokenomicsSearchQueries(query, query)
@@ -1161,18 +1345,70 @@ function streamDeepResearch({
             plan = await generateResearchPlan(query, modelConfig, env, 'standard')
           }
 
+          const planLatency = Date.now() - planStartTime
+
+          // Glass Box: plan generation completed
+          emit({
+            type: 'tool_call',
+            tool: 'plan_generation',
+            status: 'completed',
+            latency_ms: planLatency,
+            result_summary: `Generated ${plan.search_queries.length} search queries`,
+            source_count: plan.search_queries.length,
+          })
+
+          // Glass Box: thinking event - planning stage
+          emit({
+            type: 'thinking',
+            stage: 'planning',
+            thought: plan.parsed_plan?.query_understanding
+              || `将执行 ${plan.search_queries.length} 个搜索策略来收集信息`,
+          })
+
           emit({
             type: 'progress',
             stage: 'data_collection',
             content: isTokenomics
               ? `📊 代币经济学审计：将分析 ${plan.search_queries.length} 个关键维度...`
-              : (plan.parsed_plan?.query_understanding 
+              : (plan.parsed_plan?.query_understanding
                 ? `已理解研究需求：${plan.parsed_plan.query_understanding.substring(0, 100)}...`
                 : `研究计划已生成，将执行 ${plan.search_queries.length} 个搜索策略...`),
           })
 
           // Stage 2: Source Search
+          const searchStartTime = Date.now()
+
+          // Glass Box: search started
+          emit({
+            type: 'tool_call',
+            tool: 'search',
+            provider: 'brave|tavily|serper',
+            status: 'started',
+            latency_ms: 0,
+            result_summary: `Searching with ${plan.search_queries.length} queries...`,
+            query: plan.search_queries.slice(0, 3).join(', '),
+          })
+
+          // Glass Box: thinking event - searching stage
+          emit({
+            type: 'thinking',
+            stage: 'searching',
+            thought: `正在执行多源搜索：${plan.search_queries.slice(0, 2).join('、')}...`,
+          })
+
           const sources = await searchSources(plan.search_queries, env)
+          const searchLatency = Date.now() - searchStartTime
+
+          // Glass Box: search completed
+          emit({
+            type: 'tool_call',
+            tool: 'search',
+            provider: 'brave|tavily|serper',
+            status: 'completed',
+            latency_ms: searchLatency,
+            result_summary: `Found ${sources.length} relevant sources`,
+            source_count: sources.length,
+          })
 
           emit({
             type: 'content',
@@ -1219,6 +1455,31 @@ function streamDeepResearch({
               : '正在生成结构化研究报告...',
           })
 
+          // Glass Box: thinking event - synthesizing stage
+          emit({
+            type: 'thinking',
+            stage: 'synthesizing',
+            thought: `正在综合 ${sources.length} 个来源的信息，结合市场数据生成深度报告...`,
+          })
+
+          // Build context-injected system prompt
+          const systemPrompt = buildContextInjectedPrompt(
+            getSystemPromptByType(researchType),
+            marketContext
+          )
+
+          const synthesisStartTime = Date.now()
+
+          // Glass Box: synthesis started
+          emit({
+            type: 'tool_call',
+            tool: 'synthesis',
+            provider: modelConfig.provider || 'openrouter',
+            status: 'started',
+            latency_ms: 0,
+            result_summary: 'Invoking LLM for comprehensive report synthesis...',
+          })
+
           const synthesis = await synthesizeFindings(
             analysis,
             query,
@@ -1229,8 +1490,24 @@ function streamDeepResearch({
               plan: plan.parsed_plan || plan.plan,
               depth: 'deep',
               researchType: researchType,
+              marketContext: marketContext,
+              systemPrompt: systemPrompt,
             }
           )
+
+          const synthesisLatency = Date.now() - synthesisStartTime
+
+          // Glass Box: synthesis completed
+          emit({
+            type: 'tool_call',
+            tool: 'synthesis',
+            provider: modelConfig.provider || 'openrouter',
+            status: 'completed',
+            latency_ms: synthesisLatency,
+            result_summary: synthesis.result.scorecard
+              ? `Score: ${synthesis.result.scorecard.score}/100 (${synthesis.result.scorecard.rating})`
+              : `Generated ${synthesis.result.key_findings?.length || 0} key findings`,
+          })
 
           // Emit final answer as content (so UI can display it)
           emit({
@@ -1261,8 +1538,28 @@ function streamDeepResearch({
             metadata: {
               research_result: synthesis.result,
               citations: analysis.citations,
+              market_context: marketContext ? {
+                price: marketContext.price,
+                security: marketContext.security,
+                fetched_at: marketContext.fetched_at,
+              } : null,
             },
           })
+
+          // Cache research report for contract-specific queries (1 hour TTL)
+          if (cacheKey && env.CACHE) {
+            const cachePayload = {
+              answer: synthesis.answer,
+              summary: synthesis.summary,
+              result: synthesis.result,
+              citations: analysis.citations,
+              market_context: marketContext,
+              cached_at: new Date().toISOString(),
+            }
+            env.CACHE.put(cacheKey, JSON.stringify(cachePayload), {
+              expirationTtl: 3600, // 1 hour
+            }).catch((err) => console.warn('Deep Research cache write failed:', err))
+          }
 
           // Stage 5: Complete
           emit({

@@ -3,11 +3,19 @@
  * Optimized for Tongyi DeepResearch-30B-A3B ReAct capabilities
  */
 
+import {
+  formatMarketContextForPrompt,
+  type MarketContext,
+} from './context-builders/market-context'
+
 /**
  * Main system prompt for deep research agent
  * Enables ReAct (Reasoning + Acting) mode for multi-step research
  */
 export const DEEPRESEARCH_SYSTEM_PROMPT = `你是一个专业的深度研究代理，具备 ReAct (Reasoning + Acting) 能力。你的任务是对用户的查询进行全面、深入的研究分析。
+
+## 实时市场上下文（如无数据，请继续进行通用研究）
+{market_context}
 
 ## 研究方法论
 
@@ -114,7 +122,10 @@ export const SOURCE_ANALYSIS_PROMPT = `## 原始研究问题
 /**
  * Prompt for synthesizing findings into final report
  */
-export const SYNTHESIS_PROMPT = `## 原始研究问题
+export const SYNTHESIS_PROMPT = `## 实时市场上下文
+{market_context}
+
+## 原始研究问题
 {query}
 
 ## 研究计划
@@ -249,14 +260,48 @@ export function buildResearchPlanPrompt(query: string): string {
 }
 
 /**
+ * Inject formatted market context into a system prompt
+ *
+ * @param systemPrompt - The original system prompt with {market_context} placeholder
+ * @param marketContext - Optional market context data
+ * @returns System prompt with market context injected
+ */
+export function buildContextInjectedPrompt(
+  systemPrompt: string,
+  marketContext?: MarketContext | null
+): string {
+  const formatted = marketContext
+    ? formatMarketContextForPrompt(marketContext)
+    : '（未提供实时市场上下文，使用通用研究策略）'
+
+  return systemPrompt.replace('{market_context}', formatted)
+}
+
+/**
  * Build synthesis prompt with all context
+ *
+ * @param query - Original research query
+ * @param plan - Research plan
+ * @param sources - Formatted sources string
+ * @param marketContext - Optional market context (MarketContext object or pre-formatted string)
+ * @returns Complete synthesis prompt
  */
 export function buildSynthesisPrompt(
   query: string,
   plan: string,
-  sources: string
+  sources: string,
+  marketContext?: MarketContext | string | null
 ): string {
+  // Handle both MarketContext object and pre-formatted string
+  const formattedContext =
+    typeof marketContext === 'string'
+      ? marketContext
+      : marketContext
+        ? formatMarketContextForPrompt(marketContext)
+        : '（未提供实时市场上下文）'
+
   return SYNTHESIS_PROMPT
+    .replace('{market_context}', formattedContext)
     .replace('{query}', query)
     .replace('{plan}', plan)
     .replace('{sources}', sources)
@@ -276,6 +321,9 @@ You are a Senior Tokenomics Auditor for a top-tier crypto venture capital firm. 
 Your goal is to cut through marketing fluff ("community focused", "deflationary") to reveal the mathematical reality of value accrual and sell pressure.
 
 **Core Principle:** "不要相信项目方的营销话术，通过计算和搜索找出利益分配的真相。"
+
+### Live Market Context (Real-time data injected before analysis; if empty, proceed with standard audit)
+{market_context}
 
 ### Core Analysis Framework (The "5-Dimension Audit")
 

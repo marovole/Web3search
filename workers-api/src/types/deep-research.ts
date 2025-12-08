@@ -145,6 +145,63 @@ export interface ResearchCitation {
   relevance_score: number
 }
 
+// ============================================
+// Glass Box UX - Real-time Process Visibility
+// ============================================
+
+/**
+ * Tool call event for Glass Box UX
+ * Emitted when the research pipeline invokes external tools/APIs
+ */
+export interface ToolCallEvent {
+  type: 'tool_call'
+  tool: 'search' | 'market_data' | 'security_check' | 'synthesis' | 'plan_generation'
+  query?: string
+  provider?: string
+  latency_ms: number
+  result_summary: string
+  source_count?: number
+  status: 'started' | 'completed' | 'failed'
+  timestamp?: string
+}
+
+/**
+ * Thinking event for Glass Box UX
+ * Emitted to show the agent's reasoning process
+ */
+export interface ThinkingEvent {
+  type: 'thinking'
+  stage: 'planning' | 'searching' | 'analyzing' | 'synthesizing'
+  thought: string
+  timestamp?: string
+}
+
+/**
+ * Union type for all Glass Box SSE events
+ */
+export type GlassBoxEvent = ToolCallEvent | ThinkingEvent
+
+/**
+ * Extended SSE event type including Glass Box events
+ */
+export interface DeepResearchSSEEvent {
+  type: 'progress' | 'content' | 'complete' | 'error' | 'tool_call' | 'thinking'
+  stage?: string
+  section?: string
+  content?: string
+  session_id?: string
+  timestamp?: string
+  // Tool call specific
+  tool?: ToolCallEvent['tool']
+  provider?: string
+  latency_ms?: number
+  result_summary?: string
+  source_count?: number
+  status?: ToolCallEvent['status']
+  // Thinking specific
+  thought?: string
+}
+
 export interface DeepResearchRequest {
   query: string
   research_type?: ResearchType    // 研究类型: general, tokenomics, security, competitive
