@@ -131,8 +131,7 @@ export function useResearchSSE(url: string, options: SSEOptions = {}) {
       },
       onMessage: (data: ResearchSSEvent) => {
         // Support both legacy event/data shape and new Glass Box type shape
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const rawData = data as any
+        const rawData = data as Record<string, unknown>
         const eventType = rawData.type || data.event
 
         // Handle Glass Box tool_call events
