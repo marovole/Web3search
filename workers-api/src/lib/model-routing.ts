@@ -169,6 +169,27 @@ export const MODEL_ROUTING_TABLE: Record<string, ModelConfig> = {
     },
     timeout: 20000,
     retryAttempts: 3
+  },
+
+  // ===== Fallback Models (New) =====
+  'gpt-oss-120b': {
+    model: 'openai/gpt-oss-120b:exacto',
+    provider: 'openai',
+    weight: 50,
+    isFallback: true,
+    costPer1M: {
+      prompt: 0.10,
+      completion: 0.30
+    },
+    maxTokens: 32768,
+    capabilities: {
+      reasoning: true,
+      code: true,
+      longContext: true,
+      streaming: true
+    },
+    timeout: 30000,
+    retryAttempts: 3
   }
 }
 
@@ -185,8 +206,8 @@ export const ROUTING_STRATEGIES: Record<
     loadBalancing: 'weighted'
   },
   'deep-research': {
-    primary: ['deepseek-chat', 'qwen-2.5-72b-instruct'],
-    fallback: ['qwen-2.5-7b-instruct'],
+    primary: ['deepseek-chat'],
+    fallback: ['gpt-oss-120b'],
     loadBalancing: 'first-available'
   },
   'summarization': {
