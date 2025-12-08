@@ -65,11 +65,8 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         // Add margin for desktop sidebar (w-64)
         !isMobile && "md:ml-64"
       )}>
-        <main className="flex-1 relative">
-          {/* Top gradient fade for smooth scrolling appearance */}
-          <div className="fixed top-0 left-0 right-0 h-20 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none md:ml-64" />
-
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full relative z-0">
+        <main className="flex-1 relative h-screen">
+          <div className="h-full relative z-0">
             {children}
           </div>
         </main>

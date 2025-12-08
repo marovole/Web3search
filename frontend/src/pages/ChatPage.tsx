@@ -9,9 +9,9 @@ const ChatPage: React.FC = () => {
   const { toggle } = useSidebar()
 
   return (
-    <div className="relative h-[calc(100vh-2rem)] md:h-screen overflow-hidden bg-transparent">
+    <div className="relative h-full min-h-screen overflow-hidden bg-transparent">
       {/* Minimal Top Bar - Floating */}
-      <div className="absolute top-4 left-4 right-4 z-50 flex justify-between items-center pointer-events-none">
+      <div className="absolute top-4 left-4 right-4 z-40 flex justify-between items-center pointer-events-none">
         <div className="pointer-events-auto">
           <Button
             variant="ghost"

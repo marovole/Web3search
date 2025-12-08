@@ -477,7 +477,7 @@ const ChatInterface: React.FC = () => {
       </div>
 
       {/* Floating Input Area */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 bg-gradient-to-t from-background via-background/98 to-transparent z-20">
+      <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 bg-gradient-to-t from-background via-background/98 to-transparent z-30">
         <div className="max-w-3xl mx-auto">
           <motion.div
             layout
