@@ -10,7 +10,7 @@ import type { OpenRouterPayload } from './openrouter'
 /**
  * AI Model Provider Type
  */
-export type ModelProvider = 'qwen' | 'deepseek' | 'anthropic' | 'openai'
+export type ModelProvider = 'deepseek' | 'openai'
 
 /**
  * Model Configuration
@@ -53,25 +53,7 @@ export interface RoutingStrategy {
  * @see OPENROUTER_API for available models: https://openrouter.ai/docs#models
  */
 export const MODEL_ROUTING_TABLE: Record<string, ModelConfig> = {
-  // ===== Primary Models (High Quality) =====
-  'qwen-2.5-72b-instruct': {
-    model: 'qwen/qwen-2.5-72b-instruct',
-    provider: 'qwen',
-    weight: 80,
-    costPer1M: {
-      prompt: 1.27,
-      completion: 3.81
-    },
-    maxTokens: 32768,
-    capabilities: {
-      reasoning: true,
-      code: true,
-      longContext: true,
-      streaming: true
-    },
-    timeout: 30000,
-    retryAttempts: 3
-  },
+  // ===== Primary Model =====
   'deepseek-chat': {
     model: 'deepseek/deepseek-v3.2-speciale',
     provider: 'deepseek',
@@ -91,91 +73,11 @@ export const MODEL_ROUTING_TABLE: Record<string, ModelConfig> = {
     retryAttempts: 3
   },
 
-  // ===== Fallback Models (Cost-Optimized) =====
-  'qwen-2.5-7b-instruct': {
-    model: 'qwen/qwen-2.5-7b-instruct',
-    provider: 'qwen',
-    weight: 40,
-    isFallback: true,
-    costPer1M: {
-      prompt: 0.16,
-      completion: 0.48
-    },
-    maxTokens: 32768,
-    capabilities: {
-      reasoning: true,
-      code: false,
-      longContext: true,
-      streaming: true
-    },
-    timeout: 25000,
-    retryAttempts: 3
-  },
-  'deepseek-coder-6.7b': {
-    model: 'deepseek/deepseek-coder-6.7b-base',
-    provider: 'deepseek',
-    weight: 30,
-    isFallback: true,
-    costPer1M: {
-      prompt: 0.05,
-      completion: 0.10
-    },
-    maxTokens: 32768,
-    capabilities: {
-      reasoning: false,
-      code: true,
-      longContext: false,
-      streaming: true
-    },
-    timeout: 25000,
-    retryAttempts: 3
-  },
-
-  // ===== Premium Models (Rare Use Cases) =====
-  'claude-3-5-sonnet': {
-    model: 'anthropic/claude-3.5-sonnet',
-    provider: 'anthropic',
-    weight: 5,
-    costPer1M: {
-      prompt: 3.0,
-      completion: 15.0
-    },
-    maxTokens: 200000,
-    capabilities: {
-      reasoning: true,
-      code: true,
-      longContext: true,
-      streaming: true
-    },
-    timeout: 45000,
-    retryAttempts: 3
-  },
-
-  // ===== Scoring/Ranking Models =====
-  'gpt-3.5-turbo': {
-    model: 'openai/gpt-3.5-turbo',
-    provider: 'openai',
-    weight: 90,
-    costPer1M: {
-      prompt: 0.5,
-      completion: 1.5
-    },
-    maxTokens: 16385,
-    capabilities: {
-      reasoning: false,
-      code: false,
-      longContext: true,
-      streaming: true
-    },
-    timeout: 20000,
-    retryAttempts: 3
-  },
-
-  // ===== Fallback Models (New) =====
+  // ===== Fallback Model =====
   'gpt-oss-120b': {
     model: 'openai/gpt-oss-120b:exacto',
     provider: 'openai',
-    weight: 50,
+    weight: 60,
     isFallback: true,
     costPer1M: {
       prompt: 0.10,
@@ -201,9 +103,9 @@ export const ROUTING_STRATEGIES: Record<
   RoutingStrategy
 > = {
   'quick-chat': {
-    primary: ['deepseek-chat', 'qwen-2.5-72b-instruct'],
-    fallback: ['qwen-2.5-7b-instruct'],
-    loadBalancing: 'weighted'
+    primary: ['deepseek-chat'],
+    fallback: ['gpt-oss-120b'],
+    loadBalancing: 'first-available'
   },
   'deep-research': {
     primary: ['deepseek-chat'],
@@ -211,14 +113,14 @@ export const ROUTING_STRATEGIES: Record<
     loadBalancing: 'first-available'
   },
   'summarization': {
-    primary: ['qwen-2.5-7b-instruct', 'deepseek-chat'],
-    fallback: ['gpt-3.5-turbo'],
-    loadBalancing: 'weighted'
+    primary: ['deepseek-chat'],
+    fallback: ['gpt-oss-120b'],
+    loadBalancing: 'first-available'
   },
   'code-assist': {
-    primary: ['deepseek-chat', 'qwen-2.5-72b-instruct'],
-    fallback: ['deepseek-coder-6.7b', 'qwen-2.5-7b-instruct'],
-    loadBalancing: 'weighted'
+    primary: ['deepseek-chat'],
+    fallback: ['gpt-oss-120b'],
+    loadBalancing: 'first-available'
   }
 }
 
@@ -235,19 +137,19 @@ export interface ModelVersion {
 }
 
 export const MODEL_VERSIONS: Record<string, ModelVersion[]> = {
-  'qwen-2.5-72b-instruct': [
+  'deepseek-chat': [
     {
-      version: '1.0.0',
-      modelId: 'qwen/qwen-2.5-72b-instruct',
-      deployedAt: '2025-11-09T00:00:00Z',
+      version: '3.2',
+      modelId: 'deepseek/deepseek-v3.2-speciale',
+      deployedAt: '2025-12-08T00:00:00Z',
       status: 'active'
     }
   ],
-  'deepseek-chat': [
+  'gpt-oss-120b': [
     {
       version: '1.0',
-      modelId: 'deepseek/deepseek-chat',
-      deployedAt: '2025-11-09T00:00:00Z',
+      modelId: 'openai/gpt-oss-120b:exacto',
+      deployedAt: '2025-12-08T00:00:00Z',
       status: 'active'
     }
   ]
