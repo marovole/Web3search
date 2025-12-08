@@ -1,152 +1,207 @@
-# Web3search  
-**An Independent Research Prototype for Decentralized Data Retrieval and Analysis**  
+# Web3search
+
+**AI-Powered Web3 Research Platform for Decentralized Data Retrieval and Analysis**
 
 ---
 
-### 🧩 Compliance & Usage Notice  
+## 🏗️ Architecture
 
-This repository, **Web3search**, is maintained by **Vole** as a **personal, non-commercial research project**.  
-It explores methods for decentralized data retrieval, search indexing, and analytics in the context of blockchain and Web3 ecosystems.  
-
-All experiments and implementations in this repository are conducted **solely for private research and educational purposes**.  
-No commercial use, external collaboration, or public data distribution is involved.  
-
-In accordance with **Polygon.io’s Individual Plan Terms of Service**:  
-- No market data obtained from Polygon.io is redistributed, shared, or displayed in this repository.  
-- The repository has been made **private** to ensure full compliance with exchange and data licensing requirements.  
-- Any future publication or open-sourcing of this project will use only **synthetic, publicly available, or self-generated data**.  
-
----
-
-### 📘 Overview  
-
-**Web3search** is an experimental framework designed to study how decentralized data networks can support efficient search, aggregation, and analytics.  
-The project focuses on three key areas:  
-1. Designing modular data retrieval pipelines for Web3 environments.  
-2. Exploring query optimization and indexing across blockchain datasets.  
-3. Evaluating privacy-preserving approaches to distributed data analysis.  
-
-The project is strictly for research exploration — **not** a production system, product, or commercial service.  
+```
+┌─────────────────────┐     ┌──────────────────────┐     ┌─────────────┐
+│      Frontend       │────▶│    Workers API       │────▶│  Supabase   │
+│  Cloudflare Pages   │     │ Cloudflare Workers   │     │ PostgreSQL  │
+│  React + Vite       │     │    Hono + TS         │     └─────────────┘
+└─────────────────────┘     └──────────────────────┘
+                                      │
+                    ┌─────────────────┼─────────────────┐
+                    ▼                 ▼                 ▼
+          ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
+          │ OpenRouter  │   │   Brave     │   │  CoinGecko  │
+          │ AI Gateway  │   │   Search    │   │  Price API  │
+          └─────────────┘   └─────────────┘   └─────────────┘
+```
 
 ---
 
-### 🧠 Research Summary  
+## 🚀 Deployment Status
 
-The **Web3search** project is conceived as an **independent research prototype** exploring the intersection of decentralized storage, search systems, and data analytics.  
-Its central hypothesis is that *distributed ledger infrastructures* and *Web3 data layers* can be indexed and queried in a manner that preserves openness, transparency, and verifiability — without relying on centralized data intermediaries.  
-
-This research aims to investigate:  
-- How decentralized nodes can collectively maintain searchable indices of blockchain and smart contract data.  
-- How cryptographic proofs or consensus mechanisms can validate query results without full data replication.  
-- How lightweight analytics frameworks might operate directly on distributed Web3 datasets for privacy-aware insight generation.  
-
-The study takes an experimental and theoretical approach, emphasizing reproducibility, modular architecture, and open scientific methodology.  
-No production-grade deployment or commercial application is planned.  
-All findings, if published, will focus on architectural design and performance insights rather than on proprietary datasets.  
+| Component | Platform | Production URL | Status |
+|-----------|----------|----------------|--------|
+| Frontend | Cloudflare Pages | https://web3search.pages.dev | ✅ Live |
+| API | Cloudflare Workers | https://web3search-api.marovole.workers.dev | ✅ Live |
+| Custom Domain | Cloudflare | api.lulaai.xyz | ✅ Active |
+| Database | Supabase | PostgreSQL + Realtime | ✅ Active |
 
 ---
 
-### ⚙️ Technical Stack
+## 🤖 AI Model Configuration
 
-- **Frontend:** React + TypeScript, Cloudflare Pages
-- **Backend API:** Cloudflare Workers (TypeScript)
-- **Database:** Supabase (PostgreSQL)
-- **AI Integration:** OpenRouter API
-- **Price Data:** CoinGecko API
-- **Core Focus:** Web3 data querying, indexing, and analytics
-- **Environment:** Cloudflare edge network for global low-latency access  
+All AI requests are routed through [OpenRouter](https://openrouter.ai) for unified access.
+
+| Use Case | Model | Provider | Cost ($/1M tokens) |
+|----------|-------|----------|-------------------|
+| **Quick Chat** | `deepseek/deepseek-v3.2-speciale` | DeepSeek | $0.50 / $2.18 |
+| **Deep Research** | `alibaba/tongyi-deepresearch-30b-a3b` | Alibaba | $0.20 / $0.80 |
+| **Fallback** | `openai/gpt-oss-120b:exacto` | OpenAI | $0.10 / $0.30 |
+
+### Routing Strategy
+
+| Scenario | Primary Model | Fallback |
+|----------|--------------|----------|
+| quick-chat | DeepSeek V3.2 | GPT-OSS-120B |
+| deep-research | Tongyi DeepResearch | DeepSeek V3.2 |
+| summarization | DeepSeek V3.2 | GPT-OSS-120B |
+| code-assist | DeepSeek V3.2 | GPT-OSS-120B |
 
 ---
 
-### 📄 License  
+## 📡 API Endpoints
 
-This work is released under an **MIT License** for its codebase.  
-However, **data access and usage comply strictly with external API providers’ licensing terms**.  
-Users of this repository are responsible for ensuring their own compliance when using external data sources.  
+Base URL: `https://web3search-api.marovole.workers.dev/api/v1`
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/chat/quick-chat` | POST | AI chat with real-time crypto price data |
+| `/deep-research` | POST | Create async deep research task |
+| `/deep-research/stream` | GET | SSE streaming deep research |
+| `/deep-research/:id` | GET | Get research task status/results |
+| `/reports` | POST | Generate structured reports |
+| `/health` | GET | Health check |
 
 ---
 
-### ✉️ Contact  
+## ⚙️ Tech Stack
+
+### Frontend
+- **Framework**: React 18 + TypeScript
+- **Build**: Vite 5
+- **Styling**: TailwindCSS
+- **Deployment**: Cloudflare Pages (auto-deploy on push)
+
+### Backend
+- **Runtime**: Cloudflare Workers
+- **Framework**: Hono (lightweight web framework)
+- **Language**: TypeScript
+- **Caching**: Cloudflare KV
+
+### Database
+- **Service**: Supabase
+- **Engine**: PostgreSQL 15
+- **Features**: Row Level Security, Realtime subscriptions
+
+### External Services
+- **AI Gateway**: OpenRouter (multi-model routing)
+- **Search**: Brave Search (primary), Tavily, Serper (failover)
+- **Price Data**: CoinGecko API
+- **Analytics**: Google Analytics 4
+
+---
+
+## 🔧 Environment Variables
+
+### Cloudflare Workers (Secrets)
+
+```bash
+# Set via: wrangler secret put <NAME>
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...  # Optional
+OPENROUTER_API_KEY=sk-or-...
+BRAVE_SEARCH_API_KEY=BSA...
+TAVILY_API_KEY=tvly-...           # Optional failover
+SERPER_API_KEY=...                # Optional failover
+```
+
+### Frontend (Cloudflare Pages)
+
+```bash
+VITE_API_BASE_URL=https://web3search-api.marovole.workers.dev
+VITE_ENABLE_ANALYTICS=true
+VITE_GA_MEASUREMENT_ID=G-XXXXXXXX
+```
+
+---
+
+## 📦 Local Development
+
+### Prerequisites
+- Node.js 18+
+- pnpm or npm
+- Wrangler CLI (`npm install -g wrangler`)
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev          # Start dev server at localhost:5173
+npm run build        # Production build
+npm run preview      # Preview production build
+```
+
+### Workers API
+
+```bash
+cd workers-api
+npm install
+npm run dev          # Start local worker at localhost:8787
+npm run deploy       # Deploy to Cloudflare
+npm run test         # Run tests
+```
+
+---
+
+## 📁 Project Structure
+
+```
+Web3search/
+├── frontend/                 # React frontend
+│   ├── src/
+│   │   ├── components/      # UI components
+│   │   ├── services/        # API clients
+│   │   ├── hooks/           # Custom React hooks
+│   │   └── lib/             # Utilities
+│   └── vite.config.ts
+├── workers-api/              # Main Cloudflare Workers API
+│   ├── src/
+│   │   ├── routes/          # API route handlers
+│   │   ├── lib/             # Shared utilities
+│   │   │   ├── model-routing.ts  # AI model configuration
+│   │   │   ├── openrouter.ts     # OpenRouter client
+│   │   │   └── search-providers.ts
+│   │   └── middlewares/     # Request middlewares
+│   └── wrangler.toml        # Workers configuration
+├── backend/                  # Legacy FastAPI (archived)
+├── supabase/                 # Database migrations
+└── docs/                     # Documentation
+```
+
+---
+
+## 🧩 Compliance & Usage Notice
+
+This repository, **Web3search**, is maintained by **Vole** as a **personal, non-commercial research project**.
+
+- All experiments are conducted **solely for private research and educational purposes**
+- No market data is redistributed or shared publicly
+- Compliant with all external API providers' terms of service
+
+---
+
+## 📄 License
+
+MIT License - See [LICENSE](LICENSE) for details.
+
+Data usage complies strictly with external API providers' licensing terms.
+
+---
+
+## ✉️ Contact
 
 **Author:** Vole  
 **Email:** [vole@lucky365vip.cc](mailto:vole@lucky365vip.cc)  
-**Status:** Private Research Project  
+**Status:** Active Development
 
 ---
 
-### 📚 Citation & Academic Reference  
-
-If you use or reference **Web3search** in your own research, please cite it as follows:  
-
-```
-@misc{vole2025web3search,
-  author       = {Vole},
-  title        = {Web3search: A Research Prototype for Decentralized Data Retrieval and Analytics},
-  year         = {2025},
-  howpublished = {GitHub repository},
-  note         = {Private, non-commercial research project},
-  url          = {https://github.com/marovole/Web3search}
-}
-```
-
-#### Suggested Academic Context  
-This project contributes to ongoing research discussions in:  
-- **Decentralized Information Retrieval (DIR)**  
-- **Blockchain Data Indexing & Provenance**  
-- **Web3 Analytics Frameworks**  
-- **Privacy-Preserving Distributed Computation**  
-
-All publications or derivative works citing this repository should note that **no proprietary or restricted datasets** (such as Polygon.io data) are included in or redistributed through this project.
-Only algorithmic concepts, architectures, and open methodologies are shared.
-
----
-
-### 🚀 Deployment
-
-The project uses a modern serverless architecture deployed on Cloudflare's edge network.
-
-#### Frontend
-- **Platform**: Cloudflare Pages
-- **Production URL**: https://web3search.pages.dev
-- **Deployment**: Automatic on push to `main`
-- **Build**: Vite + React
-
-#### Backend API
-- **Platform**: Cloudflare Workers
-- **Production URL**: https://web3search-api.marovole.workers.dev
-- **API Endpoints**:
-  - `/api/v1/chat/quick-chat` - AI chat with real-time price data
-  - `/api/v1/health` - Health check
-  - See `workers-api/src/routes/` for all endpoints
-
-#### Database
-- **Service**: Supabase (PostgreSQL)
-- **Plan**: Free tier
-- **Features**: Real-time subscriptions, Row Level Security
-
-#### Deployment Commands
-```bash
-# Frontend (Cloudflare Pages)
-cd frontend
-npm run build
-# Automatic deployment via Cloudflare Pages GitHub integration
-
-# Backend API (Cloudflare Workers)
-cd workers-api
-npm run deploy
-# or: npx wrangler deploy
-```
-
-#### Environment Variables
-
-**Cloudflare Workers** (set via `wrangler secret put`):
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `OPENROUTER_API_KEY`
-
-**Frontend** (Cloudflare Pages):
-- `VITE_API_BASE_URL` (set to Workers URL)
-
-For detailed deployment instructions, see `workers-api/README.md`.
-
-**Note**: Old backend architecture (FastAPI + Render) has been archived to `docs/archive/old-deployment-docs/`.
+*Last updated: 2025-12-08*
