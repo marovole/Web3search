@@ -40,6 +40,80 @@ const api: AxiosInstance = axios.create({
   timeout: 120000, // 2分钟超时（Deep Research可能需要30秒）
 })
 
+type SSEClient = {
+  onmessage: ((ev: MessageEvent) => any) | null
+  onerror: ((ev: any) => any) | null
+  onopen?: ((ev: any) => any) | null
+  close: () => void
+}
+
+function createAuthenticatedSSE(url: string, init?: RequestInit): SSEClient {
+  const controller = new AbortController()
+  let onmessage: ((ev: MessageEvent) => any) | null = null
+  let onerror: ((ev: any) => any) | null = null
+  let onopen: ((ev: any) => any) | null = null
+
+  const start = async () => {
+    try {
+      const response = await fetch(url, { ...init, signal: controller.signal })
+      if (!response.body) throw new Error('Stream not supported')
+      onopen?.(new Event('open'))
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder('utf-8')
+      let buffer = ''
+
+      let isDone = false
+      while (!isDone) {
+        const { done, value } = await reader.read()
+        if (done) {
+          isDone = true
+          break
+        }
+        buffer += decoder.decode(value, { stream: true })
+        const parts = buffer.split('\n\n')
+        buffer = parts.pop() ?? ''
+
+        for (const part of parts) {
+          if (!part.trim()) continue
+          const lines = part.split('\n')
+          let data = ''
+          for (const line of lines) {
+            if (line.startsWith('data:')) data += `${line.slice(5).trim()}\n`
+          }
+          onmessage?.(new MessageEvent('message', { data: data.trimEnd() }))
+        }
+      }
+    } catch (err: any) {
+      onerror?.(err)
+    }
+  }
+
+  void start()
+
+  return {
+    get onmessage() {
+      return onmessage
+    },
+    set onmessage(fn) {
+      onmessage = fn
+    },
+    get onerror() {
+      return onerror
+    },
+    set onerror(fn) {
+      onerror = fn
+    },
+    get onopen() {
+      return onopen
+    },
+    set onopen(fn) {
+      onopen = fn
+    },
+    close: () => controller.abort(),
+  }
+}
+
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
@@ -104,14 +178,25 @@ export const quickChat = apiConfig.useMock ? mockApi.quickChat : quickChatReal
 /**
  * Deep Research Stream - Real API版本
  */
-const deepResearchStreamReal = (request: DeepResearchRequest): EventSource => {
+const deepResearchStreamReal = (request: DeepResearchRequest): SSEClient => {
   const queryParams = new URLSearchParams({
     query: request.query,
     ...(request.conversation_id && { conversation_id: request.conversation_id }),
   })
 
   const url = `${api.defaults.baseURL}/api/v1/chat/deep-research/stream?${queryParams}`
-  return new EventSource(url)
+  const token = tokenManager.getToken()
+
+  if (!token) {
+    return new EventSource(url)
+  }
+
+  return createAuthenticatedSSE(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    method: 'GET',
+  })
 }
 
 /**
@@ -257,7 +342,8 @@ const generateReportMock = async (request: ReportGenerationRequest) => {
 
         // 模拟生成每个部分
         for (let i = 0; i < request.sections.length; i++) {
-          const section = request.sections[i]
+        const section = request.sections[i]
+        if (!section) continue
 
           // 发送进度
           const progress = {

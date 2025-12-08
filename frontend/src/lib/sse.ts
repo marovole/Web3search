@@ -56,10 +56,9 @@ export function createSSEConnection(
     onError?.(new Error(`SSE connection timeout after ${timeoutMs}ms`))
   }, timeoutMs)
 
-  // Create EventSource with URL
-  // Note: EventSource doesn't support custom headers, but we can pass signal
+  // Create EventSource with URL (note: headers unsupported; signal not typed in lib yet)
+  // @ts-expect-error signal is not yet in EventSourceInit typings
   eventSource = new EventSource(url, {
-    // @ts-ignore - TypeScript doesn't have signal in EventSourceInit yet
     signal: abortController.signal,
   })
 
@@ -99,14 +98,14 @@ export function createSSEConnection(
       abortController.abort(`Max reconnect attempts (${maxReconnectAttempts}) reached`)
       onError?.(new Error(`SSE failed after ${reconnectAttempts} reconnect attempts`))
       onClose?.()
-    } else {
-      console.log(`Reconnecting in ${reconnectDelayMs}ms (attempt ${reconnectAttempts}/${maxReconnectAttempts})`)
-      setTimeout(() => {
-        // Reconnect
-        eventSource?.close()
-        createSSEConnection(url, options)
-      }, reconnectDelayMs)
+      return
     }
+
+    console.log(`Reconnecting in ${reconnectDelayMs}ms (attempt ${reconnectAttempts}/${maxReconnectAttempts})`)
+    setTimeout(() => {
+      eventSource?.close()
+      createSSEConnection(url, options)
+    }, reconnectDelayMs)
   }
 
   return { eventSource, abortController }

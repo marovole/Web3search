@@ -3,17 +3,15 @@ import react from '@vitejs/plugin-react'
 import { visualizer } from 'rollup-plugin-visualizer'
 import fs from 'fs'
 import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // https://vitejs.dev/config/
-// 强制使用正确的 API URL（覆盖任何 Dashboard 配置）
-const FORCED_API_URL = 'https://web3search-api.marovole.workers.dev'
 
 export default defineConfig({
   base: '/', // Vercel 部署到根路径
-  define: {
-    // 在编译时强制替换 API URL
-    'import.meta.env.VITE_API_BASE_URL': JSON.stringify(FORCED_API_URL),
-  },
   plugins: [
     react(),
     // Bundle分析插件

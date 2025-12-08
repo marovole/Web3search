@@ -100,7 +100,7 @@ class RequestSizeLimiterMiddleware(BaseHTTPMiddleware):
         if self.is_ip_blocked(client_ip):
             return self.create_block_response(client_ip, "IP address temporarily blocked due to repeated violations")
 
-        # 获取请求大小
+        # 获取请求大小（优先 Content-Length，缺失时兜底读取以避免绕过）
         content_length = request.headers.get('content-length')
         if content_length:
             try:
@@ -109,6 +109,11 @@ class RequestSizeLimiterMiddleware(BaseHTTPMiddleware):
                 request_size = 0
         else:
             request_size = 0
+
+        # 无 Content-Length 或为 0 且可能有负载时，实际读取一次以获得真实大小
+        if request_size == 0 and request.method in {'POST', 'PUT', 'PATCH'}:
+            body = await request.body()
+            request_size = len(body)
 
         # 获取内容类型
         content_type = request.headers.get('content-type', '').split(';')[0].strip()
@@ -362,6 +367,7 @@ class RequestSizeLimiterMiddleware(BaseHTTPMiddleware):
         """清理旧的违规记录"""
         one_hour_ago = datetime.utcnow() - timedelta(hours=1)
 
+        stale_ips = []
         for client_ip, violations in self.ip_violations.items():
             # 清理小时内的违规记录
             violations['hourly_violations'] = [
@@ -369,10 +375,14 @@ class RequestSizeLimiterMiddleware(BaseHTTPMiddleware):
                 if v['timestamp'] > one_hour_ago
             ]
 
-            # 如果没有违规记录且不在阻止期内，删除IP记录
+            # 如果没有违规记录且不在阻止期内，标记待删除
             if (not violations['violations'] and
                 not violations.get('blocked_until') and
                 violations.get('block_count', 0) <= 0):
-                del self.ip_violations[client_ip]
+                stale_ips.append(client_ip)
 
-        logger.info("🧹 已清理旧的违规记录")
+        for ip in stale_ips:
+            self.ip_violations.pop(ip, None)
+
+        if stale_ips:
+            logger.info("🧹 已清理旧的违规记录: %s", stale_ips)

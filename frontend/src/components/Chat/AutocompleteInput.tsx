@@ -93,7 +93,8 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
         setSelectedIndex((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1))
       } else if (e.key === 'Enter' && !e.shiftKey && selectedIndex >= 0) {
         e.preventDefault()
-        selectSuggestion(suggestions[selectedIndex])
+        const selected = suggestions[selectedIndex]
+        if (selected) selectSuggestion(selected)
         return
       } else if (e.key === 'Escape') {
         e.preventDefault()

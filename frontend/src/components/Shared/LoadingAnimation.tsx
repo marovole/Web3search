@@ -16,7 +16,9 @@ const LoadingAnimation: React.FC<LoadingAnimationProps> = ({ stage, mode }) => {
     { emoji: '📝', text: '正在组装报告...' },
   ]
 
-  const currentStage = deepResearchStages[Math.min(stage, deepResearchStages.length - 1)]
+  const safeIndex = Math.max(0, Math.min(stage, deepResearchStages.length - 1))
+  const currentStage = deepResearchStages[safeIndex]
+  const stageData = currentStage ?? { emoji: '⏳', text: '加载中...' }
 
   return (
     <div className="flex flex-col items-start mb-4 animate-fade-in">
@@ -36,9 +38,9 @@ const LoadingAnimation: React.FC<LoadingAnimationProps> = ({ stage, mode }) => {
           <div className="space-y-4">
             {/* Current stage */}
             <div className="flex items-center gap-3">
-              <span className="text-2xl">{currentStage.emoji}</span>
+              <span className="text-2xl">{stageData.emoji}</span>
               <span className="text-sm font-medium text-gray-700">
-                {currentStage.text}
+                {stageData.text}
               </span>
             </div>
 

@@ -59,6 +59,7 @@ export const useTouchGestures = (
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0]
+    if (!touch) return
     const touchPoint: TouchPoint = {
       x: touch.clientX,
       y: touch.clientY,
@@ -85,6 +86,7 @@ export const useTouchGestures = (
     if (!touchStartRef.current) return
 
     const touch = e.touches[0]
+    if (!touch) return
     const currentPoint: TouchPoint = {
       x: touch.clientX,
       y: touch.clientY,

@@ -11,7 +11,6 @@ SQL注入防护中间件
 """
 
 import logging
-import time
 import json
 import re
 from typing import Dict, List, Optional
@@ -21,6 +20,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
 from app.core.input_validation import SecurityValidator
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -33,41 +33,32 @@ class SQLInjectionProtectionMiddleware(BaseHTTPMiddleware):
         self.enabled = enabled
         self.log_only = log_only  # 如果为True，只记录不阻止
 
-        # SQL注入检测模式 - 预编译正则表达式
+        # SQL注入检测模式 - 预编译正则表达式（收紧到语句级）
         sql_pattern_strings = [
-            # 基础SQL关键字
-            r"(?i)\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b",
-            # SQL注释
-            r"(?i)(--|/\*|\*/|;)",
-            # 布尔注入
-            r"(?i)(\bOR\b|\bAND\b)\s+\d+\s*=\s*\d+",
-            r"(?i)(\bOR\b|\bAND\b)\s+['\"]?\w+['\"]?\s*=\s*['\"]?\w+['\"]?",
-            # 时间延迟攻击
-            r"(?i)(WAITFOR\s+DELAY|SLEEP\s*\(|BENCHMARK\s*\()",
-            # 字符函数
-            r"(?i)(CHAR\s*\(|ASCII\s*\(|ORD\s*\()",
-            # 系统表访问
-            r"(?i)(INFORMATION_SCHEMA|SYS\.|MASTER\.)",
-            # 十六进制编码
-            r"(?i)(0x[0-9a-fA-F]+|X'[0-9a-fA-F]+')",
-            # 特殊字符组合
-            r"(?i)['"]?\s*(\||\+|-)\s*['\"]?\d+['\"]?",
+            r"(?i)\bselect\b.+\bfrom\b",
+            r"(?i)\binsert\b.+\binto\b",
+            r"(?i)\bupdate\b.+\bset\b",
+            r"(?i)\bdelete\b.+\bfrom\b",
+            r"(?i)union\s+all\s+select",
+            r"(?i)or\s+1=1",
+            r"(?i)(waitfor\s+delay|sleep\s*\(|benchmark\s*\()",
+            r"(?i)information_schema",
+            r"(?i)xp_cmdshell",
         ]
         self.sql_patterns = [re.compile(pattern) for pattern in sql_pattern_strings]
 
         # 高风险模式（立即阻止） - 预编译正则表达式
         high_risk_pattern_strings = [
-            r"(?i)(DROP\s+(TABLE|DATABASE|INDEX))",
-            r"(?i)(DELETE\s+FROM\s+\w+)",
-            r"(?i)(UPDATE\s+\w+\s+SET)",
-            r"(?i)(INSERT\s+INTO\s+\w+)",
-            r"(?i)(EXEC\s*\(|EXECUTE\s*\()",
-            r"(?i)(xp_cmdshell|sp_oacreate|sp_adduser)",
+            r"(?i)drop\s+(table|database|index)",
+            r"(?i)truncate\s+table",
+            r"(?i)grant\s+all",
+            r"(?i)xp_cmdshell",
         ]
         self.high_risk_patterns = [re.compile(pattern) for pattern in high_risk_pattern_strings]
 
         # 绕过的路径（不需要检查的路径）
-        self.skip_paths = [
+        configured_skips = getattr(settings, "sql_injection_skip_paths", []) or []
+        self.skip_paths = configured_skips + [
             "/health",
             "/docs",
             "/redoc",
@@ -76,6 +67,13 @@ class SQLInjectionProtectionMiddleware(BaseHTTPMiddleware):
             "/robots.txt",
             "/static/",
         ]
+
+        self.safe_content_types_prefix = (
+            "image/",
+            "text/css",
+            "font/",
+        )
+        self.max_inspect_bytes = 512 * 1024
 
         # 攻击统计
         self.attack_stats = {
@@ -98,13 +96,20 @@ class SQLInjectionProtectionMiddleware(BaseHTTPMiddleware):
         if self.should_skip_path(request.url.path):
             return await call_next(request)
 
+        # 只读方法或安全内容类型快速放行
+        if request.method in {"GET", "HEAD", "OPTIONS"}:
+            return await call_next(request)
+        content_type = request.headers.get("content-type", "")
+        if content_type.startswith(self.safe_content_types_prefix):
+            return await call_next(request)
+
         # 执行SQL注入检测
         injection_result = await self.detect_sql_injection(request)
 
         if injection_result.detected:
             await self.handle_sql_injection(request, injection_result)
 
-            if not self.log_only:
+            if not self.log_only and injection_result.is_high_risk:
                 return self.create_block_response(injection_result)
 
         return await call_next(request)
@@ -195,15 +200,18 @@ class SQLInjectionProtectionMiddleware(BaseHTTPMiddleware):
         return result
 
     async def check_request_body(self, request: Request) -> 'SQLInjectionResult':
-        """检查请求体中的SQL注入"""
+        """检查请求体中的SQL注入，限制检查大小以避免阻塞。"""
         result = SQLInjectionResult(detected=False)
 
         try:
-            # 获取请求体
             body = await request.body()
 
             if not body:
                 return result
+
+            if len(body) > self.max_inspect_bytes:
+                logger.warning("Body too large for full inspection; sampling first %s bytes", self.max_inspect_bytes)
+                body = body[: self.max_inspect_bytes]
 
             # 解析JSON
             try:

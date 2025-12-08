@@ -47,7 +47,7 @@ const ChatInterface: React.FC = () => {
   })
 
   // Refs
-  const eventSourceRef = useRef<EventSource | null>(null)
+  const eventSourceRef = useRef<ReturnType<typeof deepResearchStream> | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Scroll to bottom when messages change
@@ -196,7 +196,7 @@ const ChatInterface: React.FC = () => {
       }
     }
 
-    eventSource.onerror = (error) => {
+    eventSource.onerror = (error: any) => {
       console.error('EventSource error:', error)
       setMessages((prev) => prev.map((msg) => msg.id === assistantMessage.id ? { ...msg, content: accumulatedContent || '❌ 抱歉，连接中断。请检查网络连接后重试。', isStreaming: false } : msg))
       setIsLoading(false)
