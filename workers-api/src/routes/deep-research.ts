@@ -565,33 +565,40 @@ async function updateProgress(
 }
 
 /**
- * Generate research plan with search queries
- * Exported for use in streaming endpoints
+ * Generate research plan with search queries (Optimized for Tongyi DeepResearch)
+ * Uses ReAct-style prompting for better research planning
  */
 export async function generateResearchPlan(
   query: string,
   modelConfig: any,
-  env: Env
-): Promise<{ search_queries: string[]; plan: string }> {
+  env: Env,
+  depth: 'quick' | 'standard' | 'deep' = 'standard'
+): Promise<{ search_queries: string[]; plan: string; parsed_plan?: any }> {
+  const { 
+    DEEPRESEARCH_SYSTEM_PROMPT, 
+    getResearchConfig,
+    buildResearchPlanPrompt 
+  } = await import('../lib/research-prompts')
+  
   const openrouter = createOpenRouterClient(env)
+  const config = getResearchConfig(depth)
 
   const messages: ChatCompletionMessage[] = [
     {
       role: 'system' as ChatRole,
-      content:
-        'You are a research assistant. Given a query, generate a research plan with specific search queries.',
+      content: DEEPRESEARCH_SYSTEM_PROMPT,
     },
     {
       role: 'user' as ChatRole,
-      content: `Generate a research plan for: "${query}"`,
+      content: buildResearchPlanPrompt(query),
     },
   ]
 
   const payload = {
     model: modelConfig.model,
     messages,
-    temperature: 0.3,
-    max_tokens: 500,
+    temperature: config.temperature,
+    max_tokens: config.plan_max_tokens,
   }
 
   const response = await openrouter.request(payload)
@@ -599,18 +606,43 @@ export async function generateResearchPlan(
 
   const content = result.choices?.[0]?.message?.content || ''
 
-  // Parse the response to extract search queries
-  // This is a simplified version - in production, you'd use structured output
-  const searchQueries = extractSearchQueriesFromContent(content, query)
+  // Try to parse JSON response
+  let parsedPlan: any = null
+  let searchQueries: string[] = []
+  
+  try {
+    // Try to extract JSON from the response
+    const jsonMatch = content.match(/\{[\s\S]*\}/)
+    if (jsonMatch) {
+      parsedPlan = JSON.parse(jsonMatch[0])
+      // Extract search queries from parsed plan
+      if (parsedPlan.search_queries && Array.isArray(parsedPlan.search_queries)) {
+        searchQueries = parsedPlan.search_queries.map((q: any) => 
+          typeof q === 'string' ? q : q.query
+        ).filter(Boolean)
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to parse research plan JSON, falling back to extraction')
+  }
+
+  // Fallback: extract queries from text if JSON parsing failed
+  if (searchQueries.length === 0) {
+    searchQueries = extractSearchQueriesFromContent(content, query, config.max_queries)
+  }
 
   return {
-    search_queries: searchQueries,
+    search_queries: searchQueries.slice(0, config.max_queries),
     plan: content,
+    parsed_plan: parsedPlan,
   }
 }
 
-function extractSearchQueriesFromContent(content: string, originalQuery: string): string[] {
-  // Simplified extraction - in production, use structured output or a more sophisticated method
+function extractSearchQueriesFromContent(
+  content: string, 
+  originalQuery: string,
+  maxQueries: number = 5
+): string[] {
   const queries: string[] = []
 
   // Always include the original query
@@ -619,23 +651,25 @@ function extractSearchQueriesFromContent(content: string, originalQuery: string)
   // Try to extract numbered lists or bullet points
   const lines = content.split('\n')
   for (const line of lines) {
-    // Look for lines that start with numbers or bullets and contain question-like phrases
     if (/^\d+\.|^[-*]/.test(line)) {
       const cleaned = line.replace(/^\d+\.\s*|^[-*]\s*/, '').trim()
-      if (cleaned.length > 10 && cleaned.length < 200) {
-        queries.push(cleaned)
+      // Extract quoted strings or the whole line
+      const quotedMatch = cleaned.match(/"([^"]+)"/)
+      const queryText = quotedMatch ? quotedMatch[1] : cleaned
+      if (queryText.length > 5 && queryText.length < 200) {
+        queries.push(queryText)
       }
     }
   }
 
-  // If no queries extracted, create variations of the original query
+  // Fallback queries if extraction failed
   if (queries.length <= 1) {
-    queries.push(`${originalQuery} latest news`)
-    queries.push(`${originalQuery} analysis`)
-    queries.push(`${originalQuery} overview`)
+    queries.push(`${originalQuery} 最新动态`)
+    queries.push(`${originalQuery} 深度分析`)
+    queries.push(`${originalQuery} 市场趋势`)
   }
 
-  return queries.slice(0, 5) // Limit to 5 queries
+  return queries.slice(0, maxQueries)
 }
 
 /**
@@ -712,38 +746,60 @@ export async function analyzeSources(
 }
 
 /**
- * Synthesize research findings into final answer
- * Exported for use in streaming endpoints
+ * Synthesize research findings into final answer (Optimized for Tongyi DeepResearch)
+ * Uses comprehensive prompting for structured analysis with citations
  */
 export async function synthesizeFindings(
   analysis: any,
   query: string,
   modelConfig: any,
-  env: Env
+  env: Env,
+  options?: {
+    sources?: any[]
+    plan?: any
+    depth?: 'quick' | 'standard' | 'deep'
+  }
 ): Promise<{
   result: any
   summary: string
   answer: string
 }> {
+  const { 
+    DEEPRESEARCH_SYSTEM_PROMPT,
+    buildSynthesisPrompt,
+    formatSourcesForPrompt,
+    getResearchConfig
+  } = await import('../lib/research-prompts')
+  
   const openrouter = createOpenRouterClient(env)
+  const depth = options?.depth || 'standard'
+  const config = getResearchConfig(depth)
+  
+  // Format sources for the prompt
+  const sourcesContext = options?.sources 
+    ? formatSourcesForPrompt(options.sources)
+    : JSON.stringify(analysis, null, 2)
+  
+  const planContext = options?.plan 
+    ? (typeof options.plan === 'string' ? options.plan : JSON.stringify(options.plan, null, 2))
+    : ''
 
   const messages: ChatCompletionMessage[] = [
     {
       role: 'system' as ChatRole,
-      content:
-        'Synthesize the research findings into a comprehensive answer with summary.',
+      content: DEEPRESEARCH_SYSTEM_PROMPT,
     },
     {
       role: 'user' as ChatRole,
-      content: `Query: ${query}\n\nAnalysis: ${JSON.stringify(analysis, null, 2)}`,
+      content: buildSynthesisPrompt(query, planContext, sourcesContext),
     },
   ]
 
   const payload = {
     model: modelConfig.model,
     messages,
-    temperature: 0.7,
-    max_tokens: 3000,
+    temperature: config.temperature,
+    max_tokens: config.synthesis_max_tokens,
     stream: false,
   }
 
@@ -752,21 +808,100 @@ export async function synthesizeFindings(
 
   const content = result.choices?.[0]?.message?.content || ''
 
-  return {
-    result: {
-      summary: `Research summary for: ${query}`,
-      answer: content,
-      key_findings: ['Finding 1', 'Finding 2', 'Finding 3'],
-      sources: [],
-      citations: analysis.citations,
-      research_depth: 'comprehensive',
-      total_sources: 5,
-      total_citations: analysis.citations.length,
-      confidence_score: 0.85,
-    },
-    summary: `Research summary for: ${query}`,
-    answer: content,
+  // Try to parse structured JSON response
+  let parsedResult: any = null
+  try {
+    const jsonMatch = content.match(/\{[\s\S]*\}/)
+    if (jsonMatch) {
+      parsedResult = JSON.parse(jsonMatch[0])
+    }
+  } catch (e) {
+    console.warn('Failed to parse synthesis JSON, using raw content')
   }
+
+  // Build structured result
+  const structuredResult = {
+    summary: parsedResult?.executive_summary || `Research summary for: ${query}`,
+    answer: parsedResult ? formatStructuredAnswer(parsedResult) : content,
+    key_findings: parsedResult?.key_findings?.map((f: any) => 
+      typeof f === 'string' ? f : f.finding
+    ) || ['Key findings extracted from analysis'],
+    sources: options?.sources || [],
+    citations: analysis.citations || [],
+    research_depth: depth,
+    total_sources: options?.sources?.length || 0,
+    total_citations: analysis.citations?.length || 0,
+    confidence_score: parsedResult?.metadata?.overall_confidence || 0.75,
+    structured_analysis: parsedResult?.detailed_analysis || null,
+    risks_and_uncertainties: parsedResult?.risks_and_uncertainties || null,
+    conclusion: parsedResult?.conclusion || null,
+  }
+
+  return {
+    result: structuredResult,
+    summary: structuredResult.summary,
+    answer: structuredResult.answer,
+  }
+}
+
+/**
+ * Format structured analysis result into readable answer
+ */
+function formatStructuredAnswer(parsed: any): string {
+  const parts: string[] = []
+  
+  // Executive Summary
+  if (parsed.executive_summary) {
+    parts.push(`## 执行摘要\n${parsed.executive_summary}`)
+  }
+  
+  // Detailed Analysis
+  if (parsed.detailed_analysis?.sections) {
+    parts.push('\n## 详细分析')
+    for (const section of parsed.detailed_analysis.sections) {
+      parts.push(`\n### ${section.title}\n${section.content}`)
+    }
+  }
+  
+  // Key Findings
+  if (parsed.key_findings?.length > 0) {
+    parts.push('\n## 关键发现')
+    for (const finding of parsed.key_findings) {
+      const text = typeof finding === 'string' ? finding : finding.finding
+      const confidence = typeof finding === 'object' ? ` (置信度: ${(finding.confidence * 100).toFixed(0)}%)` : ''
+      parts.push(`- ${text}${confidence}`)
+    }
+  }
+  
+  // Risks and Uncertainties
+  if (parsed.risks_and_uncertainties) {
+    const risks = parsed.risks_and_uncertainties
+    if (risks.limitations?.length || risks.uncertainties?.length) {
+      parts.push('\n## 风险与不确定性')
+      if (risks.limitations?.length) {
+        parts.push('**局限性:**')
+        risks.limitations.forEach((l: string) => parts.push(`- ${l}`))
+      }
+      if (risks.uncertainties?.length) {
+        parts.push('**不确定因素:**')
+        risks.uncertainties.forEach((u: string) => parts.push(`- ${u}`))
+      }
+    }
+  }
+  
+  // Conclusion
+  if (parsed.conclusion) {
+    parts.push('\n## 结论')
+    if (parsed.conclusion.summary) {
+      parts.push(parsed.conclusion.summary)
+    }
+    if (parsed.conclusion.recommendations?.length) {
+      parts.push('\n**建议:**')
+      parsed.conclusion.recommendations.forEach((r: string) => parts.push(`- ${r}`))
+    }
+  }
+  
+  return parts.join('\n')
 }
 
 // ============================================
@@ -840,19 +975,21 @@ function streamDeepResearch({
       // Execute research pipeline
       ;(async () => {
         try {
-          // Stage 1: Data Collection
+          // Stage 1: Data Collection - Generate Research Plan
           emit({
             type: 'progress',
             stage: 'data_collection',
-            content: '正在准备研究计划...',
+            content: '正在分析研究需求，制定调研计划...',
           })
 
-          const plan = await generateResearchPlan(query, modelConfig, env)
+          const plan = await generateResearchPlan(query, modelConfig, env, 'standard')
 
           emit({
             type: 'progress',
             stage: 'data_collection',
-            content: `研究计划已生成，将搜索 ${plan.search_queries.length} 个来源...`,
+            content: plan.parsed_plan?.query_understanding 
+              ? `已理解研究需求：${plan.parsed_plan.query_understanding.substring(0, 100)}...`
+              : `研究计划已生成，将执行 ${plan.search_queries.length} 个搜索策略...`,
           })
 
           // Stage 2: Source Search
@@ -864,36 +1001,51 @@ function streamDeepResearch({
             content: JSON.stringify({
               count: sources.length,
               queries: plan.search_queries,
+              dimensions: plan.parsed_plan?.research_dimensions?.map((d: any) => d.dimension) || [],
             }),
           })
 
-          // Stage 3: Analysis
+          // Stage 3: Analysis (simplified - now integrated into synthesis)
           emit({
             type: 'progress',
             stage: 'analysis',
-            content: '正在分析数据源...',
+            content: `已收集 ${sources.length} 个信息来源，正在进行深度分析...`,
           })
 
-          const analysis = await analyzeSources(sources, query, modelConfig, env)
+          // Build citations from sources
+          const analysis = {
+            citations: sources.slice(0, 10).map((source: any, index: number) => ({
+              source_id: index + 1,
+              title: source.title,
+              url: source.url,
+              snippet: source.snippet?.substring(0, 200),
+              relevance_score: source.relevance_score || 0.7,
+            }))
+          }
 
           emit({
             type: 'progress',
             stage: 'analysis',
-            content: `已分析 ${sources.length} 个来源，发现 ${analysis.citations.length} 条引用...`,
+            content: `正在综合 ${sources.length} 个来源的信息，生成研究报告...`,
           })
 
-          // Stage 4: Report Generation
+          // Stage 4: Report Generation (with enhanced synthesis)
           emit({
             type: 'progress',
             stage: 'report_generation',
-            content: '正在生成综合报告...',
+            content: '正在生成结构化研究报告...',
           })
 
           const synthesis = await synthesizeFindings(
             analysis,
             query,
             modelConfig,
-            env
+            env,
+            {
+              sources,
+              plan: plan.parsed_plan || plan.plan,
+              depth: 'standard'
+            }
           )
 
           // Emit final answer as content (so UI can display it)
@@ -902,6 +1054,20 @@ function streamDeepResearch({
             section: 'answer',
             content: synthesis.answer,
           })
+          
+          // Emit structured result if available
+          if (synthesis.result.structured_analysis || synthesis.result.key_findings) {
+            emit({
+              type: 'content',
+              section: 'structured_result',
+              content: JSON.stringify({
+                key_findings: synthesis.result.key_findings,
+                confidence_score: synthesis.result.confidence_score,
+                risks: synthesis.result.risks_and_uncertainties,
+                conclusion: synthesis.result.conclusion,
+              }),
+            })
+          }
 
           // Persist assistant response
           await persistMessage(supabase, {
