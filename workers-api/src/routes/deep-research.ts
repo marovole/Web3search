@@ -194,6 +194,7 @@ deepResearch.post(
  *   - query (required): The research query (max 2000 characters)
  *   - conversation_id (optional): Existing conversation ID to continue
  *   - model (optional): Model ID to use (defaults to primary deep-research model)
+ *   - type (optional): Research type - 'general' | 'tokenomics' | 'security' | 'competitive'
  */
 deepResearch.get(
   '/stream',
@@ -208,6 +209,7 @@ deepResearch.get(
     const queryParam = c.req.query('query')
     const conversationParam = c.req.query('conversation_id')
     const modelParam = c.req.query('model')
+    const typeParam = c.req.query('type') as 'general' | 'tokenomics' | 'security' | 'competitive' | undefined
 
     // Validate query parameter
     const query = typeof queryParam === 'string' ? queryParam.trim() : ''
@@ -288,6 +290,7 @@ deepResearch.get(
         modelConfig,
         supabase,
         env: c.env,
+        researchType: typeParam || 'general',
       })
     } catch (error) {
       console.error('Deep Research stream handler failed:', error)
@@ -758,6 +761,7 @@ export async function synthesizeFindings(
     sources?: any[]
     plan?: any
     depth?: 'quick' | 'standard' | 'deep'
+    researchType?: 'general' | 'tokenomics' | 'security' | 'competitive'
   }
 ): Promise<{
   result: any
@@ -768,12 +772,17 @@ export async function synthesizeFindings(
     DEEPRESEARCH_SYSTEM_PROMPT,
     buildSynthesisPrompt,
     formatSourcesForPrompt,
-    getResearchConfig
+    getResearchConfig,
+    getSystemPromptByType,
+    buildTokenomicsPrompt,
+    TOKENOMICS_AUDITOR_PROMPT,
   } = await import('../lib/research-prompts')
   
   const openrouter = createOpenRouterClient(env)
   const depth = options?.depth || 'standard'
+  const researchType = options?.researchType || 'general'
   const config = getResearchConfig(depth)
+  const isTokenomics = researchType === 'tokenomics'
   
   // Format sources for the prompt
   const sourcesContext = options?.sources 
@@ -784,14 +793,22 @@ export async function synthesizeFindings(
     ? (typeof options.plan === 'string' ? options.plan : JSON.stringify(options.plan, null, 2))
     : ''
 
+  // Select system prompt based on research type
+  const systemPrompt = getSystemPromptByType(researchType)
+  
+  // Build user prompt based on research type
+  const userPrompt = isTokenomics
+    ? buildTokenomicsPrompt(query) + `\n\n## 收集到的信息来源\n${sourcesContext}`
+    : buildSynthesisPrompt(query, planContext, sourcesContext)
+
   const messages: ChatCompletionMessage[] = [
     {
       role: 'system' as ChatRole,
-      content: DEEPRESEARCH_SYSTEM_PROMPT,
+      content: systemPrompt,
     },
     {
       role: 'user' as ChatRole,
-      content: buildSynthesisPrompt(query, planContext, sourcesContext),
+      content: userPrompt,
     },
   ]
 
@@ -819,23 +836,46 @@ export async function synthesizeFindings(
     console.warn('Failed to parse synthesis JSON, using raw content')
   }
 
-  // Build structured result
-  const structuredResult = {
-    summary: parsedResult?.executive_summary || `Research summary for: ${query}`,
-    answer: parsedResult ? formatStructuredAnswer(parsedResult) : content,
-    key_findings: parsedResult?.key_findings?.map((f: any) => 
-      typeof f === 'string' ? f : f.finding
-    ) || ['Key findings extracted from analysis'],
-    sources: options?.sources || [],
-    citations: analysis.citations || [],
-    research_depth: depth,
-    total_sources: options?.sources?.length || 0,
-    total_citations: analysis.citations?.length || 0,
-    confidence_score: parsedResult?.metadata?.overall_confidence || 0.75,
-    structured_analysis: parsedResult?.detailed_analysis || null,
-    risks_and_uncertainties: parsedResult?.risks_and_uncertainties || null,
-    conclusion: parsedResult?.conclusion || null,
-  }
+  // Build structured result based on research type
+  const structuredResult = isTokenomics && parsedResult?.scorecard
+    ? {
+        // Tokenomics audit result
+        research_type: 'tokenomics' as const,
+        summary: parsedResult.verdict?.summary || `Tokenomics audit for: ${query}`,
+        answer: parsedResult ? formatTokenomicsAnswer(parsedResult) : content,
+        scorecard: parsedResult.scorecard,
+        red_flags: parsedResult.red_flags || [],
+        tokenomics_analysis: parsedResult.analysis,
+        stress_test: parsedResult.stress_test,
+        verdict: parsedResult.verdict,
+        data_quality: parsedResult.data_quality,
+        sources: options?.sources || [],
+        citations: analysis.citations || [],
+        research_depth: depth,
+        total_sources: options?.sources?.length || 0,
+        total_citations: analysis.citations?.length || 0,
+        confidence_score: parsedResult.data_quality?.transparency_score 
+          ? parsedResult.data_quality.transparency_score / 10 
+          : 0.75,
+      }
+    : {
+        // General research result
+        research_type: 'general' as const,
+        summary: parsedResult?.executive_summary || `Research summary for: ${query}`,
+        answer: parsedResult ? formatStructuredAnswer(parsedResult) : content,
+        key_findings: parsedResult?.key_findings?.map((f: any) => 
+          typeof f === 'string' ? f : f.finding
+        ) || ['Key findings extracted from analysis'],
+        sources: options?.sources || [],
+        citations: analysis.citations || [],
+        research_depth: depth,
+        total_sources: options?.sources?.length || 0,
+        total_citations: analysis.citations?.length || 0,
+        confidence_score: parsedResult?.metadata?.overall_confidence || 0.75,
+        structured_analysis: parsedResult?.detailed_analysis || null,
+        risks_and_uncertainties: parsedResult?.risks_and_uncertainties || null,
+        conclusion: parsedResult?.conclusion || null,
+      }
 
   return {
     result: structuredResult,
@@ -904,6 +944,123 @@ function formatStructuredAnswer(parsed: any): string {
   return parts.join('\n')
 }
 
+/**
+ * Format tokenomics audit result into readable answer
+ */
+function formatTokenomicsAnswer(parsed: any): string {
+  const parts: string[] = []
+  
+  // Scorecard Header
+  if (parsed.scorecard) {
+    const { score, rating, color } = parsed.scorecard
+    const emoji = color === 'green' ? '🟢' : color === 'yellow' ? '🟡' : '🔴'
+    parts.push(`## ${emoji} Tokenomics Scorecard: ${score}/100 (${rating})`)
+  }
+  
+  // Red Flags
+  if (parsed.red_flags?.length > 0) {
+    parts.push('\n## 🚨 Red Flags')
+    for (const flag of parsed.red_flags) {
+      parts.push(`- ${flag}`)
+    }
+  }
+  
+  // 5-Dimension Analysis
+  if (parsed.analysis) {
+    const { supply_dynamics, allocation, vesting, value_accrual, sustainability } = parsed.analysis
+    
+    parts.push('\n## 📊 5-Dimension Audit')
+    
+    if (supply_dynamics) {
+      parts.push('\n### 1. Supply Dynamics & FDV')
+      if (supply_dynamics.circulating_supply) parts.push(`- 流通供应量: ${supply_dynamics.circulating_supply}`)
+      if (supply_dynamics.max_supply) parts.push(`- 最大供应量: ${supply_dynamics.max_supply}`)
+      if (supply_dynamics.fdv) parts.push(`- FDV: ${supply_dynamics.fdv}`)
+      if (supply_dynamics.inflation_rate) parts.push(`- 通胀率: ${supply_dynamics.inflation_rate}`)
+      if (supply_dynamics.findings) parts.push(`\n${supply_dynamics.findings}`)
+    }
+    
+    if (allocation) {
+      parts.push('\n### 2. Token Allocation & Centralization')
+      if (allocation.insider_percentage !== undefined) parts.push(`- 内部人持仓: ${allocation.insider_percentage}%`)
+      if (allocation.centralization_risk) parts.push(`- 中心化风险: ${allocation.centralization_risk}`)
+      if (allocation.breakdown) {
+        parts.push('- 分配明细:')
+        for (const [key, value] of Object.entries(allocation.breakdown)) {
+          parts.push(`  - ${key}: ${value}%`)
+        }
+      }
+      if (allocation.findings) parts.push(`\n${allocation.findings}`)
+    }
+    
+    if (vesting) {
+      parts.push('\n### 3. Vesting & Unlock Schedule')
+      if (vesting.tge_date) parts.push(`- TGE日期: ${vesting.tge_date}`)
+      if (vesting.next_major_unlock) parts.push(`- 下次重大解锁: ${vesting.next_major_unlock}`)
+      if (vesting.monthly_sell_pressure_usd) parts.push(`- 月度抛压: ${vesting.monthly_sell_pressure_usd}`)
+      if (vesting.findings) parts.push(`\n${vesting.findings}`)
+    }
+    
+    if (value_accrual) {
+      parts.push('\n### 4. Value Accrual')
+      if (value_accrual.mechanism) parts.push(`- 价值捕获机制: ${value_accrual.mechanism}`)
+      if (value_accrual.yield_type) parts.push(`- 收益类型: ${value_accrual.yield_type}`)
+      if (value_accrual.protocol_revenue) parts.push(`- 协议收入: ${value_accrual.protocol_revenue}`)
+      if (value_accrual.findings) parts.push(`\n${value_accrual.findings}`)
+    }
+    
+    if (sustainability) {
+      parts.push('\n### 5. Sustainability & Ponzi Check')
+      if (sustainability.death_spiral_risk) parts.push(`- 死亡螺旋风险: ${sustainability.death_spiral_risk}`)
+      if (sustainability.ponzi_score !== undefined) parts.push(`- Ponzi评分: ${sustainability.ponzi_score}/10`)
+      if (sustainability.findings) parts.push(`\n${sustainability.findings}`)
+    }
+  }
+  
+  // Stress Test
+  if (parsed.stress_test) {
+    parts.push('\n## 🔥 Stress Test: 50% Market Crash')
+    if (parsed.stress_test.treasury_runway) parts.push(`- Treasury Runway: ${parsed.stress_test.treasury_runway}`)
+    if (parsed.stress_test.staking_impact) parts.push(`- Staking Impact: ${parsed.stress_test.staking_impact}`)
+    if (parsed.stress_test.protocol_survival) parts.push(`- Protocol Survival: ${parsed.stress_test.protocol_survival}`)
+    if (parsed.stress_test.findings) parts.push(`\n${parsed.stress_test.findings}`)
+  }
+  
+  // Verdict
+  if (parsed.verdict) {
+    parts.push('\n## 📋 Investment Verdict')
+    if (parsed.verdict.recommendation) parts.push(`**Recommendation:** ${parsed.verdict.recommendation}`)
+    if (parsed.verdict.investment_horizon) parts.push(`**Horizon:** ${parsed.verdict.investment_horizon}`)
+    if (parsed.verdict.key_catalysts?.length) {
+      parts.push('\n**Positive Catalysts:**')
+      parsed.verdict.key_catalysts.forEach((c: string) => parts.push(`- ${c}`))
+    }
+    if (parsed.verdict.key_risks?.length) {
+      parts.push('\n**Key Risks:**')
+      parsed.verdict.key_risks.forEach((r: string) => parts.push(`- ${r}`))
+    }
+    if (parsed.verdict.summary) parts.push(`\n${parsed.verdict.summary}`)
+  }
+  
+  // Data Quality
+  if (parsed.data_quality) {
+    parts.push('\n## 📝 Data Quality Assessment')
+    if (parsed.data_quality.transparency_score !== undefined) {
+      parts.push(`- Transparency Score: ${parsed.data_quality.transparency_score}/10`)
+    }
+    if (parsed.data_quality.missing_data?.length) {
+      parts.push('- Missing Data:')
+      parsed.data_quality.missing_data.forEach((d: string) => parts.push(`  - ${d}`))
+    }
+    if (parsed.data_quality.conflicting_sources?.length) {
+      parts.push('- Conflicting Sources:')
+      parsed.data_quality.conflicting_sources.forEach((c: string) => parts.push(`  - ${c}`))
+    }
+  }
+  
+  return parts.join('\n')
+}
+
 // ============================================
 // Deep Research Streaming Functions
 // ============================================
@@ -914,6 +1071,7 @@ interface DeepResearchStreamParams {
   modelConfig: any
   supabase: SupabaseClient
   env: Env
+  researchType?: 'general' | 'tokenomics' | 'security' | 'competitive'
 }
 
 /**
@@ -927,10 +1085,12 @@ function streamDeepResearch({
   modelConfig,
   supabase,
   env,
+  researchType = 'general',
 }: DeepResearchStreamParams): Response {
   const encoder = new TextEncoder()
   let heartbeat: ReturnType<typeof setInterval> | null = null
   let isCancelled = false
+  const isTokenomics = researchType === 'tokenomics'
 
   const stream = new ReadableStream({
     start(controller) {
@@ -976,20 +1136,39 @@ function streamDeepResearch({
       ;(async () => {
         try {
           // Stage 1: Data Collection - Generate Research Plan
+          const { getSystemPromptByType, getTokenomicsSearchQueries, buildTokenomicsPrompt } = await import('../lib/research-prompts')
+          
           emit({
             type: 'progress',
             stage: 'data_collection',
-            content: '正在分析研究需求，制定调研计划...',
+            content: isTokenomics 
+              ? '🔍 启动 Tokenomics 深度审计模式...'
+              : '正在分析研究需求，制定调研计划...',
           })
 
-          const plan = await generateResearchPlan(query, modelConfig, env, 'standard')
+          // For tokenomics, use specialized search queries
+          let plan: { search_queries: string[]; plan: string; parsed_plan?: any }
+          
+          if (isTokenomics) {
+            // Extract project/token from query for specialized search
+            const tokenomicsQueries = getTokenomicsSearchQueries(query, query)
+            plan = {
+              search_queries: tokenomicsQueries,
+              plan: `Tokenomics audit for: ${query}`,
+              parsed_plan: { query_understanding: `Tokenomics audit mode: ${query}` }
+            }
+          } else {
+            plan = await generateResearchPlan(query, modelConfig, env, 'standard')
+          }
 
           emit({
             type: 'progress',
             stage: 'data_collection',
-            content: plan.parsed_plan?.query_understanding 
-              ? `已理解研究需求：${plan.parsed_plan.query_understanding.substring(0, 100)}...`
-              : `研究计划已生成，将执行 ${plan.search_queries.length} 个搜索策略...`,
+            content: isTokenomics
+              ? `📊 代币经济学审计：将分析 ${plan.search_queries.length} 个关键维度...`
+              : (plan.parsed_plan?.query_understanding 
+                ? `已理解研究需求：${plan.parsed_plan.query_understanding.substring(0, 100)}...`
+                : `研究计划已生成，将执行 ${plan.search_queries.length} 个搜索策略...`),
           })
 
           // Stage 2: Source Search
@@ -1026,14 +1205,18 @@ function streamDeepResearch({
           emit({
             type: 'progress',
             stage: 'analysis',
-            content: `正在综合 ${sources.length} 个来源的信息，生成研究报告...`,
+            content: isTokenomics
+              ? `📈 正在执行 5 维度审计分析...`
+              : `正在综合 ${sources.length} 个来源的信息，生成研究报告...`,
           })
 
           // Stage 4: Report Generation (with enhanced synthesis)
           emit({
             type: 'progress',
             stage: 'report_generation',
-            content: '正在生成结构化研究报告...',
+            content: isTokenomics
+              ? '📝 生成 Tokenomics 审计报告（含压力测试）...'
+              : '正在生成结构化研究报告...',
           })
 
           const synthesis = await synthesizeFindings(
@@ -1044,7 +1227,8 @@ function streamDeepResearch({
             {
               sources,
               plan: plan.parsed_plan || plan.plan,
-              depth: 'standard'
+              depth: 'deep',
+              researchType: researchType,
             }
           )
 
