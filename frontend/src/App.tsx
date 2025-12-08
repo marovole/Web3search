@@ -174,6 +174,11 @@ function App() {
                                     <ChatPage />
                                   </Suspense>
                                 } />
+                                <Route path="/chat" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="chat" />}>
+                                    <ChatPage />
+                                  </Suspense>
+                                } />
                                 <Route path="/shared/:shareToken" element={
                                   <Suspense fallback={<AdaptiveSkeleton pageType="report" />}>
                                     <SharedReportPage />
