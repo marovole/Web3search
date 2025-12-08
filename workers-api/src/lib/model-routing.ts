@@ -73,7 +73,7 @@ export const MODEL_ROUTING_TABLE: Record<string, ModelConfig> = {
     retryAttempts: 3
   },
   'deepseek-chat': {
-    model: 'deepseek/deepseek-chat-v3-0324',
+    model: 'deepseek/deepseek-v3.2-speciale',
     provider: 'deepseek',
     weight: 80,
     costPer1M: {
