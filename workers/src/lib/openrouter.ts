@@ -19,7 +19,7 @@ export class OpenRouterClient {
   constructor(config: OpenRouterConfig) {
     this.apiKey = config.apiKey
     this.baseURL = config.baseURL ?? 'https://openrouter.ai/api/v1'
-    this.defaultModel = config.defaultModel ?? 'anthropic/claude-3.5-sonnet'
+    this.defaultModel = config.defaultModel ?? 'deepseek/deepseek-chat-v3-0324'
     this.timeout = config.timeout ?? 30000
   }
 

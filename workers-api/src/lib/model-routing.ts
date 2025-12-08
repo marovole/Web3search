@@ -73,14 +73,14 @@ export const MODEL_ROUTING_TABLE: Record<string, ModelConfig> = {
     retryAttempts: 3
   },
   'deepseek-chat': {
-    model: 'deepseek/deepseek-chat',
+    model: 'deepseek/deepseek-chat-v3-0324',
     provider: 'deepseek',
-    weight: 60,
+    weight: 80,
     costPer1M: {
-      prompt: 0.14,
-      completion: 0.28
+      prompt: 0.50,
+      completion: 2.18
     },
-    maxTokens: 32768,
+    maxTokens: 131072,
     capabilities: {
       reasoning: true,
       code: true,
@@ -180,13 +180,13 @@ export const ROUTING_STRATEGIES: Record<
   RoutingStrategy
 > = {
   'quick-chat': {
-    primary: ['qwen-2.5-72b-instruct', 'deepseek-chat'],
-    fallback: ['qwen-2.5-7b-instruct', 'deepseek-coder-6.7b'],
+    primary: ['deepseek-chat', 'qwen-2.5-72b-instruct'],
+    fallback: ['qwen-2.5-7b-instruct'],
     loadBalancing: 'weighted'
   },
   'deep-research': {
-    primary: ['claude-3-5-sonnet'],
-    fallback: ['qwen-2.5-72b-instruct'],
+    primary: ['deepseek-chat', 'qwen-2.5-72b-instruct'],
+    fallback: ['qwen-2.5-7b-instruct'],
     loadBalancing: 'first-available'
   },
   'summarization': {

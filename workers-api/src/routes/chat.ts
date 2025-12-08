@@ -23,7 +23,7 @@ import {
   persistMessage,
 } from '../lib/conversation'
 
-const DEFAULT_MODEL = 'anthropic/claude-3.5-sonnet'
+const DEFAULT_MODEL = 'deepseek/deepseek-chat-v3-0324'
 const MAX_HISTORY_MESSAGES = 10
 const SYSTEM_PROMPT = `You are Web3search, an AI researcher focused on cryptocurrency fundamentals.
 - Provide concise answers with evidence or metrics where possible.

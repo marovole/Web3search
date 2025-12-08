@@ -18,7 +18,7 @@ import { createRateLimitMiddleware } from '../middlewares/rate-limit'
 
 const reports = new Hono<{ Bindings: Env }>()
 
-const DEFAULT_MODEL = 'anthropic/claude-3.5-sonnet'
+const DEFAULT_MODEL = 'deepseek/deepseek-chat-v3-0324'
 const MAX_TOKENS_PER_SECTION = 2000
 
 /**

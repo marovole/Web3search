@@ -604,7 +604,7 @@ router.post('/quick-chat', async (c) => {
 
     // 5. 创建 OpenRouter 客户端
     const openrouter = createOpenRouterClient(c.env.OPENROUTER_API_KEY)
-    const selectedModel = body.model || 'anthropic/claude-3.5-sonnet'
+    const selectedModel = body.model || 'deepseek/deepseek-chat-v3-0324'
 
     // 6. 构建消息历史
     const messages: OpenRouterMessage[] = [
@@ -807,7 +807,7 @@ router.post('/deep-research/stream', async (c) => {
     )
 
     // 6. 准备 AI 模型和客户端
-    const selectedModel = body.model || 'anthropic/claude-3.5-sonnet'
+    const selectedModel = body.model || 'deepseek/deepseek-chat-v3-0324'
     const openrouter = createOpenRouterClient(c.env.OPENROUTER_API_KEY)
 
     // 7. 加载对话历史（可选，用于上下文）
