@@ -10,7 +10,7 @@ import type { OpenRouterPayload } from './openrouter'
 /**
  * AI Model Provider Type
  */
-export type ModelProvider = 'deepseek' | 'openai'
+export type ModelProvider = 'deepseek' | 'openai' | 'alibaba'
 
 /**
  * Model Configuration
@@ -73,6 +73,26 @@ export const MODEL_ROUTING_TABLE: Record<string, ModelConfig> = {
     retryAttempts: 3
   },
 
+  // ===== Deep Research Specialist =====
+  'tongyi-deepresearch': {
+    model: 'alibaba/tongyi-deepresearch-30b-a3b',
+    provider: 'alibaba',
+    weight: 90,
+    costPer1M: {
+      prompt: 0.20,
+      completion: 0.80
+    },
+    maxTokens: 65536,
+    capabilities: {
+      reasoning: true,
+      code: true,
+      longContext: true,
+      streaming: true
+    },
+    timeout: 60000,
+    retryAttempts: 3
+  },
+
   // ===== Fallback Model =====
   'gpt-oss-120b': {
     model: 'openai/gpt-oss-120b:exacto',
@@ -108,8 +128,8 @@ export const ROUTING_STRATEGIES: Record<
     loadBalancing: 'first-available'
   },
   'deep-research': {
-    primary: ['deepseek-chat'],
-    fallback: ['gpt-oss-120b'],
+    primary: ['tongyi-deepresearch'],
+    fallback: ['deepseek-chat'],
     loadBalancing: 'first-available'
   },
   'summarization': {
