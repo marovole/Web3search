@@ -16,6 +16,7 @@ import {
   defaultSSEHeaders,
 } from '../lib/sse'
 import type { SSEManager } from '../lib/sse'
+import type { ToolCallEvent, ThinkingEvent } from '../types/deep-research'
 
 /**
  * Hook for SSE chat streaming
@@ -99,6 +100,7 @@ export function useChatSSE(url: string, options: SSEOptions = {}) {
 
 /**
  * Hook for Deep Research SSE streaming
+ * Extended with Glass Box UX event support for tool_call and thinking events
  */
 export function useResearchSSE(url: string, options: SSEOptions = {}) {
   const [events, setEvents] = useState<ResearchSSEvent[]>([])
@@ -106,6 +108,9 @@ export function useResearchSSE(url: string, options: SSEOptions = {}) {
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [progress, setProgress] = useState(0)
+  // Glass Box UX state
+  const [toolCalls, setToolCalls] = useState<ToolCallEvent[]>([])
+  const [thoughts, setThoughts] = useState<ThinkingEvent[]>([])
   const connectionRef = useRef<{ eventSource: EventSource | null; abortController: AbortController } | null>(null)
 
   const start = useCallback(() => {
@@ -119,16 +124,63 @@ export function useResearchSSE(url: string, options: SSEOptions = {}) {
         setIsConnected(true)
         setError(null)
         setProgress(0)
+        // Clear Glass Box state on new connection
+        setToolCalls([])
+        setThoughts([])
         options.onOpen?.()
       },
       onMessage: (data: ResearchSSEvent) => {
-        if (data.event === 'research.progress') {
-          setProgress(data.data.progress_percent || 0)
+        // Support both legacy event/data shape and new Glass Box type shape
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rawData = data as any
+        const eventType = rawData.type || data.event
+
+        // Handle Glass Box tool_call events
+        if (eventType === 'tool_call') {
+          const toolCall: ToolCallEvent = {
+            type: 'tool_call',
+            tool: rawData.tool ?? 'search',
+            query: rawData.query,
+            provider: rawData.provider,
+            latency_ms: rawData.latency_ms ?? 0,
+            result_summary: rawData.result_summary ?? '',
+            source_count: rawData.source_count,
+            status: rawData.status ?? 'started',
+            timestamp: rawData.timestamp,
+          }
+          setToolCalls(prev => [...prev, toolCall])
         }
 
+        // Handle Glass Box thinking events
+        if (eventType === 'thinking') {
+          const thinking: ThinkingEvent = {
+            type: 'thinking',
+            stage: rawData.stage ?? 'planning',
+            thought: rawData.thought ?? '',
+            timestamp: rawData.timestamp,
+          }
+          setThoughts(prev => [...prev, thinking])
+        }
+
+        // Handle progress events (both legacy and new formats)
+        if (data.event === 'research.progress') {
+          setProgress(data.data.progress_percent || 0)
+        } else if (eventType === 'progress') {
+          // Support both rawData.progress_percent and payload.progress_percent
+          const progressValue = rawData.progress_percent ?? rawData.data?.progress_percent ?? 0
+          if (typeof progressValue === 'number') {
+            setProgress(progressValue)
+          }
+        }
+
+        // Handle failure events (both legacy and new formats)
         if (data.event === 'research.failed') {
           setError(new Error(data.data.error_message || 'Research failed'))
           options.onError?.(new Error(data.data.error_message || 'Research failed'))
+        } else if (eventType === 'error') {
+          const errorMsg = rawData.content || rawData.message || rawData.error_message || 'Research error'
+          setError(new Error(errorMsg))
+          options.onError?.(new Error(errorMsg))
         }
 
         setEvents(prev => [...prev, data])
@@ -169,6 +221,8 @@ export function useResearchSSE(url: string, options: SSEOptions = {}) {
     setCurrentEvent(null)
     setError(null)
     setProgress(0)
+    setToolCalls([])
+    setThoughts([])
   }, [])
 
   return {
@@ -177,6 +231,9 @@ export function useResearchSSE(url: string, options: SSEOptions = {}) {
     isConnected,
     error,
     progress,
+    // Glass Box UX data
+    toolCalls,
+    thoughts,
     start,
     stop,
     reset,

@@ -253,6 +253,16 @@ export interface DeepResearchTask {
   tags: string[]
 }
 
+/**
+ * Adversarial question generated for critical analysis
+ */
+export interface AdversarialQuestion {
+  /** The pointed question to consider */
+  question: string
+  /** Why this question matters for risk assessment */
+  rationale: string
+}
+
 export interface ResearchResult {
   summary: string
   answer: string
@@ -263,6 +273,8 @@ export interface ResearchResult {
   total_sources: number
   total_citations: number
   confidence_score: number
+  /** Generated adversarial questions for critical analysis */
+  adversarial_questions?: AdversarialQuestion[]
 }
 
 export interface ResearchProgress {

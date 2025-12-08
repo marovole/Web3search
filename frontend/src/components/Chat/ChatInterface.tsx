@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Terminal, Zap, Search, ArrowRight } from 'lucide-react'
 import type { Message, ChatMode } from '../../types'
@@ -11,7 +11,14 @@ import AutocompleteInput from './AutocompleteInput'
 import LoadingAnimation from '../Shared/LoadingAnimation'
 import HotspotPanel from '../Hotspot/HotspotPanel'
 import NetworkErrorRetry from '../Error/NetworkErrorRetry'
+import { GlassBoxPanel, RedFlagDashboard, AdversarialQA } from '../Research'
 import { cn } from '@/lib/utils'
+import type {
+  ToolCallEvent,
+  ThinkingEvent,
+  TokenomicsAnalysis,
+  AdversarialQuestion,
+} from '@/types/deep-research'
 
 const MIN_QUICK_CHAT_RESPONSE_LENGTH = 10
 
@@ -38,6 +45,13 @@ const ChatInterface: React.FC = () => {
   const [loadingStage, setLoadingStage] = useState(0)
   const [conversationId, setConversationId] = useState<string>()
   const [lastFailedQuery, setLastFailedQuery] = useState<string>('')
+
+  // Glass Box UX state
+  const [toolCalls, setToolCalls] = useState<ToolCallEvent[]>([])
+  const [thoughts, setThoughts] = useState<ThinkingEvent[]>([])
+  // Red Flag Dashboard state
+  const [tokenomics, setTokenomics] = useState<TokenomicsAnalysis | undefined>()
+  const [adversarialQuestions, setAdversarialQuestions] = useState<AdversarialQuestion[]>([])
 
   // Network retry hook
   const quickChatWithRetry = useNetworkRetry(quickChat, {
@@ -156,6 +170,12 @@ const ChatInterface: React.FC = () => {
     }
     setMessages((prev) => [...prev, assistantMessage])
 
+    // Reset Glass Box and Red Flag state for new research
+    setToolCalls([])
+    setThoughts([])
+    setTokenomics(undefined)
+    setAdversarialQuestions([])
+
     const eventSource = deepResearchStream({
       query,
       conversation_id: conversationId,
@@ -168,23 +188,63 @@ const ChatInterface: React.FC = () => {
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-        if (data.type === 'progress') {
+        // Support both legacy event/data shape and new Glass Box type shape
+        const eventType = data.type || data.event
+        const payload = data.data || data
+
+        // Handle Glass Box tool_call events
+        if (eventType === 'tool_call') {
+          const toolEvent: ToolCallEvent = {
+            type: 'tool_call',
+            tool: payload.tool ?? 'search',
+            query: payload.query,
+            provider: payload.provider,
+            latency_ms: payload.latency_ms ?? 0,
+            result_summary: payload.result_summary ?? '',
+            source_count: payload.source_count,
+            status: payload.status ?? 'started',
+            timestamp: payload.timestamp,
+          }
+          setToolCalls((prev) => [...prev, toolEvent])
+        }
+
+        // Handle Glass Box thinking events
+        if (eventType === 'thinking') {
+          const thinkingEvent: ThinkingEvent = {
+            type: 'thinking',
+            stage: payload.stage ?? 'planning',
+            thought: payload.thought ?? '',
+            timestamp: payload.timestamp,
+          }
+          setThoughts((prev) => [...prev, thinkingEvent])
+        }
+
+        // Handle progress events
+        if (eventType === 'progress') {
           if (data.stage === 'data_collection') setLoadingStage(1)
           else if (data.stage === 'analysis') setLoadingStage(2)
           else if (data.stage === 'report_generation') setLoadingStage(3)
 
           setMessages((prev) => prev.map((msg) => msg.id === assistantMessage.id ? { ...msg, content: data.content || `${loadingStages[loadingStage] || '处理中...'}` } : msg))
-        } else if (data.type === 'content') {
+        } else if (eventType === 'content') {
           if (data.content) {
             accumulatedContent = data.content
             setMessages((prev) => prev.map((msg) => msg.id === assistantMessage.id ? { ...msg, content: accumulatedContent } : msg))
           }
-        } else if (data.type === 'error') {
+        } else if (eventType === 'error') {
           setMessages((prev) => prev.map((msg) => msg.id === assistantMessage.id ? { ...msg, content: `❌ 错误：${data.content}`, isStreaming: false } : msg))
           setIsLoading(false)
           eventSource.close()
           eventSourceRef.current = null
-        } else if (data.type === 'complete' || data.done) {
+        } else if (eventType === 'complete' || data.done) {
+          // Extract tokenomics and adversarial questions from complete event
+          if (payload.tokenomics_analysis || payload.tokenomics) {
+            setTokenomics((payload.tokenomics_analysis || payload.tokenomics) as TokenomicsAnalysis)
+          }
+          if (Array.isArray(payload.adversarial_questions)) {
+            setAdversarialQuestions(payload.adversarial_questions as AdversarialQuestion[])
+          }
+
           setMessages((prev) => prev.map((msg) => msg.id === assistantMessage.id ? { ...msg, isStreaming: false } : msg))
           setIsLoading(false)
           if (data.session_id) setConversationId(data.session_id)
@@ -204,6 +264,17 @@ const ChatInterface: React.FC = () => {
       eventSourceRef.current = null
     }
   }
+
+  // Handle adversarial question click - triggers new deep research
+  const handleQuestionClick = useCallback((question: string) => {
+    // Ensure we're in deep mode first
+    setMode('deep')
+    localStorage.setItem('chatMode', 'deep')
+    // Use setTimeout to ensure mode state is updated before sending
+    setTimeout(() => {
+      handleDeepResearchStream(question)
+    }, 0)
+  }, [conversationId])
 
   useEffect(() => {
     return () => {
@@ -361,6 +432,32 @@ const ChatInterface: React.FC = () => {
             ) : (
               <div className="space-y-8">
                 <MessageList messages={messages} />
+
+                {/* Glass Box UX Panel - shows during deep research */}
+                {mode === 'deep' && (isLoading || toolCalls.length > 0 || thoughts.length > 0) && (
+                  <GlassBoxPanel
+                    toolCalls={toolCalls}
+                    thoughts={thoughts}
+                    className="mt-4"
+                  />
+                )}
+
+                {/* Red Flag Dashboard - shows after deep research with tokenomics data */}
+                {!isLoading && tokenomics && (
+                  <RedFlagDashboard
+                    tokenomics={tokenomics}
+                    className="mt-4"
+                  />
+                )}
+
+                {/* Adversarial Q&A - shows after deep research with questions */}
+                {!isLoading && adversarialQuestions.length > 0 && (
+                  <AdversarialQA
+                    questions={adversarialQuestions}
+                    onQuestionClick={handleQuestionClick}
+                    className="mt-4"
+                  />
+                )}
 
                 {quickChatWithRetry.state.error && lastFailedQuery && (
                   <NetworkErrorRetry

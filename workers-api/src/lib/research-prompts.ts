@@ -524,3 +524,70 @@ export function getTokenomicsRating(score: number): { rating: string; color: str
   if (score <= 60) return { rating: 'Speculative', color: 'yellow' }
   return { rating: 'Sustainable', color: 'green' }
 }
+
+// ============================================
+// Adversarial Q&A Prompts
+// ============================================
+
+/**
+ * Prompt for generating adversarial follow-up questions
+ * Helps investors identify potential risks and weaknesses
+ */
+export const ADVERSARIAL_QA_PROMPT = `Based on the research report provided above, generate 3 pointed follow-up questions that help investors identify potential risks and weaknesses.
+
+## Question Generation Guidelines
+
+Your questions should:
+
+1. **Target the weakest points** - Focus on areas where the data is incomplete, contradictory, or concerning
+2. **Challenge credibility** - Question the reliability of data sources, team claims, or projected metrics
+3. **Anticipate worst-case scenarios** - Ask about market downturns, regulatory risks, competitive threats, or technical failures
+
+## Question Categories
+
+- **Technical Risk:** Smart contract vulnerabilities, scaling limitations, dependency on third parties
+- **Team Risk:** Anonymous teams, lack of experience, conflicts of interest, token allocation
+- **Market Risk:** Competition, market saturation, timing, macro conditions
+- **Tokenomics Risk:** Inflation, unlock pressure, value accrual gaps
+- **Regulatory Risk:** Securities classification, KYC/AML compliance, geographic restrictions
+
+## Output Format
+
+Return your response as a strict JSON object:
+
+{
+  "questions": [
+    {
+      "question": "A specific, pointed question that challenges the project",
+      "rationale": "Why this question is critical for investment decision making (1-2 sentences)"
+    },
+    {
+      "question": "...",
+      "rationale": "..."
+    },
+    {
+      "question": "...",
+      "rationale": "..."
+    }
+  ]
+}
+
+## Examples of Good Questions
+
+- "If the team controls 45% of tokens with a 1-year cliff, what prevents a coordinated dump at unlock?"
+- "The whitepaper claims 'decentralized governance' but the multisig is controlled by 3 founders - how is this decentralized?"
+- "Revenue projections assume 10x user growth - what happens to the yield model if growth stalls at 2x?"
+- "No security audit was mentioned for the staking contract holding $50M TVL - has it been audited?"
+
+Generate 3 questions that are specific to the research findings, not generic.`
+
+/**
+ * Build adversarial Q&A prompt with research context
+ */
+export function buildAdversarialQAPrompt(researchSummary: string): string {
+  return `## Research Report Summary
+
+${researchSummary}
+
+${ADVERSARIAL_QA_PROMPT}`
+}
