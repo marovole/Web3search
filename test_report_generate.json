@@ -1,9 +1,0 @@
-{
-  "topic": "Bitcoin Fundamentals",
-  "sections": [
-    {"id": "intro", "title": "Introduction", "wordCount": 150}
-  ],
-  "format": "markdown",
-  "stream": false,
-  "save_to_database": false
-}
