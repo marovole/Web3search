@@ -452,19 +452,20 @@ export const ProgressBar: React.FC<{
   )
 }
 
+// 骨架屏组件映射 - 提取到模块级别避免每次渲染重新创建
+const skeletonComponents = {
+  chat: ChatSkeleton,
+  search: SearchSkeleton,
+  history: HistorySkeleton,
+  settings: SettingsSkeleton,
+  report: ReportSkeleton
+} as const
+
 // 自适应骨架屏 - 根据页面类型自动选择合适的骨架屏
 export const AdaptiveSkeleton: React.FC<{
-  pageType: 'chat' | 'search' | 'history' | 'settings' | 'report'
+  pageType: keyof typeof skeletonComponents
   className?: string
 }> = ({ pageType, className }) => {
-  const skeletonComponents = {
-    chat: ChatSkeleton,
-    search: SearchSkeleton,
-    history: HistorySkeleton,
-    settings: SettingsSkeleton,
-    report: ReportSkeleton
-  }
-
   const SkeletonComponent = skeletonComponents[pageType]
   return <SkeletonComponent className={className} />
 }
