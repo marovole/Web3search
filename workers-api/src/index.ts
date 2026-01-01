@@ -300,5 +300,8 @@ app.onError((err, c) => {
   )
 })
 
-// Export for Cloudflare Workers
-export default app
+// Export for Cloudflare Workers (fetch + scheduled for cron triggers)
+export default {
+  fetch: app.fetch,
+  scheduled,
+}
