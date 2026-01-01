@@ -1,0 +1,43 @@
+name: Supabase Keep Alive
+
+on:
+  schedule:
+    # 每 5 天运行一次 (UTC 时间 00:00)
+    - cron: '0 0 */5 * *'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  keepalive:
+    name: Ping Supabase Database
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          echo "Pinging Supabase to prevent project pause..."
+
+          # 使用 REST API 直接查询
+          response=$(curl -s -w "\n%{http_code}" \
+            "${SUPABASE_URL}/rest/v1/conversations?select=id&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "HTTP Status: $http_code"
+
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "✅ Supabase ping successful!"
+          elif [ "$http_code" -eq 401 ] || [ "$http_code" -eq 403 ]; then
+            echo "✅ Connection OK (RLS blocking, but database is active)"
+          else
+            echo "⚠️ Unexpected response: $http_code"
+            echo "Response: $body"
+            exit 1
+          fi
+
+          echo "Keep-alive completed at $(date -u)"
