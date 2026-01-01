@@ -23,7 +23,7 @@ import {
   persistMessage,
 } from '../lib/conversation'
 
-const DEFAULT_MODEL = 'deepseek/deepseek-v3.2-speciale'
+const DEFAULT_MODEL = 'mistralai/devstral-2512:free'
 const MAX_HISTORY_MESSAGES = 10
 const SYSTEM_PROMPT = `You are Web3search, an AI researcher focused on cryptocurrency fundamentals.
 - Provide concise answers with evidence or metrics where possible.
@@ -404,4 +404,3 @@ async function requestWithRetry(
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
-

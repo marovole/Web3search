@@ -10,7 +10,7 @@ import type { OpenRouterPayload } from './openrouter'
 /**
  * AI Model Provider Type
  */
-export type ModelProvider = 'deepseek' | 'openai' | 'alibaba'
+export type ModelProvider = 'deepseek' | 'openai' | 'alibaba' | 'mistral'
 
 /**
  * Model Configuration
@@ -54,15 +54,15 @@ export interface RoutingStrategy {
  */
 export const MODEL_ROUTING_TABLE: Record<string, ModelConfig> = {
   // ===== Primary Model =====
-  'deepseek-chat': {
-    model: 'deepseek/deepseek-v3.2-speciale',
-    provider: 'deepseek',
+  'devstral-chat': {
+    model: 'mistralai/devstral-2512:free',
+    provider: 'mistral',
     weight: 80,
     costPer1M: {
-      prompt: 0.50,
-      completion: 2.18
+      prompt: 0,
+      completion: 0
     },
-    maxTokens: 131072,
+    maxTokens: 32768,
     capabilities: {
       reasoning: true,
       code: true,
@@ -123,22 +123,22 @@ export const ROUTING_STRATEGIES: Record<
   RoutingStrategy
 > = {
   'quick-chat': {
-    primary: ['deepseek-chat'],
+    primary: ['devstral-chat'],
     fallback: ['gpt-oss-120b'],
     loadBalancing: 'first-available'
   },
   'deep-research': {
     primary: ['tongyi-deepresearch'],
-    fallback: ['deepseek-chat'],
+    fallback: ['devstral-chat'],
     loadBalancing: 'first-available'
   },
   'summarization': {
-    primary: ['deepseek-chat'],
+    primary: ['devstral-chat'],
     fallback: ['gpt-oss-120b'],
     loadBalancing: 'first-available'
   },
   'code-assist': {
-    primary: ['deepseek-chat'],
+    primary: ['devstral-chat'],
     fallback: ['gpt-oss-120b'],
     loadBalancing: 'first-available'
   }
@@ -157,11 +157,11 @@ export interface ModelVersion {
 }
 
 export const MODEL_VERSIONS: Record<string, ModelVersion[]> = {
-  'deepseek-chat': [
+  'devstral-chat': [
     {
-      version: '3.2',
-      modelId: 'deepseek/deepseek-v3.2-speciale',
-      deployedAt: '2025-12-08T00:00:00Z',
+      version: '2512-free',
+      modelId: 'mistralai/devstral-2512:free',
+      deployedAt: '2026-01-01T00:00:00Z',
       status: 'active'
     }
   ],

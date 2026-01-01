@@ -123,7 +123,11 @@ export async function persistMessage(
   },
   options: { returnId?: boolean } = {}
 ): Promise<string | undefined> {
-  const query = supabase.from('messages').insert(message)
+  const payload = {
+    ...message,
+    metadata: message.metadata ?? {},
+  }
+  const query = supabase.from('messages').insert(payload)
 
   if (options.returnId) {
     const { data, error } = await query.select('id').single()
