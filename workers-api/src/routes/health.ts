@@ -9,6 +9,18 @@ import { Hono } from 'hono'
 import type { Env } from '../types/env'
 import { testDatabaseConnection } from '../lib/supabase'
 
+// Health check response type
+interface HealthCheckPayload {
+  status: string
+  timestamp: string
+  database: {
+    status: string
+    type: string
+  }
+  responseTime: string
+  statusCode: number
+}
+
 // Health check cache configuration
 const CACHE_KEY_PREFIX = 'health:check'
 const CACHE_TTL_MS = 60 * 1000 // 60 seconds (aligned with documentation)
@@ -37,15 +49,17 @@ health.get('/', async (c) => {
    * Attempt to retrieve cached health check result
    * Returns null if cache is unavailable, expired, or invalid
    */
-  const tryGetCached = async (): Promise<any | null> => {
+  const tryGetCached = async (): Promise<HealthCheckPayload | null> => {
     if (!cache) return null
 
     try {
       const cached = await cache.get(cacheKey, 'json')
-      if (!cached || typeof cached.timestamp !== 'string') return null
+      if (!cached || typeof cached !== 'object' || typeof (cached as any).timestamp !== 'string') return null
+
+      const payload = cached as HealthCheckPayload
 
       // Validate timestamp and check expiration
-      const cachedAt = new Date(cached.timestamp).getTime()
+      const cachedAt = new Date(payload.timestamp).getTime()
       if (Number.isNaN(cachedAt)) return null
       const cacheAgeMs = Date.now() - cachedAt
       if (cacheAgeMs > CACHE_TTL_MS) {
@@ -53,7 +67,7 @@ health.get('/', async (c) => {
         return null
       }
 
-      return cached
+      return payload
     } catch (error) {
       // Cache read failure - degrade gracefully
       console.warn('[Health] Cache read failed:', error)
@@ -92,7 +106,7 @@ health.get('/', async (c) => {
         responseTime: cachedEntry.responseTime,
         cached: true, // Indicate this is a cached response
       },
-      cachedEntry.statusCode
+      { status: cachedEntry.statusCode as 200 | 503 }
     )
   }
 
@@ -167,7 +181,7 @@ health.get('/', async (c) => {
         responseTime,
         cached: false, // Fresh response, not from cache
       },
-      statusCode
+      { status: statusCode as 200 | 503 }
     )
   } catch (error) {
     const responseTime = `${Date.now() - startTime}ms`

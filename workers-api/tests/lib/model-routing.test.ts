@@ -40,17 +40,17 @@ describe('MODEL_ROUTING_TABLE', () => {
   })
 
   it('primary models have higher weights than fallback models', () => {
-    const primaryModel = MODEL_ROUTING_TABLE['qwen-2.5-72b-instruct']
-    const fallbackModel = MODEL_ROUTING_TABLE['qwen-2.5-7b-instruct']
+    const primaryModel = MODEL_ROUTING_TABLE['devstral-chat']
+    const fallbackModel = MODEL_ROUTING_TABLE['gpt-oss-120b']
 
     expect(primaryModel.weight).toBeGreaterThan(fallbackModel.weight)
   })
 
   it('fallback models are marked with isFallback flag', () => {
-    const fallbackModel = MODEL_ROUTING_TABLE['qwen-2.5-7b-instruct']
+    const fallbackModel = MODEL_ROUTING_TABLE['gpt-oss-120b']
     expect(fallbackModel.isFallback).toBe(true)
 
-    const primaryModel = MODEL_ROUTING_TABLE['qwen-2.5-72b-instruct']
+    const primaryModel = MODEL_ROUTING_TABLE['devstral-chat']
     expect(primaryModel.isFallback).toBeUndefined()
   })
 })
