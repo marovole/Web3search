@@ -101,11 +101,6 @@ describe('SearchBar', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    jest.useFakeTimers()
-  })
-
-  afterEach(() => {
-    jest.useRealTimers()
   })
 
   describe('Basic functionality', () => {
@@ -157,37 +152,31 @@ describe('SearchBar', () => {
     it('should show suggestions after typing', async () => {
       const user = userEvent.setup()
       render(<SearchBar onSearch={mockOnSearch} />)
-      
+
       const input = screen.getByTestId('search-input')
       await user.type(input, 'BTC')
-      
-      // Fast forward timers
-      jest.advanceTimersByTime(100)
-      
+
       await waitFor(() => {
         expect(screen.getByTestId('search-suggestions')).toBeInTheDocument()
         expect(screen.getByTestId('suggestion-0')).toBeInTheDocument()
         expect(screen.getByText('BTC price analysis')).toBeInTheDocument()
-      })
+      }, { timeout: 3000 })
     })
 
     it('should clear suggestions when input is cleared', async () => {
       const user = userEvent.setup()
       render(<SearchBar onSearch={mockOnSearch} />)
-      
+
       const input = screen.getByTestId('search-input')
       await user.type(input, 'BTC')
-      
-      // Fast forward timers
-      jest.advanceTimersByTime(100)
-      
+
       await waitFor(() => {
         expect(screen.getByTestId('search-suggestions')).toBeInTheDocument()
-      })
-      
+      }, { timeout: 3000 })
+
       // Clear input
       await user.clear(input)
-      
+
       expect(screen.queryByTestId('search-suggestions')).not.toBeInTheDocument()
     })
   })
@@ -261,20 +250,17 @@ describe('SearchBar', () => {
     it('should call onSearch when suggestion is clicked', async () => {
       const user = userEvent.setup()
       render(<SearchBar onSearch={mockOnSearch} />)
-      
+
       const input = screen.getByTestId('search-input')
       await user.type(input, 'BTC')
-      
-      // Fast forward timers
-      jest.advanceTimersByTime(100)
-      
+
       await waitFor(() => {
         expect(screen.getByTestId('suggestion-0')).toBeInTheDocument()
-      })
-      
+      }, { timeout: 3000 })
+
       const suggestion = screen.getByTestId('suggestion-0')
       await user.click(suggestion)
-      
+
       expect(mockOnSearch).toHaveBeenCalledWith('BTC price analysis')
       expect(input).toHaveValue('BTC price analysis')
     })
@@ -282,20 +268,17 @@ describe('SearchBar', () => {
     it('should clear suggestions after clicking one', async () => {
       const user = userEvent.setup()
       render(<SearchBar onSearch={mockOnSearch} />)
-      
+
       const input = screen.getByTestId('search-input')
       await user.type(input, 'BTC')
-      
-      // Fast forward timers
-      jest.advanceTimersByTime(100)
-      
+
       await waitFor(() => {
         expect(screen.getByTestId('search-suggestions')).toBeInTheDocument()
-      })
-      
+      }, { timeout: 3000 })
+
       const suggestion = screen.getByTestId('suggestion-0')
       await user.click(suggestion)
-      
+
       expect(screen.queryByTestId('search-suggestions')).not.toBeInTheDocument()
     })
   })

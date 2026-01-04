@@ -4,6 +4,7 @@
  */
 
 import 'hono'
+import type { Toucan } from 'toucan-js'
 
 declare module 'hono' {
   interface ContextVariableMap {
@@ -12,6 +13,22 @@ declare module 'hono' {
      * Used for request tracing and logging
      */
     requestId: string
+
+    /**
+     * Sentry instance for error tracking
+     * Created by sentryMiddleware
+     */
+    sentry?: Toucan
+
+    /**
+     * Current authenticated user
+     * Set by auth middleware
+     */
+    currentUser?: {
+      id: string
+      email?: string
+      username?: string
+    }
   }
 }
 

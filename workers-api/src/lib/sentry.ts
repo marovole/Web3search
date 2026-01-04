@@ -35,17 +35,14 @@ export const createToucan = (c: Context<{ Bindings: Env }>): Toucan | undefined 
     dsn: c.env.SENTRY_DSN,
     environment: c.env.ENVIRONMENT || 'unknown',
     request: c.req.raw,
-    context: {
-      tags: {
-        requestId: c.get('requestId') ?? 'unknown',
-        colo: c.req.raw.cf?.colo ?? 'unknown',
-      },
-    },
-    // Automatically capture unhandled rejections and exceptions
-    captureUnhandledRejections: true,
-    captureUnhandledExceptions: true,
-    // Performance monitoring (APM)
     tracesSampleRate: traceSampleRate,
+    beforeSend(event) {
+      // Add request context as tags
+      event.tags = event.tags || {}
+      event.tags.requestId = c.get('requestId') ?? 'unknown'
+      event.tags.colo = (c.req.raw.cf?.colo as string) ?? 'unknown'
+      return event
+    },
   })
 }
 
@@ -75,15 +72,14 @@ export const createToucanForScheduled = (
     dsn: env.SENTRY_DSN,
     environment: env.ENVIRONMENT || 'unknown',
     request: dummyRequest,
-    context: {
-      tags: {
-        cron: event.cron,
-        scheduledTime: new Date(event.scheduledTime).toISOString(),
-      },
-    },
-    captureUnhandledRejections: true,
-    captureUnhandledExceptions: true,
     tracesSampleRate: traceSampleRate,
+    beforeSend(sentryEvent) {
+      // Add scheduled context as tags
+      sentryEvent.tags = sentryEvent.tags || {}
+      sentryEvent.tags.cron = event.cron
+      sentryEvent.tags.scheduledTime = new Date(event.scheduledTime).toISOString()
+      return sentryEvent
+    },
   })
 }
 
