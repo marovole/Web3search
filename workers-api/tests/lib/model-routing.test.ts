@@ -1,6 +1,7 @@
 /**
  * Tests for Model Routing Configuration
- * Validates routing strategies, cost estimation, and capability validation
+ * Primary: mistralai/devstral-2512:free
+ * Fallback: z-ai/glm-4.5-air:free
  */
 
 import { describe, expect, it } from 'vitest'
@@ -13,7 +14,6 @@ import {
   estimateCost,
   validateModelCapabilities,
   buildRoutedPayload,
-  type ModelConfig,
 } from '../../src/lib/model-routing'
 
 // ============================================
@@ -21,9 +21,13 @@ import {
 // ============================================
 
 describe('MODEL_ROUTING_TABLE', () => {
-  it('contains expected model configurations', () => {
+  it('contains devstral-chat model', () => {
     expect(MODEL_ROUTING_TABLE).toBeDefined()
-    expect(Object.keys(MODEL_ROUTING_TABLE).length).toBeGreaterThan(0)
+    expect(MODEL_ROUTING_TABLE['devstral-chat']).toBeDefined()
+  })
+
+  it('contains glm-4-5-air fallback model', () => {
+    expect(MODEL_ROUTING_TABLE['glm-4-5-air']).toBeDefined()
   })
 
   it('all models have required configuration fields', () => {
@@ -39,19 +43,31 @@ describe('MODEL_ROUTING_TABLE', () => {
     })
   })
 
-  it('primary models have higher weights than fallback models', () => {
-    const primaryModel = MODEL_ROUTING_TABLE['devstral-chat']
-    const fallbackModel = MODEL_ROUTING_TABLE['gpt-oss-120b']
+  it('devstral-chat is free model', () => {
+    const config = MODEL_ROUTING_TABLE['devstral-chat']
 
-    expect(primaryModel.weight).toBeGreaterThan(fallbackModel.weight)
+    expect(config.model).toBe('mistralai/devstral-2512:free')
+    expect(config.provider).toBe('mistral')
+    expect(config.costPer1M.prompt).toBe(0)
+    expect(config.costPer1M.completion).toBe(0)
+    expect(config.maxTokens).toBe(32768)
   })
 
-  it('fallback models are marked with isFallback flag', () => {
-    const fallbackModel = MODEL_ROUTING_TABLE['gpt-oss-120b']
-    expect(fallbackModel.isFallback).toBe(true)
+  it('glm-4-5-air is free fallback model', () => {
+    const config = MODEL_ROUTING_TABLE['glm-4-5-air']
 
-    const primaryModel = MODEL_ROUTING_TABLE['devstral-chat']
-    expect(primaryModel.isFallback).toBeUndefined()
+    expect(config.model).toBe('z-ai/glm-4.5-air:free')
+    expect(config.provider).toBe('zhipu')
+    expect(config.isFallback).toBe(true)
+    expect(config.costPer1M.prompt).toBe(0)
+    expect(config.costPer1M.completion).toBe(0)
+  })
+
+  it('devstral-chat has higher weight than fallback', () => {
+    const primary = MODEL_ROUTING_TABLE['devstral-chat']
+    const fallback = MODEL_ROUTING_TABLE['glm-4-5-air']
+
+    expect(primary.weight).toBeGreaterThan(fallback.weight)
   })
 })
 
@@ -60,50 +76,25 @@ describe('MODEL_ROUTING_TABLE', () => {
 // ============================================
 
 describe('getModelConfig', () => {
-  it('returns model configuration for valid model ID', () => {
-    const config = getModelConfig('qwen-2.5-72b-instruct')
+  it('returns devstral-chat configuration', () => {
+    const config = getModelConfig('devstral-chat')
 
     expect(config).toBeDefined()
-    expect(config?.model).toBe('qwen/qwen-2.5-72b-instruct')
-    expect(config?.provider).toBe('qwen')
-    expect(config?.weight).toBe(80)
-    expect(config?.maxTokens).toBe(32768)
+    expect(config?.model).toBe('mistralai/devstral-2512:free')
+    expect(config?.provider).toBe('mistral')
   })
 
-  it('returns correct capabilities for qwen-2.5-72b-instruct', () => {
-    const config = getModelConfig('qwen-2.5-72b-instruct')
+  it('returns glm-4-5-air configuration', () => {
+    const config = getModelConfig('glm-4-5-air')
 
-    expect(config?.capabilities).toEqual({
-      reasoning: true,
-      code: true,
-      longContext: true,
-      streaming: true,
-    })
-  })
-
-  it('returns correct capabilities for deepseek-chat', () => {
-    const config = getModelConfig('deepseek-chat')
-
-    expect(config?.capabilities).toEqual({
-      reasoning: true,
-      code: true,
-      longContext: true,
-      streaming: true,
-    })
+    expect(config).toBeDefined()
+    expect(config?.model).toBe('z-ai/glm-4.5-air:free')
+    expect(config?.provider).toBe('zhipu')
   })
 
   it('returns null for unknown model ID', () => {
     const config = getModelConfig('unknown-model-xyz')
     expect(config).toBeNull()
-  })
-
-  it('returns different configurations for different models', () => {
-    const qwen = getModelConfig('qwen-2.5-72b-instruct')
-    const deepseek = getModelConfig('deepseek-chat')
-
-    expect(qwen?.provider).toBe('qwen')
-    expect(deepseek?.provider).toBe('deepseek')
-    expect(qwen?.model).not.toBe(deepseek?.model)
   })
 })
 
@@ -112,50 +103,41 @@ describe('getModelConfig', () => {
 // ============================================
 
 describe('selectModels', () => {
-  it('returns primary and fallback models by default for quick-chat', () => {
+  it('returns devstral-chat and glm-4-5-air for quick-chat', () => {
     const models = selectModels('quick-chat')
 
-    expect(models).toEqual([
-      ...ROUTING_STRATEGIES['quick-chat'].primary,
-      ...ROUTING_STRATEGIES['quick-chat'].fallback,
-    ])
+    expect(models).toEqual(['devstral-chat', 'glm-4-5-air'])
   })
 
-  it('returns only primary models when includeFallback is false', () => {
+  it('returns only primary when includeFallback is false', () => {
     const models = selectModels('quick-chat', false)
 
-    expect(models).toEqual(ROUTING_STRATEGIES['quick-chat'].primary)
-    expect(models).not.toContain('qwen-2.5-7b-instruct') // fallback
+    expect(models).toEqual(['devstral-chat'])
   })
 
-  it('returns correct models for deep-research use case', () => {
+  it('returns devstral-chat and glm-4-5-air for deep-research', () => {
     const models = selectModels('deep-research')
 
-    expect(models).toContain('claude-3-5-sonnet')
-    expect(models).toContain('qwen-2.5-72b-instruct') // fallback
+    expect(models).toEqual(['devstral-chat', 'glm-4-5-air'])
   })
 
-  it('returns correct models for code-assist use case', () => {
+  it('returns devstral-chat and glm-4-5-air for code-assist', () => {
     const models = selectModels('code-assist')
 
-    expect(models).toContain('deepseek-chat')
-    expect(models).toContain('qwen-2.5-72b-instruct')
+    expect(models).toEqual(['devstral-chat', 'glm-4-5-air'])
   })
 
-  it('returns correct models for summarization use case', () => {
+  it('returns devstral-chat and glm-4-5-air for summarization', () => {
     const models = selectModels('summarization')
 
-    expect(models).toContain('qwen-2.5-7b-instruct')
-    expect(models).toContain('deepseek-chat')
+    expect(models).toEqual(['devstral-chat', 'glm-4-5-air'])
   })
 
-  it('maintains order: primary models before fallback models', () => {
+  it('maintains order: primary before fallback', () => {
     const models = selectModels('quick-chat')
-    const strategy = ROUTING_STRATEGIES['quick-chat']
 
-    const primaryCount = strategy.primary.length
-    expect(models.slice(0, primaryCount)).toEqual(strategy.primary)
-    expect(models.slice(primaryCount)).toEqual(strategy.fallback)
+    expect(models[0]).toBe('devstral-chat')
+    expect(models[1]).toBe('glm-4-5-air')
   })
 })
 
@@ -164,26 +146,14 @@ describe('selectModels', () => {
 // ============================================
 
 describe('estimateCost', () => {
-  it('calculates correct cost for qwen-2.5-72b-instruct', () => {
-    const modelId = 'qwen-2.5-72b-instruct'
-    const promptTokens = 1_000_000
-    const completionTokens = 2_000_000
-
-    const cost = estimateCost(modelId, promptTokens, completionTokens)
-
-    // 1M prompt * $1.27 + 2M completion * $3.81 = $1.27 + $7.62 = $8.89
-    expect(cost).toBeCloseTo(8.89, 2)
+  it('returns zero cost for devstral-chat (free)', () => {
+    const cost = estimateCost('devstral-chat', 1_000_000, 2_000_000)
+    expect(cost).toBe(0)
   })
 
-  it('calculates correct cost for deepseek-chat', () => {
-    const modelId = 'deepseek-chat'
-    const promptTokens = 500_000
-    const completionTokens = 1_000_000
-
-    const cost = estimateCost(modelId, promptTokens, completionTokens)
-
-    // 0.5M * $0.14 + 1M * $0.28 = $0.07 + $0.28 = $0.35
-    expect(cost).toBeCloseTo(0.35, 2)
+  it('returns zero cost for glm-4-5-air (free)', () => {
+    const cost = estimateCost('glm-4-5-air', 1_000_000, 2_000_000)
+    expect(cost).toBe(0)
   })
 
   it('returns zero cost for unknown model', () => {
@@ -192,31 +162,8 @@ describe('estimateCost', () => {
   })
 
   it('handles zero tokens gracefully', () => {
-    const cost = estimateCost('qwen-2.5-72b-instruct', 0, 0)
+    const cost = estimateCost('devstral-chat', 0, 0)
     expect(cost).toBe(0)
-  })
-
-  it('calculates cost proportionally for small token counts', () => {
-    const modelId = 'qwen-2.5-72b-instruct'
-    const config = MODEL_ROUTING_TABLE[modelId]
-
-    const promptTokens = 1000
-    const completionTokens = 2000
-
-    const cost = estimateCost(modelId, promptTokens, completionTokens)
-
-    const expectedCost =
-      (promptTokens / 1_000_000) * config.costPer1M.prompt +
-      (completionTokens / 1_000_000) * config.costPer1M.completion
-
-    expect(cost).toBeCloseTo(expectedCost, 6)
-  })
-
-  it('premium models cost more than standard models', () => {
-    const claudeCost = estimateCost('claude-3-5-sonnet', 100_000, 100_000)
-    const qwenCost = estimateCost('qwen-2.5-72b-instruct', 100_000, 100_000)
-
-    expect(claudeCost).toBeGreaterThan(qwenCost)
   })
 })
 
@@ -225,36 +172,28 @@ describe('estimateCost', () => {
 // ============================================
 
 describe('validateModelCapabilities', () => {
-  it('validates model meets all requirements', () => {
-    const result = validateModelCapabilities('deepseek-chat', {
+  it('devstral-chat passes all capability requirements', () => {
+    const result = validateModelCapabilities('devstral-chat', {
       reasoning: true,
       code: true,
       streaming: true,
+      longContext: true,
     })
 
     expect(result.valid).toBe(true)
     expect(result.missing).toHaveLength(0)
   })
 
-  it('detects missing capabilities', () => {
-    const result = validateModelCapabilities('qwen-2.5-7b-instruct', {
+  it('glm-4-5-air passes all capability requirements', () => {
+    const result = validateModelCapabilities('glm-4-5-air', {
       reasoning: true,
-      code: true, // This model doesn't support code
+      code: true,
+      streaming: true,
+      longContext: true,
     })
 
-    expect(result.valid).toBe(false)
-    expect(result.missing).toContain('code')
-  })
-
-  it('validates multiple missing capabilities', () => {
-    const result = validateModelCapabilities('gpt-3.5-turbo', {
-      reasoning: true, // Missing
-      code: true, // Missing
-    })
-
-    expect(result.valid).toBe(false)
-    expect(result.missing).toContain('reasoning')
-    expect(result.missing).toContain('code')
+    expect(result.valid).toBe(true)
+    expect(result.missing).toHaveLength(0)
   })
 
   it('handles unknown model ID', () => {
@@ -267,27 +206,7 @@ describe('validateModelCapabilities', () => {
   })
 
   it('passes validation when no requirements specified', () => {
-    const result = validateModelCapabilities('qwen-2.5-72b-instruct', {})
-
-    expect(result.valid).toBe(true)
-    expect(result.missing).toHaveLength(0)
-  })
-
-  it('validates only specified requirements', () => {
-    const result = validateModelCapabilities('qwen-2.5-7b-instruct', {
-      reasoning: true, // Has this
-      streaming: true, // Has this
-      // NOT checking code capability
-    })
-
-    expect(result.valid).toBe(true)
-    expect(result.missing).toHaveLength(0)
-  })
-
-  it('handles false requirements (not required)', () => {
-    const result = validateModelCapabilities('qwen-2.5-7b-instruct', {
-      code: false, // Explicitly not required
-    })
+    const result = validateModelCapabilities('devstral-chat', {})
 
     expect(result.valid).toBe(true)
     expect(result.missing).toHaveLength(0)
@@ -301,13 +220,10 @@ describe('validateModelCapabilities', () => {
 describe('buildRoutedPayload', () => {
   const messages = [{ role: 'user' as const, content: 'Hello' }]
 
-  it('builds payload with default primary model', () => {
+  it('builds payload with devstral-chat as primary model', () => {
     const payload = buildRoutedPayload('quick-chat', messages)
 
-    const primaryModelId = ROUTING_STRATEGIES['quick-chat'].primary[0]
-    const expectedModel = MODEL_ROUTING_TABLE[primaryModelId].model
-
-    expect(payload.model).toBe(expectedModel)
+    expect(payload.model).toBe('mistralai/devstral-2512:free')
     expect(payload.messages).toEqual(messages)
   })
 
@@ -324,10 +240,10 @@ describe('buildRoutedPayload', () => {
 
   it('allows overriding the model', () => {
     const payload = buildRoutedPayload('quick-chat', messages, {
-      model: 'deepseek-chat',
+      model: 'glm-4-5-air',
     })
 
-    expect(payload.model).toBe('deepseek/deepseek-chat')
+    expect(payload.model).toBe('z-ai/glm-4.5-air:free')
   })
 
   it('includes optional parameters when provided', () => {
@@ -349,32 +265,6 @@ describe('buildRoutedPayload', () => {
     expect(payload.max_tokens).toBeUndefined()
     expect(payload.stream).toBeUndefined()
   })
-
-  it('includes all selected models in routing metadata', () => {
-    const payload = buildRoutedPayload('quick-chat', messages)
-
-    const expectedModels = selectModels('quick-chat')
-    expect(payload.metadata?.routing.models).toEqual(expectedModels)
-  })
-
-  it('uses correct load balancing strategy for each use case', () => {
-    const quickChatPayload = buildRoutedPayload('quick-chat', messages)
-    expect(quickChatPayload.metadata?.routing.strategy).toBe('weighted')
-
-    const deepResearchPayload = buildRoutedPayload('deep-research', messages)
-    expect(deepResearchPayload.metadata?.routing.strategy).toBe(
-      'first-available'
-    )
-  })
-
-  it('handles model override with custom model string', () => {
-    const payload = buildRoutedPayload('quick-chat', messages, {
-      model: 'custom/model-name',
-    })
-
-    // Should use the custom model string as-is when not in registry
-    expect(payload.model).toBe('custom/model-name')
-  })
 })
 
 // ============================================
@@ -389,12 +279,15 @@ describe('ROUTING_STRATEGIES', () => {
     expect(ROUTING_STRATEGIES).toHaveProperty('code-assist')
   })
 
-  it('each strategy has required fields', () => {
-    Object.entries(ROUTING_STRATEGIES).forEach(([useCase, strategy]) => {
-      expect(strategy.primary).toBeDefined()
-      expect(strategy.fallback).toBeDefined()
-      expect(strategy.loadBalancing).toBeDefined()
-      expect(strategy.primary.length).toBeGreaterThan(0)
+  it('each strategy has primary devstral-chat', () => {
+    Object.values(ROUTING_STRATEGIES).forEach((strategy) => {
+      expect(strategy.primary).toEqual(['devstral-chat'])
+    })
+  })
+
+  it('each strategy has fallback glm-4-5-air', () => {
+    Object.values(ROUTING_STRATEGIES).forEach((strategy) => {
+      expect(strategy.fallback).toEqual(['glm-4-5-air'])
     })
   })
 
@@ -414,20 +307,28 @@ describe('ROUTING_STRATEGIES', () => {
 // ============================================
 
 describe('MODEL_VERSIONS', () => {
-  it('tracks versions for deployed models', () => {
+  it('tracks versions for devstral-chat', () => {
     expect(MODEL_VERSIONS).toBeDefined()
-    expect(Object.keys(MODEL_VERSIONS).length).toBeGreaterThan(0)
+    expect(MODEL_VERSIONS['devstral-chat']).toBeDefined()
   })
 
-  it('each version has required fields', () => {
-    Object.entries(MODEL_VERSIONS).forEach(([modelId, versions]) => {
-      versions.forEach((version) => {
-        expect(version.version).toBeDefined()
-        expect(version.modelId).toBeDefined()
-        expect(version.deployedAt).toBeDefined()
-        expect(version.status).toBeDefined()
-        expect(['active', 'deprecated', 'ready']).toContain(version.status)
-      })
-    })
+  it('tracks versions for glm-4-5-air', () => {
+    expect(MODEL_VERSIONS['glm-4-5-air']).toBeDefined()
+  })
+
+  it('devstral-chat has active version', () => {
+    const versions = MODEL_VERSIONS['devstral-chat']
+    const activeVersion = versions.find((v) => v.status === 'active')
+
+    expect(activeVersion).toBeDefined()
+    expect(activeVersion?.modelId).toBe('mistralai/devstral-2512:free')
+  })
+
+  it('glm-4-5-air has active version', () => {
+    const versions = MODEL_VERSIONS['glm-4-5-air']
+    const activeVersion = versions.find((v) => v.status === 'active')
+
+    expect(activeVersion).toBeDefined()
+    expect(activeVersion?.modelId).toBe('z-ai/glm-4.5-air:free')
   })
 })

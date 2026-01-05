@@ -1,6 +1,6 @@
 /**
  * Model Routing Configuration
- * Defines model selection, fallback strategies, and version management
+ * All models use mistralai/devstral-2512:free (free tier)
  *
  * @partof Week 2 T3: Model Routing/Fallback Matrix
  */
@@ -10,7 +10,7 @@ import type { OpenRouterPayload } from './openrouter'
 /**
  * AI Model Provider Type
  */
-export type ModelProvider = 'deepseek' | 'openai' | 'alibaba' | 'mistral'
+export type ModelProvider = 'mistral' | 'zhipu'
 
 /**
  * Model Configuration
@@ -47,17 +47,17 @@ export interface RoutingStrategy {
 /**
  * Model Routing Table
  *
- * Primary models: High quality, higher cost
- * Fallback models: Lower cost, good for non-critical requests
+ * Primary: mistralai/devstral-2512:free (free tier)
+ * Fallback: z-ai/glm-4.5-air:free (free tier)
  *
  * @see OPENROUTER_API for available models: https://openrouter.ai/docs#models
  */
 export const MODEL_ROUTING_TABLE: Record<string, ModelConfig> = {
-  // ===== Primary Model =====
+  // ===== Primary Model (Free) =====
   'devstral-chat': {
     model: 'mistralai/devstral-2512:free',
     provider: 'mistral',
-    weight: 80,
+    weight: 100,
     costPer1M: {
       prompt: 0,
       completion: 0
@@ -73,35 +73,15 @@ export const MODEL_ROUTING_TABLE: Record<string, ModelConfig> = {
     retryAttempts: 3
   },
 
-  // ===== Deep Research Specialist =====
-  'tongyi-deepresearch': {
-    model: 'alibaba/tongyi-deepresearch-30b-a3b',
-    provider: 'alibaba',
-    weight: 90,
-    costPer1M: {
-      prompt: 0.20,
-      completion: 0.80
-    },
-    maxTokens: 65536,
-    capabilities: {
-      reasoning: true,
-      code: true,
-      longContext: true,
-      streaming: true
-    },
-    timeout: 60000,
-    retryAttempts: 3
-  },
-
-  // ===== Fallback Model =====
-  'gpt-oss-120b': {
-    model: 'openai/gpt-oss-120b:exacto',
-    provider: 'openai',
-    weight: 60,
+  // ===== Fallback Model (Free) =====
+  'glm-4-5-air': {
+    model: 'z-ai/glm-4.5-air:free',
+    provider: 'zhipu',
+    weight: 50,
     isFallback: true,
     costPer1M: {
-      prompt: 0.10,
-      completion: 0.30
+      prompt: 0,
+      completion: 0
     },
     maxTokens: 32768,
     capabilities: {
@@ -117,6 +97,9 @@ export const MODEL_ROUTING_TABLE: Record<string, ModelConfig> = {
 
 /**
  * Use Case Based Routing Strategies
+ *
+ * Primary: devstral-2512:free (Mistral)
+ * Fallback: glm-4.5-air:free (Zhipu/智谱)
  */
 export const ROUTING_STRATEGIES: Record<
   'quick-chat' | 'deep-research' | 'summarization' | 'code-assist',
@@ -124,22 +107,22 @@ export const ROUTING_STRATEGIES: Record<
 > = {
   'quick-chat': {
     primary: ['devstral-chat'],
-    fallback: ['gpt-oss-120b'],
+    fallback: ['glm-4-5-air'],
     loadBalancing: 'first-available'
   },
   'deep-research': {
-    primary: ['tongyi-deepresearch'],
-    fallback: ['devstral-chat'],
+    primary: ['devstral-chat'],
+    fallback: ['glm-4-5-air'],
     loadBalancing: 'first-available'
   },
   'summarization': {
     primary: ['devstral-chat'],
-    fallback: ['gpt-oss-120b'],
+    fallback: ['glm-4-5-air'],
     loadBalancing: 'first-available'
   },
   'code-assist': {
     primary: ['devstral-chat'],
-    fallback: ['gpt-oss-120b'],
+    fallback: ['glm-4-5-air'],
     loadBalancing: 'first-available'
   }
 }
@@ -162,15 +145,17 @@ export const MODEL_VERSIONS: Record<string, ModelVersion[]> = {
       version: '2512-free',
       modelId: 'mistralai/devstral-2512:free',
       deployedAt: '2026-01-01T00:00:00Z',
-      status: 'active'
+      status: 'active',
+      migrationNotes: 'Primary model - mistralai/devstral-2512:free'
     }
   ],
-  'gpt-oss-120b': [
+  'glm-4-5-air': [
     {
-      version: '1.0',
-      modelId: 'openai/gpt-oss-120b:exacto',
-      deployedAt: '2025-12-08T00:00:00Z',
-      status: 'active'
+      version: '4.5-air-free',
+      modelId: 'z-ai/glm-4.5-air:free',
+      deployedAt: '2026-01-05T00:00:00Z',
+      status: 'active',
+      migrationNotes: 'Fallback model - z-ai/glm-4.5-air:free'
     }
   ]
 }
