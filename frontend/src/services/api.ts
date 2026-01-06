@@ -18,6 +18,7 @@ import * as mockApi from './api.mock'
 // Load environment configuration
 import { getApiConfig, isDevelopment } from '../utils/env'
 import tokenManager from '../utils/tokenManager'
+import logger from '../utils/logger'
 
 const apiConfig = getApiConfig()
 const isDevMode = isDevelopment()
@@ -25,15 +26,25 @@ const isDevMode = isDevelopment()
 // 在开发环境输出 API 模式信息
 if (isDevMode) {
   if (apiConfig.useMock) {
-    console.log('🎭 Mock API Mode - Using mock data')
+    logger.info('Mock API Mode - Using mock data')
   } else {
-    console.log('🌐 Real API Mode - Backend:', apiConfig.baseUrl)
+    logger.info('Real API Mode - Backend:', apiConfig.baseUrl)
   }
+}
+
+// Normalize API path to prevent URL duplication
+// Ensures baseURL and path are combined correctly without duplicate /api/v1
+function normalizeApiPath(baseUrl: string, path: string): string {
+  // Remove trailing slash and /api/v1 from baseUrl if present
+  const normalizedBase = baseUrl.replace(/\/api\/v1\/?$/, '').replace(/\/$/, '')
+  // Remove leading slash and /api/v1 from path if present
+  const normalizedPath = path.replace(/^\/?api\/v1\//, '').replace(/^\//, '')
+  return `${normalizedBase}/api/v1/${normalizedPath}`
 }
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
-  baseURL: apiConfig.baseUrl,
+  baseURL: normalizeApiPath(apiConfig.baseUrl, '/api/v1'),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -135,7 +146,7 @@ api.interceptors.response.use(
   (error) => {
     // 统一错误处理
     const message = error.response?.data?.detail || error.message || '请求失败'
-    console.error('API Error:', message)
+    logger.error('API Error:', message)
     return Promise.reject(new Error(message))
   }
 )
@@ -150,20 +161,18 @@ api.interceptors.response.use(
 const quickChatReal = async (
   request: QuickChatRequest
 ): Promise<QuickChatResponse> => {
-  // 构建API路径：确保不会与baseURL重复
-  // 生产环境: baseURL = https://web3search-api.marovole.workers.dev, path = /api/v1/chat/quick-chat
-  // 结果: https://web3search-api.marovole.workers.dev/api/v1/chat/quick-chat
-  const path = '/api/v1/chat/quick-chat'
+  // Path relative to normalized baseURL (/api/v1)
+  const path = 'chat/quick-chat'
 
   // 仅在开发环境输出请求和响应日志
   if (isDevMode) {
-    console.log(`[API] Quick Chat Request: ${api.defaults.baseURL}${path}`)
+    logger.info('Quick Chat Request:', `${api.defaults.baseURL}/${path}`)
   }
 
   const response = await api.post<QuickChatResponse>(path, request)
 
   if (isDevMode) {
-    console.log(`[API] Quick Chat Response:`, response.data)
+    logger.debug('Quick Chat Response:', response.data)
   }
 
   return response.data
@@ -184,7 +193,7 @@ const deepResearchStreamReal = (request: DeepResearchRequest): SSEClient => {
     ...(request.conversation_id && { conversation_id: request.conversation_id }),
   })
 
-  const url = `${api.defaults.baseURL}/api/v1/chat/deep-research/stream?${queryParams}`
+  const url = `${api.defaults.baseURL}/chat/deep-research/stream?${queryParams}`
   const token = tokenManager.getToken()
 
   if (!token) {
@@ -213,7 +222,7 @@ const deepResearchReal = async (
   request: DeepResearchRequest
 ): Promise<DeepResearchResponse> => {
   const response = await api.post<DeepResearchResponse>(
-    '/api/v1/chat/deep-research',
+    'chat/deep-research',
     request
   )
   return response.data
@@ -233,7 +242,7 @@ export const deepResearch = apiConfig.useMock ? mockApi.deepResearch : deepResea
  * 获取报告详情 - Real API版本
  */
 const getReportReal = async (reportId: number): Promise<Report> => {
-  const response = await api.get<Report>(`/api/v1/reports/${reportId}`)
+  const response = await api.get<Report>(`reports/${reportId}`)
   return response.data
 }
 
@@ -252,7 +261,7 @@ const getReportsReal = async (params?: {
   page?: number
   page_size?: number
 }) => {
-  const response = await api.get('/api/v1/reports', { params })
+  const response = await api.get('reports', { params })
   return response.data
 }
 
@@ -308,14 +317,26 @@ const generateReportReal = async (request: ReportGenerationRequest) => {
     headers['Authorization'] = `Bearer ${token}`
   }
 
-  const response = await fetch(`${apiConfig.baseUrl}/api/v1/reports/generate`, {
+  const response = await fetch(`${apiConfig.baseUrl}/reports/generate`, {
     method: 'POST',
     headers,
     body: JSON.stringify(request),
   })
 
   if (!response.ok) {
-    throw new Error(`Report generation failed: ${response.statusText}`)
+    // Validate Content-Type before parsing error
+    const contentType = response.headers.get('content-type')
+    if (!contentType?.includes('application/json')) {
+      throw new Error(`Unexpected response type: ${contentType || 'unknown'}`)
+    }
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(errorData.detail || `Report generation failed: ${response.statusText}`)
+  }
+
+  // Validate Content-Type for streaming response
+  const responseContentType = response.headers.get('content-type')
+  if (!responseContentType?.includes('text/event-stream')) {
+    console.warn(`Unexpected Content-Type: ${responseContentType}, expected text/event-stream`)
   }
 
   return response
@@ -417,7 +438,7 @@ export interface SearchSuggestionsResponse {
  * 获取搜索建议 - Real API版本
  */
 const getSearchSuggestionsReal = async (query: string): Promise<SearchSuggestionsResponse> => {
-  const response = await api.get<SearchSuggestionsResponse>('/api/v1/search/suggestions', {
+  const response = await api.get<SearchSuggestionsResponse>('search/suggestions', {
     params: { q: query }
   })
   return response.data
@@ -451,7 +472,7 @@ const createShareLinkReal = async (
   request?: ShareReportRequest
 ): Promise<ShareReportResponse> => {
   const response = await api.post<ShareReportResponse>(
-    `/api/v1/reports/${reportId}/share`,
+    `reports/${reportId}/share`,
     request || {}
   )
   return response.data
@@ -470,7 +491,7 @@ const getSharedReportReal = async (
   shareToken: string
 ): Promise<SharedReportResponse> => {
   const response = await api.get<SharedReportResponse>(
-    `/api/v1/reports/shared/${shareToken}`
+    `reports/shared/${shareToken}`
   )
   return response.data
 }
@@ -485,7 +506,7 @@ export const getSharedReport = apiConfig.useMock ? mockApi.getSharedReport : get
  * 禁用分享链接 - Real API版本
  */
 const disableShareLinkReal = async (reportId: number): Promise<void> => {
-  await api.delete(`/api/v1/reports/${reportId}/share`)
+  await api.delete(`reports/${reportId}/share`)
 }
 
 /**
@@ -502,7 +523,7 @@ export const disableShareLink = apiConfig.useMock ? mockApi.disableShareLink : d
  * 搜索自动补全
  */
 export const searchAutocomplete = async (query: string): Promise<AutocompleteResponse> => {
-  const response = await api.get<AutocompleteResponse>('/api/v1/search/autocomplete', {
+  const response = await api.get<AutocompleteResponse>('search/autocomplete', {
     params: { q: query },
   })
   return response.data
@@ -515,7 +536,7 @@ export const getHotspots = async (
   limit: number = 10,
   forceRefresh: boolean = false
 ): Promise<HotspotsResponse> => {
-  const response = await api.get<HotspotsResponse>('/api/v1/trending/hotspots', {
+  const response = await api.get<HotspotsResponse>('trending/hotspots', {
     params: { limit, force_refresh: forceRefresh },
   })
   return response.data

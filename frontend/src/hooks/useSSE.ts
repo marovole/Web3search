@@ -27,44 +27,53 @@ export function useChatSSE(url: string, options: SSEOptions = {}) {
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const connectionRef = useRef<{ eventSource: EventSource | null; abortController: AbortController } | null>(null)
+  // Use ref to store options to avoid stale closures and unnecessary re-renders
+  const optionsRef = useRef(options)
+  optionsRef.current = options
+
+  // Keep optionsRef synchronized with options prop
+  useEffect(() => {
+    optionsRef.current = options
+  }, [options])
 
   const start = useCallback(() => {
     if (connectionRef.current) {
       cancelSSEConnection(connectionRef.current)
     }
 
+    const currentOptions = optionsRef.current
     const connection = createSSEConnection(url, {
-      ...options,
+      ...currentOptions,
       onOpen: () => {
         setIsConnected(true)
         setError(null)
-        options.onOpen?.()
+        currentOptions.onOpen?.()
       },
       onMessage: (data: ChatSSEEvent) => {
         if (data.error) {
           setError(new Error(data.error))
-          options.onError?.(new Error(data.error))
+          currentOptions.onError?.(new Error(data.error))
           return
         }
 
         // Append to messages
         setMessages(prev => [...prev, data])
         setCurrentMessage(data)
-        options.onMessage?.(data)
+        currentOptions.onMessage?.(data)
       },
       onError: (error) => {
         setError(error)
         setIsConnected(false)
-        options.onError?.(error)
+        currentOptions.onError?.(error)
       },
       onClose: () => {
         setIsConnected(false)
-        options.onClose?.()
+        currentOptions.onClose?.()
       },
     })
 
     connectionRef.current = connection
-  }, [url, options])
+  }, [url]) // Remove options from dependencies since we use optionsRef
 
   const stop = useCallback(() => {
     if (connectionRef.current) {
@@ -112,14 +121,23 @@ export function useResearchSSE(url: string, options: SSEOptions = {}) {
   const [toolCalls, setToolCalls] = useState<ToolCallEvent[]>([])
   const [thoughts, setThoughts] = useState<ThinkingEvent[]>([])
   const connectionRef = useRef<{ eventSource: EventSource | null; abortController: AbortController } | null>(null)
+  // Use ref to store options to avoid stale closures and unnecessary re-renders
+  const optionsRef = useRef(options)
+  optionsRef.current = options
+
+  // Keep optionsRef synchronized with options prop
+  useEffect(() => {
+    optionsRef.current = options
+  }, [options])
 
   const start = useCallback(() => {
     if (connectionRef.current) {
       cancelSSEConnection(connectionRef.current)
     }
 
+    const currentOptions = optionsRef.current
     const connection = createSSEConnection(url, {
-      ...options,
+      ...currentOptions,
       onOpen: () => {
         setIsConnected(true)
         setError(null)
@@ -127,7 +145,7 @@ export function useResearchSSE(url: string, options: SSEOptions = {}) {
         // Clear Glass Box state on new connection
         setToolCalls([])
         setThoughts([])
-        options.onOpen?.()
+        currentOptions.onOpen?.()
       },
       onMessage: (data: ResearchSSEvent) => {
         // Support both legacy event/data shape and new Glass Box type shape
@@ -175,30 +193,30 @@ export function useResearchSSE(url: string, options: SSEOptions = {}) {
         // Handle failure events (both legacy and new formats)
         if (data.event === 'research.failed') {
           setError(new Error(data.data.error_message || 'Research failed'))
-          options.onError?.(new Error(data.data.error_message || 'Research failed'))
+          currentOptions.onError?.(new Error(data.data.error_message || 'Research failed'))
         } else if (eventType === 'error') {
           const errorMsg = rawData.content || rawData.message || rawData.error_message || 'Research error'
           setError(new Error(errorMsg))
-          options.onError?.(new Error(errorMsg))
+          currentOptions.onError?.(new Error(errorMsg))
         }
 
         setEvents(prev => [...prev, data])
         setCurrentEvent(data)
-        options.onMessage?.(data)
+        currentOptions.onMessage?.(data)
       },
       onError: (error) => {
         setError(error)
         setIsConnected(false)
-        options.onError?.(error)
+        currentOptions.onError?.(error)
       },
       onClose: () => {
         setIsConnected(false)
-        options.onClose?.()
+        currentOptions.onClose?.()
       },
     })
 
     connectionRef.current = connection
-  }, [url, options])
+  }, [url]) // Remove options from dependencies since we use optionsRef
 
   const stop = useCallback(() => {
     if (connectionRef.current) {

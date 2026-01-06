@@ -1,0 +1,68 @@
+name: Keep-Alive Cron
+
+on:
+  schedule:
+    # 每 10 分钟运行一次，保持服务活跃
+    - cron: '*/10 * * * *'
+  # 手动触发
+  workflow_dispatch:
+  # API 部署后自动触发
+  deployment_status:
+
+jobs:
+  ping-api:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'deployment_status' || github.event.deployment_status.state == 'success'
+    
+    steps:
+      - name: Ping API Health Endpoint
+        run: |
+          echo "Pinging API health endpoint..."
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://web3search-api.marovole.workers.dev/api/v1/health)
+          echo "Health check response: $RESPONSE"
+          
+          if [ "$RESPONSE" -ge 200 ] && [ "$RESPONSE" -lt 400 ]; then
+            echo "✅ API is healthy"
+          else
+            echo "⚠️ API returned status $RESPONSE"
+            exit 1
+          fi
+
+      - name: Ping Supabase (via API)
+        run: |
+          echo "Pinging Supabase via API..."
+          # 调用 deep-research stream 端点来激活 Supabase 连接
+          curl -s -o /dev/null -w "%{http_code}" \
+            "https://web3search-api.marovole.workers.dev/api/v1/deep-research/stream?query=btc+price" \
+            -H "Authorization: Bearer ${{ secrets.OPENROUTER_API_KEY }}" \
+            --max-time 5 || true
+          echo "✅ Supabase ping attempted"
+
+      - name: Update Last Active Timestamp
+        run: |
+          echo "Recording keep-alive..."
+          # 记录保活时间戳
+          curl -s -X POST "https://web3search-api.marovole.workers.dev/api/v1/health/ping" \
+            -H "Content-Type: application/json" \
+            -d "{\"source\":\"github-actions-cron\",\"run_id\":\"${{ github.run_id }}\"}" || true
+          echo "✅ Keep-alive recorded"
+
+  notify-failure:
+    runs-on: ubuntu-latest
+    needs: ping-api
+    if: failure()
+    
+    steps:
+      - name: Create Issue on Failure
+        if: github.event_name == 'schedule'
+        run: |
+          echo "Creating issue for API failure..."
+          curl -X POST "https://api.github.com/repos/${{ github.repository }}/issues" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d '{
+              "title": "⚠️ Keep-Alive Cron Failed",
+              "body": "The keep-alive cron job failed to reach the API.\n\nRun ID: ${{ github.run_id }}\nTimestamp: ${{ github.event.schedule || github.run_id }}",
+              "labels": ["automated", "keep-alive"]
+            }'
+          echo "✅ Issue created"

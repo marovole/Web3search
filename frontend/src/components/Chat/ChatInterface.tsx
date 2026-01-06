@@ -63,6 +63,14 @@ const ChatInterface: React.FC = () => {
   // Refs
   const eventSourceRef = useRef<ReturnType<typeof deepResearchStream> | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  // Use ref to store conversationId to avoid stale closures
+  const conversationIdRef = useRef<string | undefined>(conversationId)
+  conversationIdRef.current = conversationId
+
+  // Keep conversationIdRef synchronized with conversationId state
+  useEffect(() => {
+    conversationIdRef.current = conversationId
+  }, [conversationId])
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -99,11 +107,14 @@ const ChatInterface: React.FC = () => {
     setIsLoading(true)
     setLoadingStage(0)
 
+    // Use ref to get the current conversationId to avoid stale closure
+    const currentConversationId = conversationIdRef.current
+
     try {
       if (mode === 'quick') {
         const response = await quickChatWithRetry.execute({
           query: userInput,
-          conversation_id: conversationId,
+          conversation_id: currentConversationId,
         })
 
         const sanitizedContent = normalizeQuickChatResponse(response.content)
@@ -131,7 +142,7 @@ const ChatInterface: React.FC = () => {
     } catch (error) {
       console.error('Error sending message:', error)
       if (error instanceof Error) {
-        Sentry.captureException(error, { query: userInput, mode, conversationId, retryCount: quickChatWithRetry.state.retryCount })
+        Sentry.captureException(error, { query: userInput, mode, conversationId: currentConversationId, retryCount: quickChatWithRetry.state.retryCount })
       }
       setLastFailedQuery(userInput)
       const errorMessage: Message = {
@@ -176,9 +187,12 @@ const ChatInterface: React.FC = () => {
     setTokenomics(undefined)
     setAdversarialQuestions([])
 
+    // Use ref to get the current conversationId to avoid stale closure
+    const currentConversationId = conversationIdRef.current
+
     const eventSource = deepResearchStream({
       query,
-      conversation_id: conversationId,
+      conversation_id: currentConversationId,
     })
     eventSourceRef.current = eventSource
 
@@ -274,7 +288,7 @@ const ChatInterface: React.FC = () => {
     setTimeout(() => {
       handleDeepResearchStream(question)
     }, 0)
-  }, [conversationId])
+  }, [handleDeepResearchStream]) // Use handleDeepResearchStream dependency instead of conversationId
 
   useEffect(() => {
     return () => {

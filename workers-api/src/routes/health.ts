@@ -3,6 +3,7 @@
  * GET /api/v1/health - Cached health check (60s TTL)
  * GET /api/v1/health/ready - Readiness probe (no cache)
  * GET /api/v1/health/live - Liveness probe (instant)
+ * GET /api/v1/health/ping - Lightweight ping for external cron (no DB call)
  */
 
 import { Hono } from 'hono'
@@ -29,6 +30,20 @@ const CACHE_TTL_SECONDS = 60
 const health = new Hono<{ Bindings: Env }>()
 
 /**
+ * Lightweight ping endpoint for external cron/monitoring
+ * Returns minimal response without DB call - fastest possible response
+ * Ideal for external uptime monitors and cron job keep-alive
+ */
+health.get('/ping', (c) => {
+  return c.json({
+    pong: true,
+    timestamp: new Date().toISOString(),
+    region: c.req.raw.cf?.colo || 'unknown',
+    url: c.req.url,
+  }, 200)
+})
+
+/**
  * Health check endpoint with KV caching
  * Returns service status, database connection status, and metadata
  * Caches successful health checks for 60 seconds to improve response time
@@ -46,17 +61,26 @@ health.get('/', async (c) => {
   const cacheKey = `${CACHE_KEY_PREFIX}:${env.ENVIRONMENT || 'unknown'}`
 
   /**
+   * Cached health check result interface
+   */
+  interface CachedHealthResult {
+    status: string
+    timestamp: string
+    database: { status: string; type: string }
+    responseTime: string
+    statusCode: number
+  }
+
+  /**
    * Attempt to retrieve cached health check result
    * Returns null if cache is unavailable, expired, or invalid
    */
-  const tryGetCached = async (): Promise<HealthCheckPayload | null> => {
+  const tryGetCached = async (): Promise<CachedHealthResult | null> => {
     if (!cache) return null
 
     try {
-      const cached = await cache.get(cacheKey, 'json')
-      if (!cached || typeof cached !== 'object' || typeof (cached as any).timestamp !== 'string') return null
-
-      const payload = cached as HealthCheckPayload
+      const cached = await cache.get(cacheKey, 'json') as CachedHealthResult | null
+      if (!cached || typeof cached.timestamp !== 'string') return null
 
       // Validate timestamp and check expiration
       const cachedAt = new Date(payload.timestamp).getTime()

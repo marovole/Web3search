@@ -314,7 +314,15 @@ async function streamChatResponse({
               if (!data || data === '[DONE]') continue
 
               try {
+                // Validate data before parsing
+                if (data.length > 100_000) {
+                  throw new Error('SSE data too large')
+                }
                 const chunk = JSON.parse(data)
+                // Validate chunk structure
+                if (!chunk.choices || !Array.isArray(chunk.choices)) {
+                  throw new Error('Invalid chunk format: missing choices array')
+                }
                 const delta = chunk.choices?.[0]?.delta?.content ?? ''
                 if (delta) {
                   assistantContent += delta
@@ -323,7 +331,12 @@ async function streamChatResponse({
                   )
                 }
               } catch (error) {
-                console.warn('Failed to parse SSE chunk', error)
+                // Send error event instead of silently ignoring
+                const errorMessage = error instanceof Error ? error.message : 'Failed to parse SSE chunk'
+                controller.enqueue(
+                  encoder.encode(`event: parse_error\ndata: ${JSON.stringify({ error: errorMessage })}\n\n`)
+                )
+                console.warn('Failed to parse SSE chunk:', error)
               }
             }
           }

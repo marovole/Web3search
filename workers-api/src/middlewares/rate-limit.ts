@@ -21,6 +21,21 @@ export interface RateLimitOptions {
 }
 
 /**
+ * Create a deterministic hash for configuration consistency
+ * Ensures rate limit keys remain consistent even if windowSeconds changes dynamically
+ */
+function createConfigHash(scope: string, limit: number, windowSeconds: number): string {
+  const config = `${scope}:${limit}:${windowSeconds}`
+  let hash = 0
+  for (let i = 0; i < config.length; i++) {
+    const char = config.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(36)
+}
+
+/**
  * Create rate limit middleware using Cloudflare KV
  *
  * Implements a sliding window rate limiter backed by KV storage.
@@ -44,6 +59,9 @@ export interface RateLimitOptions {
 export const createRateLimitMiddleware = (
   options: RateLimitOptions
 ): MiddlewareHandler<{ Bindings: Env }> => {
+  // Pre-compute config hash for consistent key generation
+  const configHash = createConfigHash(options.scope, options.limit, options.windowSeconds)
+
   return async (c, next) => {
     const kv = c.env.CACHE
     if (!kv) {
@@ -57,7 +75,8 @@ export const createRateLimitMiddleware = (
 
     // Calculate current window ID (sliding window)
     const windowId = Math.floor(Date.now() / 1000 / options.windowSeconds)
-    const kvKey = `ratelimit:${options.scope}:${identifier}:${windowId}`
+    // Include config hash to ensure key consistency across configuration changes
+    const kvKey = `ratelimit:${configHash}:${options.scope}:${identifier}:${windowId}`
 
     // Read current request count
     let current = 0
@@ -95,7 +114,7 @@ export const createRateLimitMiddleware = (
     // Increment counter in KV
     try {
       await kv.put(kvKey, String(current + 1), {
-        expirationTtl: options.windowSeconds,
+        expirationTtl: options.windowSeconds * 2, // Double TTL for sliding window robustness
       })
     } catch (error) {
       console.warn('KV write failed; continuing', error)

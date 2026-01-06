@@ -36,20 +36,9 @@ const authApi = axios.create({
   timeout: 30000, // 30秒超时
 })
 
-// Token刷新状态标志，防止并发刷新
-let isRefreshing = false
-let refreshSubscribers: Array<(token: string) => void> = []
-
-// 订阅Token刷新
-const subscribeTokenRefresh = (cb: (token: string) => void) => {
-  refreshSubscribers.push(cb)
-}
-
-// 通知所有订阅者
-const onTokenRefreshed = (token: string) => {
-  refreshSubscribers.forEach((cb) => cb(token))
-  refreshSubscribers = []
-}
+// 使用 Promise 队列确保串行刷新并处理失败情况
+let refreshPromise: Promise<string> | null = null
+const TOKEN_REFRESH_TIMEOUT_MS = 10000 // 10秒超时
 
 // ================================
 // Token存储管理
@@ -161,45 +150,53 @@ authApi.interceptors.response.use(
 
     // 如果是401错误且不是刷新Token的请求
     if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        // 如果正在刷新，等待刷新完成
-        return new Promise((resolve) => {
-          subscribeTokenRefresh((token: string) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`
-            resolve(authApi(originalRequest))
-          })
-        })
+      // 如果已经有刷新请求在进行中，等待该请求完成
+      if (refreshPromise) {
+        try {
+          const newToken = await refreshPromise
+          originalRequest.headers.Authorization = `Bearer ${newToken}`
+          return authApi(originalRequest)
+        } catch {
+          // 刷新失败，继续抛出原始错误
+          return Promise.reject(error)
+        }
       }
 
       originalRequest._retry = true
-      isRefreshing = true
-
       const refreshToken = getRefreshToken()
       if (!refreshToken) {
         clearAuth()
         return Promise.reject(error)
       }
 
-      try {
-        const response = await refreshAccessToken(refreshToken)
-        const newAccessToken = response.access_token
+      // 创建新的刷新Promise
+      refreshPromise = (async () => {
+        try {
+          const response = await refreshAccessToken(refreshToken)
+          const newAccessToken = response.access_token
 
-        setAccessToken(newAccessToken)
-        if (response.refresh_token) {
-          setRefreshToken(response.refresh_token)
+          setAccessToken(newAccessToken)
+          if (response.refresh_token) {
+            setRefreshToken(response.refresh_token)
+          }
+
+          return newAccessToken
+        } catch (refreshError) {
+          // 刷新失败，清除认证信息
+          clearAuth()
+          refreshPromise = null
+          throw refreshError
+        } finally {
+          refreshPromise = null
         }
+      })()
 
-        isRefreshing = false
-        onTokenRefreshed(newAccessToken)
-
+      try {
+        const newToken = await refreshPromise
         // 重试原始请求
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
+        originalRequest.headers.Authorization = `Bearer ${newToken}`
         return authApi(originalRequest)
       } catch (refreshError) {
-        // 刷新失败，清除认证信息
-        clearAuth()
-        isRefreshing = false
-        refreshSubscribers = []
         return Promise.reject(refreshError)
       }
     }
