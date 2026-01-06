@@ -71,13 +71,9 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: website-search
+          projectName: Web3search
           directory: frontend/dist
-          wranglerConfig: ./wrangler.toml
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          # Optional: Speeds up deployment by skipping unchanged files detection
-          # For first deployment or significant changes, keep as false
-          fastBuilds: true
 
   deploy-workers-api:
     name: Deploy Workers API
