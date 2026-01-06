@@ -51,9 +51,34 @@ jobs:
           path: frontend/dist
           retention-days: 7
 
-  # Note: Frontend is deployed via Cloudflare Pages Git integration
-  # Workers API is deployed via wrangler manually or can be added here
+  # Note: Frontend is deployed via GitHub Actions to Cloudflare Pages
+  # Workers API is deployed via wrangler
   
+  deploy-frontend:
+    name: Deploy Frontend to Pages
+    runs-on: ubuntu-latest
+    needs: [build-and-test]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-files
+          path: frontend/dist
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: website-search
+          directory: frontend/dist
+          wranglerConfig: ./wrangler.toml
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          # Optional: Speeds up deployment by skipping unchanged files detection
+          # For first deployment or significant changes, keep as false
+          fastBuilds: true
+
   deploy-workers-api:
     name: Deploy Workers API
     runs-on: ubuntu-latest
