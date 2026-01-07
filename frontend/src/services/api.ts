@@ -169,7 +169,8 @@ const quickChatReal = async (
     logger.info('Quick Chat Request:', `${api.defaults.baseURL}/${path}`)
   }
 
-  const response = await api.post<QuickChatResponse>(path, request)
+  // Explicitly disable streaming for axios requests (axios cannot parse SSE streams)
+  const response = await api.post<QuickChatResponse>(path, { ...request, stream: false })
 
   if (isDevMode) {
     logger.debug('Quick Chat Response:', response.data)
