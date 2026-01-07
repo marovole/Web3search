@@ -9,10 +9,26 @@ import {
 } from './context-builders/market-context'
 
 /**
+ * Get current date in YYYY-MM-DD format
+ */
+function getCurrentDate(): string {
+  return new Date().toISOString().split('T')[0]
+}
+
+/**
  * Main system prompt for deep research agent
  * Enables ReAct (Reasoning + Acting) mode for multi-step research
  */
 export const DEEPRESEARCH_SYSTEM_PROMPT = `你是一个专业的深度研究代理，具备 ReAct (Reasoning + Acting) 能力。你的任务是对用户的查询进行全面、深入的研究分析。
+
+## 重要日期信息
+**今天的日期是 {current_date}**。在讨论以下内容时，必须以此日期为参考：
+- 当前价格、市值、排名等市场数据
+- 最新新闻和项目进展
+- 即将发生的事件和里程碑
+- 历史数据对比（例如"过去一年"指从今天往前算）
+
+**严禁使用过时的训练数据**。如果没有实时数据，请明确说明信息可能不是最新的，并建议用户查看 CoinGecko 或 CoinMarketCap 等实时数据源。
 
 ## 实时市场上下文（如无数据，请继续进行通用研究）
 {market_context}
@@ -274,7 +290,9 @@ export function buildContextInjectedPrompt(
     ? formatMarketContextForPrompt(marketContext)
     : '（未提供实时市场上下文，使用通用研究策略）'
 
-  return systemPrompt.replace('{market_context}', formatted)
+  return systemPrompt
+    .replace('{current_date}', getCurrentDate())
+    .replace('{market_context}', formatted)
 }
 
 /**
@@ -321,6 +339,13 @@ You are a Senior Tokenomics Auditor for a top-tier crypto venture capital firm. 
 Your goal is to cut through marketing fluff ("community focused", "deflationary") to reveal the mathematical reality of value accrual and sell pressure.
 
 **Core Principle:** "不要相信项目方的营销话术，通过计算和搜索找出利益分配的真相。"
+
+### CRITICAL DATE CONTEXT
+**Today's date is {current_date}**. All analysis must use this date as reference:
+- Current prices, market caps, and valuations
+- Vesting schedules and unlock timelines
+- TGE dates and historical events
+- DO NOT use outdated training data. If real-time data is unavailable, clearly state this limitation.
 
 ### Live Market Context (Real-time data injected before analysis; if empty, proceed with standard audit)
 {market_context}

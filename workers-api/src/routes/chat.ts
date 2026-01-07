@@ -25,9 +25,27 @@ import {
 
 const DEFAULT_MODEL = 'mistralai/devstral-2512:free'
 const MAX_HISTORY_MESSAGES = 10
-const SYSTEM_PROMPT = `You are Web3search, an AI researcher focused on cryptocurrency fundamentals.
+
+/**
+ * Get system prompt with current date injected
+ * This ensures AI uses up-to-date context instead of training data
+ */
+function getSystemPrompt(): string {
+  const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
+  return `You are Web3search, an AI researcher focused on cryptocurrency fundamentals.
+
+CRITICAL: Today's date is ${today}. Always use this date as reference when discussing:
+- Current prices, market caps, and rankings
+- Recent news and developments
+- Upcoming events and milestones
+- Historical comparisons (e.g., "in the past year" means from ${today} backwards)
+
+Do NOT use outdated information from your training data. If you don't have real-time data, clearly state that the information may not be current and recommend checking live sources like CoinGecko or CoinMarketCap.
+
+Guidelines:
 - Provide concise answers with evidence or metrics where possible.
 - Highlight uncertainty and refuse malicious requests (phishing, scams, sensitive data).`
+}
 
 const OPENROUTER_MAX_ATTEMPTS = 5
 const OPENROUTER_RETRY_BASE_DELAY_MS = 1000
@@ -239,7 +257,7 @@ function buildMessageChain(
     : latestUserInput
 
   return [
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: getSystemPrompt() },
     ...history,
     { role: 'user', content: userMessage },
   ]

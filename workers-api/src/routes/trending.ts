@@ -80,14 +80,25 @@ trending.get('/hotspots', async (c) => {
     // Sort by frequency and get top keywords
     const topKeywords = Array.from(keywordCounts.entries())
       .sort((a, b) => b[1] - a[1])
-      .slice(0, Math.min(limit * 2, 20)) // Fetch more than needed to account for API failures
+      .slice(0, Math.min(limit * 3, 30)) // Fetch more than needed to account for API failures and deduplication
 
     // Fetch real crypto data from CoinGecko
     const coinGecko = createCoinGeckoClient()
+    
+    // Track seen coin IDs to avoid duplicates (e.g., 'btc' and 'bitcoin' resolve to same coin)
+    const seenCoinIds = new Set<string>()
+    
     const hotspotPromises = topKeywords.map(async ([keyword, searchCount]) => {
       try {
         // Resolve keyword to coin ID and fetch market data
         const coinId = (coinGecko as any).resolveCoinId(keyword)
+        
+        // Skip if we've already seen this coin (handles aliases like 'btc'/'bitcoin')
+        if (seenCoinIds.has(coinId)) {
+          return null
+        }
+        seenCoinIds.add(coinId)
+        
         const coinData = await coinGecko.getCoinPrice(coinId)
 
         if ('error' in coinData) {
@@ -129,10 +140,48 @@ trending.get('/hotspots', async (c) => {
 
     // Wait for all API calls and filter out failures
     const hotspotResults = await Promise.all(hotspotPromises)
-    const validHotspots = hotspotResults
+    let validHotspots = hotspotResults
       .filter((h): h is NonNullable<typeof h> => h !== null)
       .sort((a, b) => b.total_score - a.total_score) // Sort by total score
       .slice(0, limit) // Get top N
+
+    // If we don't have enough results, fetch default popular coins
+    if (validHotspots.length < limit) {
+      const defaultCoins = ['bitcoin', 'ethereum', 'solana', 'cardano', 'polygon', 'avalanche-2', 'polkadot', 'chainlink']
+      const existingCoinIds = new Set(validHotspots.map(h => h.coin_id))
+      
+      for (const coinId of defaultCoins) {
+        if (validHotspots.length >= limit) break
+        if (existingCoinIds.has(coinId)) continue
+        
+        try {
+          const coinData = await coinGecko.getCoinPrice(coinId)
+          if ('error' in coinData) continue
+          
+          validHotspots.push({
+            coin_id: coinId,
+            symbol: coinData.symbol,
+            name: coinData.name,
+            market_cap_rank: coinData.market_cap_rank || 9999,
+            price_usd: coinData.price_usd,
+            price_change_24h: coinData.price_change_24h,
+            volume_24h: 0,
+            total_score: coinData.market_cap_rank ? Math.max(0, 100 - coinData.market_cap_rank) : 0,
+            scores_breakdown: {
+              twitter: 0,
+              reddit: 0,
+              price: Math.abs(coinData.price_change_24h) * 5,
+              volume: 0,
+              news: 0,
+            },
+            timestamp: new Date().toISOString(),
+          })
+          existingCoinIds.add(coinId)
+        } catch (err) {
+          console.warn(`[Trending] Failed to fetch default coin ${coinId}:`, err)
+        }
+      }
+    }
 
     const response = {
       hotspots: validHotspots,
