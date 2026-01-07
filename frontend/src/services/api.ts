@@ -37,9 +37,9 @@ if (isDevMode) {
 function normalizeApiPath(baseUrl: string, path: string): string {
   // Remove trailing slash and /api/v1 from baseUrl if present
   const normalizedBase = baseUrl.replace(/\/api\/v1\/?$/, '').replace(/\/$/, '')
-  // Remove leading slash and /api/v1 from path if present
-  const normalizedPath = path.replace(/^\/?api\/v1\//, '').replace(/^\//, '')
-  return `${normalizedBase}/api/v1/${normalizedPath}`
+  // Remove leading slash and /api/v1 (with or without trailing slash) from path if present
+  const normalizedPath = path.replace(/^\/?api\/v1\/?/, '').replace(/^\//, '')
+  return `${normalizedBase}/api/v1/${normalizedPath}`.replace(/\/+$/, '')
 }
 
 // Create axios instance
