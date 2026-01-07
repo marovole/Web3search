@@ -7,10 +7,8 @@
 /api/docs           https://api.lulaai.xyz/api/docs         200
 /api/openapi.json   https://api.lulaai.xyz/api/openapi.json 200
 
-# 聊天页面重定向
-/chat               /                                                     302
-
 # SPA 路由支持 - 仅对不存在的文件返回 index.html
+# 注意: /chat 不再重定向，由 React Router 处理
 # 这样可以避免对静态资源（js/css/images）的重定向
 /*                  /index.html                                          200
 
