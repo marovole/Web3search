@@ -274,7 +274,7 @@ export default function SearchPage() {
             value={query}
             onChange={handleInputChange}
             placeholder="搜索内容、关键词或话题..."
-            className="w-full pl-14 pr-14 py-5 bg-background/40 backdrop-blur-xl border border-white/10 rounded-2xl focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 text-lg placeholder:text-muted-foreground/50 shadow-lg transition-all duration-300 relative z-10"
+            className="w-full pl-14 pr-14 py-5 bg-background/40 backdrop-blur-xl border border-white/10 rounded-2xl focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 text-lg placeholder:text-muted-foreground/60 shadow-lg transition-all duration-300 relative z-10"
           />
           {query && (
             <button

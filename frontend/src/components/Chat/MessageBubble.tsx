@@ -107,7 +107,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Analysis Result
               </span>
-              <span className="ml-auto text-xs text-muted-foreground/50 font-mono">
+              <span className="ml-auto text-xs text-muted-foreground/70 font-mono">
                 {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
@@ -115,9 +115,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             {/* Content */}
             <div
               className="prose prose-invert prose-sm md:prose-base max-w-none 
-                prose-headings:text-primary prose-headings:font-bold prose-headings:tracking-tight
+                prose-headings:text-foreground prose-headings:font-semibold prose-headings:tracking-tight
+                prose-p:text-foreground/95 prose-li:text-foreground/90
                 prose-a:text-secondary prose-a:no-underline hover:prose-a:underline
-                prose-strong:text-white prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:rounded
+                prose-strong:text-foreground prose-code:text-primary prose-code:bg-primary/15 prose-code:px-1 prose-code:rounded
                 prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10"
               onClick={isTyping ? skipAnimation : undefined}
             >
@@ -146,7 +147,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                   },
                   td({ children }) {
                     return (
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground/80 border-t border-white/5">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground/90 border-t border-white/5">
                         {children}
                       </td>
                     )

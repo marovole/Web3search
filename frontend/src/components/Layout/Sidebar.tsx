@@ -304,7 +304,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-3 px-3">
               <span className="w-4 h-px bg-gradient-to-r from-primary/40 to-transparent" />
-              <h3 className="text-[9px] font-mono font-medium text-muted-foreground/40 uppercase tracking-[0.2em]">
+              <h3 className="text-[9px] font-mono font-medium text-muted-foreground/60 uppercase tracking-[0.2em]">
                 Main
               </h3>
             </div>
@@ -318,7 +318,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-3 px-3">
               <span className="w-4 h-px bg-gradient-to-r from-secondary/40 to-transparent" />
-              <h3 className="text-[9px] font-mono font-medium text-muted-foreground/40 uppercase tracking-[0.2em]">
+              <h3 className="text-[9px] font-mono font-medium text-muted-foreground/60 uppercase tracking-[0.2em]">
                 Tools
               </h3>
             </div>
@@ -347,7 +347,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <kbd className="kbd-hint">?</kbd>
           </button>
 
-          <div className="text-[9px] font-mono text-muted-foreground/30 pt-1 text-center tracking-wider">
+          <div className="text-[9px] font-mono text-muted-foreground/50 pt-1 text-center tracking-wider">
             <p>LULA v1.0 © 2024</p>
           </div>
         </div>

@@ -511,11 +511,11 @@ const ChatInterface: React.FC = () => {
             />
           </motion.div>
           <div className="text-center mt-3 flex items-center justify-center gap-3">
-            <p className="text-[9px] md:text-[10px] uppercase tracking-[0.15em] text-muted-foreground/35 font-medium">
+            <p className="text-[9px] md:text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 font-medium">
               AI-generated content may be inaccurate
             </p>
-            <span className="text-muted-foreground/20">·</span>
-            <p className="text-[9px] md:text-[10px] uppercase tracking-[0.15em] text-muted-foreground/35 font-medium">
+            <span className="text-muted-foreground/40">·</span>
+            <p className="text-[9px] md:text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 font-medium">
               DYOR
             </p>
           </div>
