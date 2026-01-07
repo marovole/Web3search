@@ -7,7 +7,7 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://browser.sentry-cdn.com; connect-src 'self' https://web3search-api.marovole.workers.dev https://www.google-analytics.com https://www.googletagmanager.com https://browser.sentry-cdn.com https://*.ingest.sentry.io; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://browser.sentry-cdn.com; connect-src 'self' https://api.lulaai.xyz https://web3search-api.marovole.workers.dev https://www.google-analytics.com https://www.googletagmanager.com https://browser.sentry-cdn.com https://*.ingest.sentry.io; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
 
 # HTML 文件不缓存
 /*.html

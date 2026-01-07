@@ -2,10 +2,10 @@
 # 规则顺序很重要：从最具体到最通用
 
 # API 请求代理到后端 - 必须在最前面
-/api/v1/*           https://web3search-api.marovole.workers.dev/api/v1/:splat    200
-/api/health         https://web3search-api.marovole.workers.dev/api/v1/health   200
-/api/docs           https://web3search-api.marovole.workers.dev/api/docs         200
-/api/openapi.json   https://web3search-api.marovole.workers.dev/api/openapi.json 200
+/api/v1/*           https://api.lulaai.xyz/api/v1/:splat    200
+/api/health         https://api.lulaai.xyz/api/v1/health   200
+/api/docs           https://api.lulaai.xyz/api/docs         200
+/api/openapi.json   https://api.lulaai.xyz/api/openapi.json 200
 
 # 聊天页面重定向
 /chat               /                                                     302
