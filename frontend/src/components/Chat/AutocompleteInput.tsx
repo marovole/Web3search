@@ -148,8 +148,8 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
       {/* Terminal-style Input Container */}
       <div className={cn(
         "flex items-end gap-3 p-3 rounded-xl transition-all duration-250",
-        "bg-surface-2/40 backdrop-blur-md border border-border/50",
-        "focus-within:border-primary/40 focus-within:shadow-terminal focus-within:bg-surface-2/60"
+        "bg-surface-2/40 backdrop-blur-md",
+        "focus-within:bg-surface-2/60"
       )}>
         {/* Terminal Prompt */}
         <div className="flex items-center gap-2 pb-2.5 pl-1 shrink-0">
