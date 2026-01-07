@@ -105,8 +105,8 @@ export async function generateResearchPlan(
     const jsonMatch = content.match(/\{[\s\S]*\}/)
     if (jsonMatch) {
       parsedPlan = JSON.parse(jsonMatch[0])
-      if (parsedPlan?.search_queries && Array.isArray((parsedPlan as unknown as { search_queries: unknown[] }).search_queries)) {
-        searchQueries = ((parsedPlan as unknown as { search_queries: Array<string | { query: string }> }).search_queries)
+      if (parsedPlan?.search_queries && Array.isArray(parsedPlan.search_queries)) {
+        searchQueries = parsedPlan.search_queries
           .map((q) => (typeof q === 'string' ? q : q.query))
           .filter(Boolean)
       }

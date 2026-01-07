@@ -147,6 +147,9 @@ Object.defineProperty(window, 'matchMedia', {
 // Mock scrollTo
 window.scrollTo = jest.fn();
 
+// Mock scrollIntoView for elements
+Element.prototype.scrollIntoView = jest.fn();
+
 // Mock localStorage
 const localStorageMock = (() => {
   let store: Record<string, string> = {};

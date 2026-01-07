@@ -83,7 +83,7 @@ health.get('/', async (c) => {
       if (!cached || typeof cached.timestamp !== 'string') return null
 
       // Validate timestamp and check expiration
-      const cachedAt = new Date(payload.timestamp).getTime()
+      const cachedAt = new Date(cached.timestamp).getTime()
       if (Number.isNaN(cachedAt)) return null
       const cacheAgeMs = Date.now() - cachedAt
       if (cacheAgeMs > CACHE_TTL_MS) {
@@ -91,7 +91,7 @@ health.get('/', async (c) => {
         return null
       }
 
-      return payload
+      return cached
     } catch (error) {
       // Cache read failure - degrade gracefully
       console.warn('[Health] Cache read failed:', error)

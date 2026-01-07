@@ -44,6 +44,8 @@ export interface ParsedResearchPlan {
     importance: 'high' | 'medium' | 'low'
     description: string
   }>
+  search_queries?: Array<string | { query: string; purpose?: string }>
+  expected_challenges?: string[]
 }
 
 /**

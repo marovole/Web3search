@@ -12,8 +12,11 @@ export const DeepResearchRequestSchema = z.object({
   model: z.string().optional(),
   model_provider: z.string().optional(),
   temperature: z.number().min(0).max(2).optional(),
-  conversation_id: z.string().uuid().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  conversation_id: z.string().regex(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    'Invalid conversation ID format (must be UUID)'
+  ).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 })
 
 export type ValidatedDeepResearchRequest = z.infer<typeof DeepResearchRequestSchema>
@@ -86,7 +89,7 @@ export function validateDeepResearchRequest(
   if (result.success) {
     return { success: true, data: result.data }
   }
-  const errorMessage = result.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')
+  const errorMessage = result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')
   return { success: false, error: errorMessage }
 }
 
