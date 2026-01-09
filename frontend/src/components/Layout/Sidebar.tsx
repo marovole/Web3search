@@ -14,9 +14,11 @@ import {
   Code,
   Clock,
   Star,
+  Bot,
   Menu
 } from 'lucide-react'
 import { useKeyboardShortcutsContext } from '@/contexts/KeyboardShortcutsContext'
+import UserMenu from './UserMenu'
 
 interface SidebarItemProps {
   icon: React.ReactNode
@@ -213,6 +215,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       testId: 'sidebar-watchlist'
     },
     {
+      icon: <Bot size={18} />,
+      label: 'AI 智能体',
+      href: '/agents',
+      isActive: currentPath === '/agents'
+    },
+    {
       icon: <FileText size={18} />,
       label: '报告',
       href: '/reports',
@@ -332,6 +340,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Footer */}
         <div className="px-3 py-3 border-t border-border/40 space-y-2">
+          <UserMenu />
+
           {/* Keyboard Shortcuts */}
           <button
             onClick={toggleHelp}
