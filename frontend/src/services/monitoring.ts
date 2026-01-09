@@ -520,15 +520,13 @@ export class MonitoringManager {
 // 导出全局实例
 export const monitoring = MonitoringManager.getInstance()
 
-// 便捷函数
-export const {
-  initialize,
-  setUserConsent,
-  trackCustomEvent,
-  trackSearchEvent,
-  trackFeatureUsage,
-  getMonitoringStatus,
-  reset
-} = monitoring
+// 便捷函数 - 使用绑定方法保持 this 上下文
+export const initialize = monitoring.initialize.bind(monitoring)
+export const setUserConsent = monitoring.setUserConsent.bind(monitoring)
+export const trackCustomEvent = monitoring.trackCustomEvent.bind(monitoring)
+export const trackSearchEvent = monitoring.trackSearchEvent.bind(monitoring)
+export const trackFeatureUsage = monitoring.trackFeatureUsage.bind(monitoring)
+export const getMonitoringStatus = monitoring.getMonitoringStatus.bind(monitoring)
+export const reset = monitoring.reset.bind(monitoring)
 
 export type { MonitoringConfig }

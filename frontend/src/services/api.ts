@@ -194,7 +194,7 @@ const deepResearchStreamReal = (request: DeepResearchRequest): SSEClient => {
     ...(request.conversation_id && { conversation_id: request.conversation_id }),
   })
 
-  const url = `${api.defaults.baseURL}/chat/deep-research/stream?${queryParams}`
+  const url = `${api.defaults.baseURL}/deep-research/stream?${queryParams}`
   const token = tokenManager.getToken()
 
   if (!token) {
@@ -223,7 +223,7 @@ const deepResearchReal = async (
   request: DeepResearchRequest
 ): Promise<DeepResearchResponse> => {
   const response = await api.post<DeepResearchResponse>(
-    'chat/deep-research',
+    'deep-research',
     request
   )
   return response.data

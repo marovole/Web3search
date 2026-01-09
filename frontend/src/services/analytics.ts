@@ -361,22 +361,20 @@ export class GoogleAnalytics {
 // 导出全局实例
 export const analytics = GoogleAnalytics.getInstance()
 
-// 便捷函数
-export const {
-  initialize: initAnalytics,
-  setConsent,
-  trackPageView,
-  trackEvent,
-  trackSearch,
-  trackSessionStart,
-  trackSessionEnd,
-  trackFeature,
-  trackError,
-  trackPerformance,
-  setUserProperty,
-  setUserId,
-  sendCustomDimensions,
-  isReady,
-} = analytics
+// 便捷函数 - 使用绑定方法保持 this 上下文
+export const initAnalytics = analytics.initialize.bind(analytics)
+export const setConsent = analytics.setConsent.bind(analytics)
+export const trackPageView = analytics.trackPageView.bind(analytics)
+export const trackEvent = analytics.trackEvent.bind(analytics)
+export const trackSearch = analytics.trackSearch.bind(analytics)
+export const trackSessionStart = analytics.trackSessionStart.bind(analytics)
+export const trackSessionEnd = analytics.trackSessionEnd.bind(analytics)
+export const trackFeature = analytics.trackFeature.bind(analytics)
+export const trackError = analytics.trackError.bind(analytics)
+export const trackPerformance = analytics.trackPerformance.bind(analytics)
+export const setUserProperty = analytics.setUserProperty.bind(analytics)
+export const setUserId = analytics.setUserId.bind(analytics)
+export const sendCustomDimensions = analytics.sendCustomDimensions.bind(analytics)
+export const isReady = analytics.isReady.bind(analytics)
 
 export type { AnalyticsConfig, GtagEvent, PageViewData }

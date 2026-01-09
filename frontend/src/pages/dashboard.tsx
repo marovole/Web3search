@@ -147,7 +147,7 @@ export function DashboardPage() {
             </div>
             <div className="p-6">
               <ResearchSSE
-                apiUrl={`${import.meta.env.VITE_API_BASE_URL || 'https://api.lulaai.xyz'}/api/v1/chat/deep-research/stream`}
+                apiUrl={`${import.meta.env.VITE_API_BASE_URL || 'https://api.lulaai.xyz'}/api/v1/deep-research/stream`}
                 query={researchQuery}
                 onComplete={(result) => {
                   console.log('Research completed:', result)
