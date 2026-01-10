@@ -1,7 +1,10 @@
 /**
  * CoinGecko API Client
- * Fetches real-time cryptocurrency price data
+ * Fetches real-time cryptocurrency price data with KV caching support
  */
+
+import type { Env } from '../types/env'
+import { cacheGet, cacheSet, CACHE_TTL, CACHE_NS } from './cache'
 
 export interface CoinGeckoPrice {
   symbol: string
@@ -202,11 +205,104 @@ export class CoinGeckoClient {
 
     return result
   }
+
+  async getBatchPrices(coinIds: string[]): Promise<Map<string, CoinGeckoPrice>> {
+    const results = new Map<string, CoinGeckoPrice>()
+    if (coinIds.length === 0) return results
+
+    try {
+      const ids = coinIds.map((id) => this.resolveCoinId(id)).join(',')
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout)
+
+      const response = await fetch(
+        `${this.baseUrl}/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`,
+        { signal: controller.signal, headers: { Accept: 'application/json' } }
+      )
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        console.error(`[CoinGecko] Batch price fetch failed: ${response.status}`)
+        return results
+      }
+
+      const data = (await response.json()) as Record<
+        string,
+        { usd?: number; usd_24h_change?: number; usd_market_cap?: number }
+      >
+
+      for (const [coinId, priceData] of Object.entries(data)) {
+        if (priceData.usd !== undefined) {
+          results.set(coinId, {
+            symbol: coinId.toUpperCase(),
+            name: coinId,
+            price_usd: priceData.usd,
+            price_change_24h: priceData.usd_24h_change || 0,
+            market_cap: priceData.usd_market_cap || 0,
+            market_cap_rank: null,
+          })
+        }
+      }
+
+      return results
+    } catch (error) {
+      console.error('[CoinGecko] Batch price fetch error:', error)
+      return results
+    }
+  }
 }
 
-/**
- * 创建 CoinGecko 客户端实例
- */
 export function createCoinGeckoClient(): CoinGeckoClient {
   return new CoinGeckoClient()
+}
+
+export async function getCachedBatchPrices(
+  env: Env,
+  coinIds: string[]
+): Promise<Map<string, CoinGeckoPrice>> {
+  if (coinIds.length === 0) return new Map()
+
+  const results = new Map<string, CoinGeckoPrice>()
+  const uncachedIds: string[] = []
+
+  for (const id of coinIds) {
+    const cached = await cacheGet<CoinGeckoPrice>(env, id, CACHE_NS.PRICE)
+    if (cached) {
+      results.set(id, cached)
+    } else {
+      uncachedIds.push(id)
+    }
+  }
+
+  if (uncachedIds.length > 0) {
+    const client = createCoinGeckoClient()
+    const freshPrices = await client.getBatchPrices(uncachedIds)
+
+    for (const [id, price] of freshPrices) {
+      await cacheSet(env, id, price, { ttl: CACHE_TTL.PRICE, namespace: CACHE_NS.PRICE })
+      results.set(id, price)
+    }
+  }
+
+  return results
+}
+
+export async function getCachedCoinPrice(
+  env: Env,
+  coinId: string
+): Promise<CoinGeckoPrice | CoinGeckoError> {
+  const cached = await cacheGet<CoinGeckoPrice>(env, coinId, CACHE_NS.PRICE)
+  if (cached) {
+    return cached
+  }
+
+  const client = createCoinGeckoClient()
+  const result = await client.getCoinPrice(coinId)
+
+  if (!('error' in result)) {
+    await cacheSet(env, coinId, result, { ttl: CACHE_TTL.PRICE, namespace: CACHE_NS.PRICE })
+  }
+
+  return result
 }

@@ -1,6 +1,3 @@
-/**
- * 登录表单组件
- */
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -15,7 +12,7 @@ import { Loader2 } from 'lucide-react'
 export const LoginForm: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { login } = useAuth()
+  const { signIn } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
 
   const {
@@ -29,21 +26,21 @@ export const LoginForm: React.FC = () => {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true)
     try {
-      await login(data)
+      const { error } = await signIn(data.email, data.password)
+      if (error) {
+        throw error
+      }
       toast({
         title: '登录成功',
         description: '欢迎回来！',
         variant: 'success',
       })
 
-      // 重定向到原页面或首页
       const from = (location.state as { from?: string })?.from || '/'
       navigate(from, { replace: true })
-    } catch (error: any) {
-      const errorMessage =
-        error?.response?.data?.detail ||
-        error?.message ||
-        '登录失败，请检查您的邮箱和密码'
+    } catch (error: unknown) {
+      const err = error as Error
+      const errorMessage = err?.message || '登录失败，请检查您的邮箱和密码'
       toast({
         title: '登录失败',
         description: errorMessage,

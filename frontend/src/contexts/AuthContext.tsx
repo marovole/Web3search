@@ -1,33 +1,51 @@
-/**
- * 认证上下文
- * 提供全局认证状态管理和认证相关功能
- */
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
-import {
-  register as apiRegister,
-  login as apiLogin,
-  logout as apiLogout,
-  getCurrentUser as apiGetCurrentUser,
-  getAccessToken,
-  getUser,
-  setUser,
-  clearAuth,
-  type UserInfo,
-  type RegisterRequest,
-  type LoginRequest,
-} from '../services/auth'
+import type { User, Session } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
+
+interface UserProfile {
+  id: string
+  username: string | null
+  display_name: string | null
+  avatar_url: string | null
+  plan: 'free' | 'pro' | 'team'
+  risk_preference: 'conservative' | 'moderate' | 'aggressive'
+  notification_settings: Record<string, boolean>
+  timezone: string
+  language: string
+  theme: 'light' | 'dark' | 'system'
+  onboarding_completed: boolean
+  created_at?: string
+}
+
+interface UserQuota {
+  watchlist: { used: number; limit: number }
+  agents: { used: number; limit: number }
+  daily: {
+    alerts: { used: number; limit: number }
+    deep_research: { used: number; limit: number }
+    quick_chat: { used: number; limit: number }
+  }
+  monthly: {
+    reports: { used: number; limit: number }
+  }
+  resets?: {
+    daily: string
+    monthly: string
+  }
+}
 
 interface AuthContextType {
-  // 状态
-  isAuthenticated: boolean
-  user: UserInfo | null
+  user: User | null
+  session: Session | null
+  profile: UserProfile | null
+  quota: UserQuota | null
   loading: boolean
-
-  // 方法
-  register: (request: RegisterRequest) => Promise<void>
-  login: (request: LoginRequest) => Promise<void>
-  logout: () => Promise<void>
-  refreshUser: () => Promise<void>
+  isAuthenticated: boolean
+  signUp: (email: string, password: string) => Promise<{ error: Error | null }>
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>
+  signOut: () => Promise<void>
+  refreshProfile: () => Promise<void>
+  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: Error | null }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -37,153 +55,147 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
-  const [user, setUserState] = useState<UserInfo | null>(null)
-  const [loading, setLoading] = useState<boolean>(true)
+  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [quota, setQuota] = useState<UserQuota | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  // 初始化：检查是否有已保存的认证信息
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        const token = getAccessToken()
-        const savedUser = getUser()
+  const fetchUserData = useCallback(async (accessToken: string) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || ''
+      const response = await fetch(`${apiUrl}/api/v1/auth/me`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
 
-        if (token && savedUser) {
-          // 有Token和用户信息，验证Token是否有效
-          try {
-            const currentUser = await apiGetCurrentUser()
-            setUserState(currentUser)
-            setIsAuthenticated(true)
-          } catch (error) {
-            // Token无效，清除认证信息
-            clearAuth()
-            setIsAuthenticated(false)
-            setUserState(null)
-          }
-        } else {
-          setIsAuthenticated(false)
-          setUserState(null)
-        }
-      } catch (error) {
-        console.error('初始化认证失败:', error)
-        clearAuth()
-        setIsAuthenticated(false)
-        setUserState(null)
-      } finally {
-        setLoading(false)
+      if (response.ok) {
+        const data = await response.json()
+        setProfile(data.user)
+        setQuota(data.quota)
       }
-    }
-
-    initAuth()
-  }, [])
-
-  // 注册
-  const handleRegister = useCallback(async (request: RegisterRequest) => {
-    try {
-      const response = await apiRegister(request)
-      setUserState({
-        id: response.user_id,
-        email: response.email,
-        username: response.username || null,
-        email_verified: false,
-        created_at: new Date().toISOString(),
-      })
-      setIsAuthenticated(true)
     } catch (error) {
-      console.error('注册失败:', error)
-      throw error
+      console.error('[Auth] Failed to fetch user data:', error)
     }
   }, [])
 
-  // 登录
-  const handleLogin = useCallback(async (request: LoginRequest) => {
-    try {
-      const response = await apiLogin(request)
-      setUserState({
-        id: response.user.id,
-        email: response.user.email,
-        username: response.user.username,
-        email_verified: response.user.email_verified,
-        created_at: response.user.created_at || new Date().toISOString(),
-        last_login_at: response.user.last_login_at,
-      })
-      setIsAuthenticated(true)
-    } catch (error) {
-      console.error('登录失败:', error)
-      throw error
-    }
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      if (session?.access_token) {
+        fetchUserData(session.access_token)
+      }
+      setLoading(false)
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+
+      if (event === 'SIGNED_IN' && session?.access_token) {
+        await fetchUserData(session.access_token)
+      } else if (event === 'SIGNED_OUT') {
+        setProfile(null)
+        setQuota(null)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [fetchUserData])
+
+  const signUp = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({ email, password })
+    return { error: error as Error | null }
   }, [])
 
-  // 登出
-  const handleLogout = useCallback(async () => {
-    try {
-      await apiLogout()
-    } catch (error) {
-      console.error('登出失败:', error)
-    } finally {
-      clearAuth()
-      setIsAuthenticated(false)
-      setUserState(null)
-    }
+  const signIn = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    return { error: error as Error | null }
   }, [])
 
-  // 刷新用户信息
-  const handleRefreshUser = useCallback(async () => {
-    try {
-      const currentUser = await apiGetCurrentUser()
-      setUserState(currentUser)
-    } catch (error) {
-      console.error('刷新用户信息失败:', error)
-      // 如果刷新失败，可能是Token过期，清除认证信息
-      clearAuth()
-      setIsAuthenticated(false)
-      setUserState(null)
-      throw error
-    }
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut()
+    setProfile(null)
+    setQuota(null)
   }, [])
+
+  const refreshProfile = useCallback(async () => {
+    if (session?.access_token) {
+      await fetchUserData(session.access_token)
+    }
+  }, [session?.access_token, fetchUserData])
+
+  const updateProfile = useCallback(
+    async (updates: Partial<UserProfile>) => {
+      if (!session?.access_token) {
+        return { error: new Error('Not authenticated') }
+      }
+
+      try {
+        const apiUrl = import.meta.env.VITE_API_BASE_URL || ''
+        const response = await fetch(`${apiUrl}/api/v1/users/profile`, {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updates),
+        })
+
+        if (!response.ok) {
+          const data = await response.json()
+          return { error: new Error(data.error?.message || 'Failed to update profile') }
+        }
+
+        const data = await response.json()
+        setProfile(data.profile)
+        return { error: null }
+      } catch (error) {
+        return { error: error as Error }
+      }
+    },
+    [session?.access_token]
+  )
 
   const value: AuthContextType = {
-    isAuthenticated,
     user,
+    session,
+    profile,
+    quota,
     loading,
-    register: handleRegister,
-    login: handleLogin,
-    logout: handleLogout,
-    refreshUser: handleRefreshUser,
+    isAuthenticated: !!user,
+    signUp,
+    signIn,
+    signOut,
+    refreshProfile,
+    updateProfile,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-/**
- * 使用认证上下文
- */
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext)
   if (context === undefined) {
-    throw new Error('useAuth必须在AuthProvider内部使用')
+    throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
 }
 
-/**
- * 要求认证的Hook
- * 如果未登录，会重定向到登录页面
- * 返回用户信息和加载状态
- */
-export const useRequireAuth = (): { user: UserInfo; loading: boolean } => {
-  const { isAuthenticated, user, loading } = useAuth()
+export const useRequireAuth = (): { user: User; profile: UserProfile | null; loading: boolean } => {
+  const { user, profile, loading, isAuthenticated } = useAuth()
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      // 重定向到登录页面
       window.location.href = '/auth/login'
     }
   }, [isAuthenticated, loading])
 
   return {
     user: user!,
+    profile,
     loading,
   }
 }
-

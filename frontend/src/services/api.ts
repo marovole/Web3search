@@ -8,6 +8,8 @@ import type {
   ShareReportResponse,
   SharedReportResponse,
   Report,
+  CheckoutResponse,
+  PortalResponse,
 } from '../types'
 import type { AutocompleteResponse } from '../types/autocomplete'
 import type { HotspotsResponse } from '../types/hotspot'
@@ -560,5 +562,32 @@ const healthCheckReal = async (): Promise<{ status: string }> => {
  * 根据环境变量自动选择Mock或真实API
  */
 export const healthCheck = apiConfig.useMock ? mockApi.healthCheck : healthCheckReal
+
+
+// ================================
+// Billing API
+// ================================
+
+/**
+ * Create checkout session
+ */
+export const createCheckoutSession = async (
+  plan: 'pro' | 'team',
+  interval: 'monthly' | 'yearly'
+): Promise<CheckoutResponse> => {
+  const response = await api.post<CheckoutResponse>('billing/checkout', {
+    plan,
+    interval,
+  })
+  return response.data
+}
+
+/**
+ * Create billing portal session
+ */
+export const createPortalSession = async (): Promise<PortalResponse> => {
+  const response = await api.post<PortalResponse>('billing/portal')
+  return response.data
+}
 
 export default api

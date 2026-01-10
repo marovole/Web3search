@@ -28,6 +28,20 @@ declare module 'hono' {
       id: string
       email?: string
       username?: string
+      plan?: 'free' | 'pro' | 'team'
+    }
+
+    /**
+     * JWT payload from Supabase Auth
+     * Available after jwt middleware verification
+     */
+    jwtPayload?: {
+      sub: string
+      email?: string
+      role?: string
+      aud?: string
+      exp?: number
+      iat?: number
     }
   }
 }

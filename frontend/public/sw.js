@@ -236,6 +236,107 @@ self.addEventListener('sync', (event) => {
 })
 
 async function doBackgroundSync() {
-  // 这里可以执行后台同步逻辑
   console.log('Background sync triggered')
 }
+
+self.addEventListener('push', (event) => {
+  console.log('[SW] Push notification received')
+  
+  let data = {
+    title: 'Web3search',
+    body: '您有新的通知',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/badge-72x72.png',
+    tag: 'default',
+    data: {}
+  }
+
+  if (event.data) {
+    try {
+      const payload = event.data.json()
+      data = { ...data, ...payload }
+    } catch (e) {
+      console.error('[SW] Failed to parse push data:', e)
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: data.icon,
+    badge: data.badge,
+    tag: data.tag,
+    data: data.data,
+    vibrate: [200, 100, 200],
+    requireInteraction: data.data?.type === 'price_alert' || data.data?.type === 'risk_alert',
+    actions: data.actions || []
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification clicked:', event.action)
+  
+  event.notification.close()
+
+  const data = event.notification.data || {}
+  let targetUrl = '/'
+
+  if (event.action === 'view' || !event.action) {
+    if (data.link) {
+      targetUrl = data.link
+    } else if (data.type === 'price_alert') {
+      targetUrl = '/notifications?type=price_alert'
+    } else if (data.type === 'risk_alert') {
+      targetUrl = '/notifications?type=risk_alert'
+    } else if (data.type === 'news_brief') {
+      targetUrl = '/notifications?type=news_brief'
+    } else {
+      targetUrl = '/notifications'
+    }
+  } else if (event.action === 'dismiss') {
+    return
+  }
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if (client.url.includes(self.location.origin) && 'focus' in client) {
+            client.navigate(targetUrl)
+            return client.focus()
+          }
+        }
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(targetUrl)
+        }
+      })
+  )
+})
+
+self.addEventListener('notificationclose', (event) => {
+  console.log('[SW] Notification closed')
+})
+
+self.addEventListener('pushsubscriptionchange', (event) => {
+  console.log('[SW] Push subscription changed')
+  
+  event.waitUntil(
+    self.registration.pushManager.subscribe(event.oldSubscription.options)
+      .then((subscription) => {
+        return fetch('/api/v1/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint: subscription.endpoint,
+            keys: {
+              p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh')))),
+              auth: btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth'))))
+            }
+          })
+        })
+      })
+  )
+})

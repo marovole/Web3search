@@ -1,6 +1,3 @@
-/**
- * 注册表单组件
- */
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -14,7 +11,7 @@ import { Loader2 } from 'lucide-react'
 
 export const RegisterForm: React.FC = () => {
   const navigate = useNavigate()
-  const { register: registerUser } = useAuth()
+  const { signUp } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
 
   const {
@@ -28,24 +25,20 @@ export const RegisterForm: React.FC = () => {
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true)
     try {
-      await registerUser({
-        email: data.email,
-        password: data.password,
-        username: data.username,
-      })
+      const { error } = await signUp(data.email, data.password)
+      if (error) {
+        throw error
+      }
       toast({
         title: '注册成功',
-        description: '欢迎加入 Web3Search！',
+        description: '请查收邮件验证您的账户！',
         variant: 'success',
       })
 
-      // 注册成功后自动登录，重定向到首页
-      navigate('/', { replace: true })
-    } catch (error: any) {
-      const errorMessage =
-        error?.response?.data?.detail ||
-        error?.message ||
-        '注册失败，请检查您的输入信息'
+      navigate('/auth/login', { replace: true })
+    } catch (error: unknown) {
+      const err = error as Error
+      const errorMessage = err?.message || '注册失败，请检查您的输入信息'
       toast({
         title: '注册失败',
         description: errorMessage,

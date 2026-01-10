@@ -15,6 +15,19 @@ import chatV2Routes from './routes/chat-v2'
 import deepResearchRoutes from './routes/deep-research'
 import reportRoutes from './routes/reports'
 import trendingRoutes from './routes/trending'
+import githubRoutes from './routes/github'
+import authRoutes from './routes/auth'
+import usersRoutes from './routes/users'
+import billingRoutes from './routes/billing'
+import watchlistRoutes from './routes/watchlist'
+import agentsRoutes from './routes/agents'
+import notificationsRoutes from './routes/notifications'
+import pushRoutes from './routes/push'
+import holdingsRoutes from './routes/holdings'
+import diagnosesRoutes from './routes/diagnoses'
+import recommendationsRoutes from './routes/recommendations'
+import conversationRoutes from './routes/conversation'
+import activityRoutes from './routes/activity'
 
 // Create main Hono app
 const app = new Hono<{ Bindings: Env }>()
@@ -43,6 +56,9 @@ app.get('/', (c) => {
       deepResearch: '/api/v1/deep-research (Async research tasks)',
       reports: '/api/v1/reports/generate',
       trending: '/api/v1/trending/hotspots',
+      auth: '/api/v1/auth/me (Requires auth)',
+      users: '/api/v1/users/profile (Requires auth)',
+      notifications: '/api/v1/notifications (Requires auth)',
     },
   })
 })
@@ -58,6 +74,19 @@ app.route('/api/v2/chat', chatV2Routes)
 app.route('/api/v1/deep-research', deepResearchRoutes)
 app.route('/api/v1/reports', reportRoutes)
 app.route('/api/v1/trending', trendingRoutes)
+app.route('/api/v1/github', githubRoutes)
+app.route('/api/v1/auth', authRoutes)
+app.route('/api/v1/users', usersRoutes)
+app.route('/api/v1/billing', billingRoutes)
+app.route('/api/v1/watchlist', watchlistRoutes)
+app.route('/api/v1/agents', agentsRoutes)
+app.route('/api/v1/notifications', notificationsRoutes)
+app.route('/api/v1/push', pushRoutes)
+app.route('/api/v1/holdings', holdingsRoutes)
+app.route('/api/v1/diagnoses', diagnosesRoutes)
+app.route('/api/v1/recommendations', recommendationsRoutes)
+app.route('/api/v1/agents/conversation', conversationRoutes)
+app.route('/api/v1/agents/activity', activityRoutes)
 
 // ============================================
 // 404 Handler
@@ -87,14 +116,29 @@ export async function scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionC
 
   try {
     switch (event.cron) {
-      case '*/5 * * * *': // Every 5 minutes - Health checks
+      case '*/5 * * * *':
+        await runAgentTasks(env, 'price_alert')
         await runHealthChecks(env, ctx)
         break
-      case '0 * * * *': // Every hour - KV cache cleanup
+      case '0 * * * *':
+        await runAgentTasks(env, 'risk_monitor')
+        await runAgentTasks(env, 'news_brief')
         await runKvCacheCleanup(env, ctx)
         break
-      case '*/10 * * * *': // Every 10 minutes - Supabase keep-alive
+      case '*/10 * * * *':
         await runSupabaseKeepAlive(env)
+        break
+      case '0 0 * * *':
+        await runDailyQuotaReset(env)
+        break
+      case '0 0 1 * *':
+        await runMonthlyQuotaReset(env)
+        break
+      case '0 9 * * 1':
+        await runAgentTasks(env, 'portfolio_health')
+        break
+      case '0 10 * * 3':
+        await runAgentTasks(env, 'opportunity_finder')
         break
       default:
         console.log(`[Scheduled] Unknown cron schedule: ${event.cron}`)
@@ -270,6 +314,150 @@ async function runKvCacheCleanup(env: Env, ctx: ExecutionContext) {
     console.log(`[Scheduled] KV cache cleanup completed: ${cleanedCount} entries removed`)
   } catch (error) {
     console.error('[Scheduled] KV cache cleanup failed:', error)
+  }
+}
+
+async function runDailyQuotaReset(env: Env) {
+  const { getSupabaseClient } = await import('./lib/supabase')
+  const supabase = getSupabaseClient(env, true)
+
+  try {
+    const { error } = await supabase.rpc('reset_daily_quotas')
+    if (error) {
+      console.error('[Scheduled] Daily quota reset RPC failed, using direct update:', error)
+      await supabase
+        .from('user_quotas')
+        .update({
+          daily_alerts_sent: 0,
+          daily_deep_research: 0,
+          daily_quick_chat: 0,
+          daily_reset_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        })
+        .lte('daily_reset_at', new Date().toISOString())
+    }
+    console.log('[Scheduled] Daily quota reset completed')
+  } catch (error) {
+    console.error('[Scheduled] Daily quota reset failed:', error)
+  }
+}
+
+async function runMonthlyQuotaReset(env: Env) {
+  const { getSupabaseClient } = await import('./lib/supabase')
+  const supabase = getSupabaseClient(env, true)
+
+  try {
+    const { error } = await supabase.rpc('reset_monthly_quotas')
+    if (error) {
+      console.error('[Scheduled] Monthly quota reset RPC failed, using direct update:', error)
+      const nextMonth = new Date()
+      nextMonth.setMonth(nextMonth.getMonth() + 1)
+      nextMonth.setDate(1)
+      nextMonth.setHours(0, 0, 0, 0)
+
+      await supabase
+        .from('user_quotas')
+        .update({
+          monthly_reports: 0,
+          monthly_reset_at: nextMonth.toISOString(),
+        })
+        .lte('monthly_reset_at', new Date().toISOString())
+    }
+    console.log('[Scheduled] Monthly quota reset completed')
+  } catch (error) {
+    console.error('[Scheduled] Monthly quota reset failed:', error)
+  }
+}
+
+async function runAgentTasks(env: Env, taskType: string) {
+  if (taskType === 'price_alert') {
+    const { processPriceAlerts } = await import('./lib/price-alert-processor')
+    await processPriceAlerts(env)
+    return
+  }
+
+  if (taskType === 'risk_monitor') {
+    const { processRiskMonitor } = await import('./lib/risk-monitor-processor')
+    await processRiskMonitor(env)
+    return
+  }
+
+  if (taskType === 'news_brief') {
+    const { processNewsBrief } = await import('./lib/news-brief-processor')
+    await processNewsBrief(env)
+    return
+  }
+
+  if (taskType === 'portfolio_health') {
+    const { processPortfolioDiagnosis } = await import('./lib/portfolio-diagnosis-processor')
+    await processPortfolioDiagnosis(env)
+    return
+  }
+
+  if (taskType === 'opportunity_finder') {
+    const { processOpportunityDiscovery } = await import('./lib/opportunity-discovery-processor')
+    await processOpportunityDiscovery(env)
+    return
+  }
+
+  const { getSupabaseClient } = await import('./lib/supabase')
+  const { executeAgentTask } = await import('./lib/agent-engine')
+  const supabase = getSupabaseClient(env, true)
+
+  try {
+    const now = new Date()
+    const { data: dueTasks, error } = await supabase
+      .from('agent_tasks')
+      .select('id, user_id, task_type, config')
+      .eq('task_type', taskType)
+      .eq('status', 'active')
+      .or(`next_run_at.is.null,next_run_at.lte.${now.toISOString()}`)
+      .limit(50)
+
+    if (error) {
+      console.error(`[AgentTasks] Failed to fetch ${taskType} tasks:`, error)
+      return
+    }
+
+    if (!dueTasks || dueTasks.length === 0) {
+      console.log(`[AgentTasks] No due ${taskType} tasks`)
+      return
+    }
+
+    console.log(`[AgentTasks] Processing ${dueTasks.length} ${taskType} tasks`)
+
+    for (const task of dueTasks) {
+      try {
+        await executeAgentTask(env, task.id, task.user_id, task.task_type, task.config)
+
+        const nextRunAt = calculateNextRun(taskType)
+        await supabase
+          .from('agent_tasks')
+          .update({ next_run_at: nextRunAt.toISOString() })
+          .eq('id', task.id)
+      } catch (taskError) {
+        console.error(`[AgentTasks] Task ${task.id} execution failed:`, taskError)
+      }
+    }
+
+    console.log(`[AgentTasks] Completed ${taskType} tasks`)
+  } catch (error) {
+    console.error(`[AgentTasks] Error running ${taskType} tasks:`, error)
+  }
+}
+
+function calculateNextRun(taskType: string): Date {
+  const now = new Date()
+  switch (taskType) {
+    case 'price_alert':
+      return new Date(now.getTime() + 5 * 60 * 1000)
+    case 'risk_monitor':
+    case 'news_brief':
+      return new Date(now.getTime() + 60 * 60 * 1000)
+    case 'portfolio_health':
+    case 'opportunity_finder':
+      return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+    default:
+      return new Date(now.getTime() + 60 * 60 * 1000)
   }
 }
 

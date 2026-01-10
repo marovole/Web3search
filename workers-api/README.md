@@ -85,6 +85,56 @@ npm run type-check       # TypeScript 类型检查
 - `POST /api/v1/reports/generate` - 生成报告
 - `GET /api/v1/reports/:id` - 查询报告状态
 
+### AI Agent System
+
+#### Agent Tasks
+- `GET /api/v1/agents/tasks` - List user's agent tasks
+- `POST /api/v1/agents/tasks` - Create new agent task
+- `GET /api/v1/agents/tasks/:id` - Get task details
+- `PATCH /api/v1/agents/tasks/:id` - Update task
+- `DELETE /api/v1/agents/tasks/:id` - Delete task
+- `POST /api/v1/agents/tasks/:id/pause` - Pause task
+- `POST /api/v1/agents/tasks/:id/resume` - Resume task
+- `GET /api/v1/agents/tasks/:id/runs` - Get task execution history
+
+#### Conversation (AI Chat)
+- `POST /api/v1/agents/conversation` - Send message, parse intent
+- `GET /api/v1/agents/conversation/stream` - SSE streaming responses
+- `GET /api/v1/agents/conversation/history` - Get chat history
+
+#### Activity Log
+- `GET /api/v1/agents/activity/dashboard` - Dashboard stats
+- `GET /api/v1/agents/activity/logs` - Activity logs with filtering
+- `GET /api/v1/agents/activity/stream` - SSE real-time updates
+
+### Notifications
+- `GET /api/v1/notifications` - List notifications
+- `PATCH /api/v1/notifications/:id/read` - Mark as read
+- `POST /api/v1/notifications/read-all` - Mark all read
+- `DELETE /api/v1/notifications/:id` - Delete notification
+
+### Push Notifications
+- `POST /api/v1/push/subscribe` - Subscribe to push
+- `DELETE /api/v1/push/unsubscribe` - Unsubscribe
+- `POST /api/v1/push/test` - Send test notification
+
+### Watchlist
+- `GET /api/v1/watchlist` - List watchlist items
+- `POST /api/v1/watchlist` - Add token to watchlist
+- `PATCH /api/v1/watchlist/:id` - Update watchlist item
+- `DELETE /api/v1/watchlist/:id` - Remove from watchlist
+
+### Authentication
+- `GET /api/v1/auth/me` - Get current user
+- `GET /api/v1/users/profile` - Get user profile
+- `PATCH /api/v1/users/profile` - Update profile
+- `GET /api/v1/users/quota` - Get quota usage
+
+### Billing
+- `POST /api/v1/billing/checkout` - Create checkout session
+- `POST /api/v1/billing/portal` - Create billing portal session
+- `POST /api/v1/billing/webhook` - Stripe webhook handler
+
 ## 🔐 部署到 Cloudflare
 
 ### 1. 登录 Cloudflare

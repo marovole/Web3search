@@ -25,8 +25,15 @@ const WatchlistPage = React.lazy(() => import('./pages/WatchlistPage'))
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'))
 const SearchPage = React.lazy(() => import('./pages/SearchPage'))
 const GitHubSearchPage = React.lazy(() => import('./pages/GitHubSearchPage'))
+const AgentsPage = React.lazy(() => import('./pages/AgentsPage'))
+const UpgradePage = React.lazy(() => import('./pages/UpgradePage'))
+const NotificationsPage = React.lazy(() => import('./pages/NotificationsPage'))
 const ReportsPage = React.lazy(() => import('./pages/ReportsPage'))
 const AnalyticsPage = React.lazy(() => import('./pages/AnalyticsPage'))
+const HoldingsPage = React.lazy(() => import('./pages/HoldingsPage'))
+const RecommendationsPage = React.lazy(() => import('./pages/RecommendationsPage'))
+const AgentChatPage = React.lazy(() => import('./pages/AgentChatPage'))
+const AgentDashboardPage = React.lazy(() => import('./pages/AgentDashboardPage'))
 
 // 懒加载认证页面组件
 const LoginPage = React.lazy(() => import('./pages/Auth/LoginPage'))
@@ -206,6 +213,21 @@ function App() {
                                     <GitHubSearchPage />
                                   </Suspense>
                                 } />
+                                <Route path="/agents" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
+                                    <AgentsPage />
+                                  </Suspense>
+                                } />
+                                <Route path="/upgrade" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
+                                    <UpgradePage />
+                                  </Suspense>
+                                } />
+                                <Route path="/notifications" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
+                                    <NotificationsPage />
+                                  </Suspense>
+                                } />
                                 <Route path="/settings" element={
                                   <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
                                     <SettingsPage />
@@ -219,6 +241,41 @@ function App() {
                                 <Route path="/analytics" element={
                                   <Suspense fallback={<AdaptiveSkeleton pageType="search" />}>
                                     <AnalyticsPage />
+                                  </Suspense>
+                                } />
+                                <Route path="/holdings" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="search" />}>
+                                    <HoldingsPage />
+                                  </Suspense>
+                                } />
+                                <Route path="/portfolio" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="search" />}>
+                                    <HoldingsPage />
+                                  </Suspense>
+                                } />
+                                <Route path="/recommendations" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="search" />}>
+                                    <RecommendationsPage />
+                                  </Suspense>
+                                } />
+                                <Route path="/discover" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="search" />}>
+                                    <RecommendationsPage />
+                                  </Suspense>
+                                } />
+                                <Route path="/agent-chat" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="chat" />}>
+                                    <AgentChatPage />
+                                  </Suspense>
+                                } />
+                                <Route path="/assistant" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="chat" />}>
+                                    <AgentChatPage />
+                                  </Suspense>
+                                } />
+                                <Route path="/agent-dashboard" element={
+                                  <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
+                                    <AgentDashboardPage />
                                   </Suspense>
                                 } />
                               </Routes>

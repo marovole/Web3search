@@ -20,6 +20,9 @@ export interface Env {
   TAVILY_API_KEY?: string
   SERPER_API_KEY?: string
 
+  // GitHub API
+  GITHUB_TOKEN?: string
+
   // KV Namespace (Cache) - Optional for now
   CACHE?: KVNamespace
 
@@ -29,6 +32,23 @@ export interface Env {
   // Sentry Error Monitoring (Optional)
   SENTRY_DSN?: string
   SENTRY_TRACES_SAMPLE_RATE?: string // Performance monitoring sample rate (0.0-1.0)
+
+  // Supabase Auth (JWT verification)
+  SUPABASE_JWT_SECRET?: string
+
+  // Stripe (Subscription billing)
+  STRIPE_SECRET_KEY?: string
+  STRIPE_WEBHOOK_SECRET?: string
+  STRIPE_PRO_PRICE_ID?: string
+  STRIPE_TEAM_PRICE_ID?: string
+
+  // VAPID (Web Push)
+  VAPID_PUBLIC_KEY?: string
+  VAPID_PRIVATE_KEY?: string
+  VAPID_SUBJECT?: string
+
+  // CryptoPanic (News)
+  CRYPTOPANIC_API_KEY?: string
 
   // Client Session Tracking
   CLIENT_SESSION_ID?: string

@@ -15,10 +15,12 @@ import {
   Clock,
   Star,
   Bot,
-  Menu
+  Menu,
+  Bell
 } from 'lucide-react'
 import { useKeyboardShortcutsContext } from '@/contexts/KeyboardShortcutsContext'
 import UserMenu from './UserMenu'
+import { NotificationDropdown } from '@/components/Notifications'
 
 interface SidebarItemProps {
   icon: React.ReactNode
@@ -221,6 +223,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       isActive: currentPath === '/agents'
     },
     {
+      icon: <Bell size={18} />,
+      label: '通知中心',
+      href: '/notifications',
+      isActive: currentPath === '/notifications'
+    },
+    {
       icon: <FileText size={18} />,
       label: '报告',
       href: '/reports',
@@ -340,6 +348,11 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Footer */}
         <div className="px-3 py-3 border-t border-border/40 space-y-2">
+          {/* Notifications */}
+          <div className="flex items-center justify-between px-3 py-2">
+            <NotificationDropdown />
+          </div>
+
           <UserMenu />
 
           {/* Keyboard Shortcuts */}

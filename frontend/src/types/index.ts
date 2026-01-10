@@ -79,6 +79,9 @@ export interface Report {
   completed_at?: string
 }
 
+// Billing types
+export * from './billing'
+
 // Error types
 export interface APIError {
   detail: string
