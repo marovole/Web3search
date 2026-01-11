@@ -30,6 +30,10 @@ export default {
     '^.+\\.module\\.(css|sass|scss)$': 'identity-obj-proxy',
     '^.+\\.(css|sass|scss)$': '<rootDir>/__mocks__/styleMock.js',
     '^.+\\.(jpg|jpeg|png|gif|webp|avif|svg)$': '<rootDir>/__mocks__/fileMock.js',
+    '^(\\.\\./)*utils/env$': '<rootDir>/src/__tests__/mocks/envMock.ts',
+    '^@/utils/env$': '<rootDir>/src/__tests__/mocks/envMock.ts',
+    '^(\\.\\./)*utils/logger$': '<rootDir>/src/__tests__/mocks/loggerMock.ts',
+    '^@/utils/logger$': '<rootDir>/src/__tests__/mocks/loggerMock.ts',
   },
   
   // Test file patterns
@@ -84,6 +88,9 @@ export default {
     '<rootDir>/node_modules/',
     '<rootDir>/dist/',
     '<rootDir>/build/',
+    '<rootDir>/src/__tests__/mocks/',
+    '<rootDir>/src/__tests__/utils/',
+    '<rootDir>/src/__tests__/factories/',
   ],
   
   // Transform ignore patterns - allow transformation of specific ES modules

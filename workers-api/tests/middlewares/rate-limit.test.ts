@@ -45,16 +45,29 @@ async function sendRateLimitedRequest(
 
 /**
  * Build the KV key used by the rate limiter
- * Useful for verifying storage behavior
+ * Must match the implementation's key format including configHash
  */
+function createConfigHash(scope: string, limit: number, windowSeconds: number): string {
+  const config = `${scope}:${limit}:${windowSeconds}`
+  let hash = 0
+  for (let i = 0; i < config.length; i++) {
+    const char = config.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash
+  }
+  return Math.abs(hash).toString(36)
+}
+
 function buildKvKey(
   scope: string,
   identifier: string,
   windowSeconds: number,
-  timeMs: number
+  timeMs: number,
+  limit: number = 5
 ) {
   const windowId = Math.floor(timeMs / 1000 / windowSeconds)
-  return `ratelimit:${scope}:${identifier}:${windowId}`
+  const configHash = createConfigHash(scope, limit, windowSeconds)
+  return `ratelimit:${configHash}:${scope}:${identifier}:${windowId}`
 }
 
 // ============================================
@@ -194,10 +207,10 @@ describe('createRateLimitMiddleware', () => {
       expect(response.headers.get('X-RateLimit-Remaining')).toBe('4')
 
       // KV should have the counter with proper TTL
-      const key = buildKvKey('test-endpoint', '203.0.113.1', 60, nowMs)
+      const key = buildKvKey('test-endpoint', '203.0.113.1', 60, nowMs, 5)
       const entry = store.get(key)
       expect(entry?.value).toBe('1')
-      expect(entry?.expiration).toBe(Math.floor(nowMs / 1000) + 60)
+      expect(entry?.expiration).toBe(Math.floor(nowMs / 1000) + 120)
     })
 
     it('increments counter for subsequent requests', async () => {
@@ -226,7 +239,7 @@ describe('createRateLimitMiddleware', () => {
       expect(response3.headers.get('X-RateLimit-Remaining')).toBe('0')
 
       // Verify final counter value
-      const key = buildKvKey('test-endpoint', '203.0.113.2', 30, nowMs)
+      const key = buildKvKey('test-endpoint', '203.0.113.2', 30, nowMs, 3)
       const entry = store.get(key)
       expect(entry?.value).toBe('3')
     })
@@ -322,7 +335,7 @@ describe('createRateLimitMiddleware', () => {
       await sendRateLimitedRequest(app, env, headers)
       await sendRateLimitedRequest(app, env, headers)
 
-      const firstWindowKey = buildKvKey('test', '3.3.3.3', 60, 0)
+      const firstWindowKey = buildKvKey('test', '3.3.3.3', 60, 0, 2)
       expect(store.get(firstWindowKey)?.value).toBe('2')
 
       // Advance to next window (t=60s)
@@ -333,7 +346,7 @@ describe('createRateLimitMiddleware', () => {
       expect(response.headers.get('X-RateLimit-Remaining')).toBe('1')
 
       // Should have new key for new window
-      const secondWindowKey = buildKvKey('test', '3.3.3.3', 60, 60000)
+      const secondWindowKey = buildKvKey('test', '3.3.3.3', 60, 60000, 2)
       expect(store.get(secondWindowKey)?.value).toBe('1')
     })
   })
@@ -452,8 +465,8 @@ describe('createRateLimitMiddleware', () => {
       const keys = Array.from(store.keys())
       expect(keys).toEqual(
         expect.arrayContaining([
-          buildKvKey('api-key', 'client-a', 30, nowMs),
-          buildKvKey('api-key', 'client-b', 30, nowMs),
+          buildKvKey('api-key', 'client-a', 30, nowMs, 1),
+          buildKvKey('api-key', 'client-b', 30, nowMs, 1),
         ])
       )
     })
@@ -476,7 +489,7 @@ describe('createRateLimitMiddleware', () => {
       expect(response.status).toBe(200)
 
       // Should use 'anonymous' as identifier
-      const key = buildKvKey('test', 'anonymous', 30, nowMs)
+      const key = buildKvKey('test', 'anonymous', 30, nowMs, 2)
       expect(store.has(key)).toBe(true)
     })
   })
@@ -497,7 +510,7 @@ describe('createRateLimitMiddleware', () => {
         'cf-connecting-ip': '10.0.0.1',
       })
 
-      const key = buildKvKey('test', '10.0.0.1', 30, nowMs)
+      const key = buildKvKey('test', '10.0.0.1', 30, nowMs, 5)
       expect(store.has(key)).toBe(true)
     })
 
@@ -514,7 +527,7 @@ describe('createRateLimitMiddleware', () => {
 
       await sendRateLimitedRequest(app, env, {})
 
-      const key = buildKvKey('test', 'anonymous', 30, nowMs)
+      const key = buildKvKey('test', 'anonymous', 30, nowMs, 5)
       expect(store.has(key)).toBe(true)
     })
   })

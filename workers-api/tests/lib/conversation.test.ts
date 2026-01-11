@@ -290,6 +290,7 @@ describe('conversation utilities', () => {
         conversation_id: 'conv-123',
         role: 'user',
         content: 'What is Ethereum?',
+        metadata: {},
       })
     })
 
@@ -345,7 +346,7 @@ describe('conversation utilities', () => {
         metadata: null,
       })
 
-      expect(insertedMessages[0].payload.metadata).toBeNull()
+      expect(insertedMessages[0].payload.metadata).toEqual({})
     })
 
     it('logs warning and returns undefined when insert fails', async () => {

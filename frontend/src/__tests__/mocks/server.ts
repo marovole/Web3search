@@ -1,41 +1,40 @@
+import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { handlers } from './handlers';
 
-// Setup MSW server with our handlers
+export const handlers = [
+  http.get('/api/v1/health', () => {
+    return HttpResponse.json({ status: 'ok' });
+  }),
+];
+
 export const server = setupServer(...handlers);
 
-// Test lifecycle helpers
 export const setupMockServer = () => {
   beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
   afterEach(() => server.resetHandlers());
   afterAll(() => server.close());
 };
 
-// Helper to add custom handlers for specific tests
-export const addCustomHandler = (handler: any) => {
+export const addCustomHandler = (handler: Parameters<typeof server.use>[0]) => {
   server.use(handler);
 };
 
-// Helper to mock specific responses
 export const mockApiResponse = (
   method: 'get' | 'post' | 'put' | 'delete',
   url: string,
-  response: any,
+  response: unknown,
   status = 200
 ) => {
   const handler = {
-    get: rest.get,
-    post: rest.post,
-    put: rest.put,
-    delete: rest.delete,
+    get: http.get,
+    post: http.post,
+    put: http.put,
+    delete: http.delete,
   }[method];
 
   server.use(
-    handler(url, (req, res, ctx) => {
-      return res(
-        ctx.status(status),
-        ctx.json(response)
-      );
+    handler(url, () => {
+      return HttpResponse.json(response, { status });
     })
   );
 };

@@ -4,6 +4,34 @@
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
 
+// Mock import.meta.env for Jest (Vite uses import.meta.env)
+// This must be set before any modules that use import.meta.env are imported
+Object.defineProperty(globalThis, 'import', {
+  value: {
+    meta: {
+      env: {
+        VITE_ENVIRONMENT: 'development',
+        VITE_USE_MOCK_API: 'false',
+        VITE_API_BASE_URL: 'http://localhost:8787',
+        VITE_ENABLE_SENTRY: 'false',
+        VITE_ENABLE_ANALYTICS: 'false',
+        VITE_ENABLE_EXPERIMENTAL_FEATURES: 'false',
+        VITE_ENABLE_PERFORMANCE_MONITORING: 'false',
+        VITE_DEBUG_MODE: 'false',
+        VITE_SENTRY_DSN: '',
+        VITE_SENTRY_ENVIRONMENT: 'development',
+        VITE_GA_MEASUREMENT_ID: '',
+        VITE_DEFAULT_CHAT_MODE: 'quick',
+        MODE: 'test',
+        DEV: true,
+        PROD: false,
+      },
+    },
+  },
+  configurable: true,
+  writable: true,
+});
+
 // Polyfill for Node.js environment
 import { TextEncoder, TextDecoder } from 'util';
 
@@ -18,11 +46,20 @@ global.TransformStream = TransformStream;
 global.WritableStream = WritableStream;
 
 // Polyfill BroadcastChannel for jest/jsdom environment
-// This is required for components that use BroadcastChannel API
-// See: https://github.com/pubkey/broadcast-channel
-import { BroadcastChannel as BroadcastChannelPolyfill } from 'broadcast-channel';
-if (!global.BroadcastChannel) {
-  global.BroadcastChannel = BroadcastChannelPolyfill as any;
+if (typeof global.BroadcastChannel === 'undefined') {
+  global.BroadcastChannel = class MockBroadcastChannel {
+    name: string;
+    constructor(name: string) {
+      this.name = name;
+    }
+    postMessage(_message: unknown) {}
+    close() {}
+    onmessage: ((event: MessageEvent) => void) | null = null;
+    onmessageerror: ((event: MessageEvent) => void) | null = null;
+    addEventListener(_type: string, _listener: EventListener) {}
+    removeEventListener(_type: string, _listener: EventListener) {}
+    dispatchEvent(_event: Event): boolean { return true; }
+  } as unknown as typeof BroadcastChannel;
 }
 
 // Polyfill fetch and Response for Node.js environment
