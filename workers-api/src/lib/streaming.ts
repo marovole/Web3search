@@ -346,11 +346,211 @@ export function monitorStream(
   })
 }
 
+// ============================================
+// Unified SSE Utilities (Clean Code Refactor)
+// ============================================
+
+/**
+ * SSE stream configuration
+ */
+export interface SSEStreamConfig {
+  /** Heartbeat interval in milliseconds (default: 15000 for Cloudflare) */
+  heartbeatMs?: number
+  /** Heartbeat message (default: ': keep-alive\n\n') */
+  heartbeatMessage?: string
+  /** Request ID for logging correlation */
+  requestId?: string
+}
+
+/**
+ * SSE stream controller with built-in heartbeat management
+ * Prevents Cloudflare's 100-second idle timeout
+ *
+ * @example
+ * ```typescript
+ * const sse = createSSEStreamWithHeartbeat({
+ *   heartbeatMs: 15000,
+ *   requestId: c.get('requestId')
+ * })
+ *
+ * // Use sse.stream as Response body
+ * // Call sse.send() to emit events
+ * // Call sse.close() when done
+ * ```
+ */
+export function createSSEStreamWithHeartbeat(config: SSEStreamConfig = {}) {
+  const {
+    heartbeatMs = 15000,
+    heartbeatMessage = ': keep-alive\n\n',
+  } = config
+
+  const encoder = new TextEncoder()
+  let controller: ReadableStreamDefaultController<Uint8Array> | null = null
+  let heartbeatInterval: ReturnType<typeof setInterval> | null = null
+  let isClosed = false
+
+  const cleanup = () => {
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval)
+      heartbeatInterval = null
+    }
+    isClosed = true
+  }
+
+  const stream = new ReadableStream<Uint8Array>({
+    start(ctrl) {
+      controller = ctrl
+
+      // Start heartbeat to prevent Cloudflare timeout
+      heartbeatInterval = setInterval(() => {
+        if (isClosed || !controller) return
+        try {
+          controller.enqueue(encoder.encode(heartbeatMessage))
+        } catch {
+          // Controller might be closed, cleanup
+          cleanup()
+        }
+      }, heartbeatMs)
+    },
+    cancel() {
+      cleanup()
+    },
+  })
+
+  return {
+    /** The ReadableStream to use as Response body */
+    stream,
+
+    /**
+     * Send an SSE event
+     * @param event - Event name (optional)
+     * @param data - Event data (will be JSON.stringify'd if object)
+     */
+    send: (data: string | Record<string, unknown>, event?: string) => {
+      if (isClosed || !controller) return false
+
+      try {
+        let message = ''
+        if (event) {
+          message += `event: ${event}\n`
+        }
+        const dataStr = typeof data === 'string' ? data : JSON.stringify(data)
+        message += `data: ${dataStr}\n\n`
+        controller.enqueue(encoder.encode(message))
+        return true
+      } catch {
+        cleanup()
+        return false
+      }
+    },
+
+    /**
+     * Send raw text (for custom formatting)
+     */
+    sendRaw: (text: string) => {
+      if (isClosed || !controller) return false
+      try {
+        controller.enqueue(encoder.encode(text))
+        return true
+      } catch {
+        cleanup()
+        return false
+      }
+    },
+
+    /**
+     * Send an error event and optionally close
+     */
+    sendError: (error: string | Error, closeAfter = false) => {
+      if (isClosed || !controller) return
+
+      const errorData = {
+        error: typeof error === 'string' ? error : error.message,
+        type: 'error',
+      }
+      try {
+        controller.enqueue(
+          encoder.encode(`event: error\ndata: ${JSON.stringify(errorData)}\n\n`)
+        )
+        if (closeAfter) {
+          cleanup()
+          controller.close()
+        }
+      } catch {
+        cleanup()
+      }
+    },
+
+    /**
+     * Send done event and close the stream
+     */
+    complete: (finalData?: Record<string, unknown>) => {
+      if (isClosed || !controller) return
+
+      try {
+        const doneData = { status: 'completed', ...finalData }
+        controller.enqueue(
+          encoder.encode(`event: done\ndata: ${JSON.stringify(doneData)}\n\n`)
+        )
+      } catch {
+        // Ignore
+      } finally {
+        cleanup()
+        try {
+          controller?.close()
+        } catch {
+          // Already closed
+        }
+      }
+    },
+
+    /**
+     * Close the stream without sending done event
+     */
+    close: () => {
+      cleanup()
+      try {
+        controller?.close()
+      } catch {
+        // Already closed
+      }
+    },
+
+    /**
+     * Check if stream is still open
+     */
+    get isOpen() {
+      return !isClosed
+    },
+  }
+}
+
+/**
+ * Create SSE Response with proper headers
+ */
+export function createSSEResponse(stream: ReadableStream<Uint8Array>): Response {
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no', // Disable nginx buffering
+    },
+  })
+}
+
+/**
+ * Helper type for SSE stream controller
+ */
+export type SSEController = ReturnType<typeof createSSEStreamWithHeartbeat>
+
 // Export for tests
 export default {
   parseStreamResponse,
   aggregateStream,
   createStreamingResponse,
   withTimeout,
-  monitorStream
+  monitorStream,
+  createSSEStreamWithHeartbeat,
+  createSSEResponse,
 }

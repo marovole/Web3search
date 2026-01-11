@@ -28,3 +28,6 @@ export type { UnlockCalendarProps, VestingData } from './UnlockCalendar'
 // Adversarial Q&A
 export { AdversarialQA } from './AdversarialQA'
 export type { AdversarialQAProps } from './AdversarialQA'
+
+// Error Boundary
+export { default as ResearchErrorBoundary } from './ResearchErrorBoundary'

@@ -11,7 +11,7 @@ import AutocompleteInput from './AutocompleteInput'
 import LoadingAnimation from '../Shared/LoadingAnimation'
 import HotspotPanel from '../Hotspot/HotspotPanel'
 import NetworkErrorRetry from '../Error/NetworkErrorRetry'
-import { GlassBoxPanel, RedFlagDashboard, AdversarialQA } from '../Research'
+import { GlassBoxPanel, RedFlagDashboard, AdversarialQA, ResearchErrorBoundary } from '../Research'
 import { cn } from '@/lib/utils'
 import type {
   ToolCallEvent,
@@ -466,11 +466,13 @@ const ChatInterface: React.FC = () => {
 
                 {/* Adversarial Q&A - shows after deep research with questions */}
                 {!isLoading && adversarialQuestions.length > 0 && (
-                  <AdversarialQA
-                    questions={adversarialQuestions}
-                    onQuestionClick={handleQuestionClick}
-                    className="mt-4"
-                  />
+                  <ResearchErrorBoundary componentName="AdversarialQA">
+                    <AdversarialQA
+                      questions={adversarialQuestions}
+                      onQuestionClick={handleQuestionClick}
+                      className="mt-4"
+                    />
+                  </ResearchErrorBoundary>
                 )}
 
                 {quickChatWithRetry.state.error && lastFailedQuery && (

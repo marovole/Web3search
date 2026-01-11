@@ -1,4 +1,3 @@
-import * as React from "react"
 import { Moon, Sun } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -7,29 +6,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useTheme } from "./theme-provider"
 
 export function ThemeToggle() {
-  const [theme, setTheme] = React.useState<"light" | "dark" | "system">(
-    () => (localStorage.getItem("theme") as "light" | "dark" | "system") || "system"
-  )
-
-  React.useEffect(() => {
-    const root = window.document.documentElement
-
-    root.classList.remove("light", "dark")
-
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light"
-
-      root.classList.add(systemTheme)
-      return
-    }
-
-    root.classList.add(theme)
-  }, [theme])
+  const { setTheme } = useTheme()
 
   return (
     <DropdownMenu>

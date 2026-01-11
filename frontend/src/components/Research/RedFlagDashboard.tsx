@@ -12,6 +12,7 @@ import { AlertTriangle } from 'lucide-react'
 import { ScamMeter } from './ScamMeter'
 import { HolderDistribution } from './HolderDistribution'
 import { UnlockCalendar } from './UnlockCalendar'
+import ResearchErrorBoundary from './ResearchErrorBoundary'
 import type { TokenomicsAnalysis } from '@/types/deep-research'
 
 // ============================================================================
@@ -82,11 +83,13 @@ export function RedFlagDashboard({
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <ScamMeter
-            scorecard={tokenomics?.scorecard}
-            redFlags={tokenomics?.red_flags}
-            isLoading={isLoading}
-          />
+          <ResearchErrorBoundary componentName="ScamMeter">
+            <ScamMeter
+              scorecard={tokenomics?.scorecard}
+              redFlags={tokenomics?.red_flags}
+              isLoading={isLoading}
+            />
+          </ResearchErrorBoundary>
         </motion.div>
 
         {/* HolderDistribution */}
@@ -95,12 +98,14 @@ export function RedFlagDashboard({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <HolderDistribution
-            breakdown={tokenomics?.analysis?.allocation?.breakdown}
-            centralizationRisk={tokenomics?.analysis?.allocation?.centralization_risk}
-            insiderPercentage={tokenomics?.analysis?.allocation?.insider_percentage}
-            isLoading={isLoading}
-          />
+          <ResearchErrorBoundary componentName="HolderDistribution">
+            <HolderDistribution
+              breakdown={tokenomics?.analysis?.allocation?.breakdown}
+              centralizationRisk={tokenomics?.analysis?.allocation?.centralization_risk}
+              insiderPercentage={tokenomics?.analysis?.allocation?.insider_percentage}
+              isLoading={isLoading}
+            />
+          </ResearchErrorBoundary>
         </motion.div>
 
         {/* UnlockCalendar */}
@@ -109,10 +114,12 @@ export function RedFlagDashboard({
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <UnlockCalendar
-            vesting={tokenomics?.analysis?.vesting}
-            isLoading={isLoading}
-          />
+          <ResearchErrorBoundary componentName="UnlockCalendar">
+            <UnlockCalendar
+              vesting={tokenomics?.analysis?.vesting}
+              isLoading={isLoading}
+            />
+          </ResearchErrorBoundary>
         </motion.div>
       </div>
 

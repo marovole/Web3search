@@ -6,6 +6,7 @@
  */
 
 import type { OpenRouterPayload } from './openrouter'
+import type { ChatCompletionMessage } from '../types/chat'
 
 /**
  * AI Model Provider Type
@@ -231,7 +232,7 @@ export function validateModelCapabilities(
  */
 export function buildRoutedPayload(
   useCase: keyof typeof ROUTING_STRATEGIES,
-  messages: any[],
+  messages: ChatCompletionMessage[],
   options?: {
     model?: string
     temperature?: number
