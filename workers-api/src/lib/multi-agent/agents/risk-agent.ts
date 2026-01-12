@@ -167,14 +167,14 @@ export class RiskAgent extends BaseSubAgent {
       console.warn(`DexScreener API call failed for ${tokenAddress}:`, error)
     }
 
-    // Check for holder concentration (simulated)
+    // Check for holder concentration
     const priceData = context.collectedData.priceData[tokenAddress]
     if (priceData && priceData.marketCap > 0) {
       // In a real implementation, this would call an API for holder data
       assessment.holderDistribution = {
-        top10HolderPercent: 30, // Placeholder
-        totalHolders: 1000, // Placeholder
-        deployerBalancePercent: 5, // Placeholder
+        top10HolderPercent: undefined,
+        totalHolders: undefined,
+        deployerBalancePercent: undefined,
       }
     }
 
