@@ -62,32 +62,34 @@ export class TaskRouter {
 
     // Pattern-based intent detection
     const patterns = {
+      market_analysis: [
+        /market\s+(analysis|sentiment|outlook)/i,
+        /(price\s+)?trend/i,
+        /(should\s+i|buy|sell|invest)/i,
+        /(bullish|bearish)/i,
+        /price\s+of\s+\$?[A-Z]{2,8}/i,
+      ],
       token_deep_dive: [
         /token\s+(address|contract)?\s*0x[a-f0-9]{40}/i,
-        /\$?[A-Z]{2,8}\s+(token|coin)?\s*(analysis|review|audit)/i,
+        /\$?[A-Z]{2,8}\s+(token|coin)?\s*(review|audit|deep\s*dive)/i,
         /(audit|due\s*diligence)\s+(of|for)\s+\$?[A-Z]{2,8}/i,
-      ],
-      portfolio_review: [
-        /(portfolio|holdings|positions)\s*(analysis|review|check)/i,
-        /(my|your)\s+(portfolio|holdings)/i,
-        /(assess|evaluate)\s+(my|your)\s+(investments|positions)/i,
+        /contract\s+0x[a-f0-9]{40}/i,
       ],
       news_synthesis: [
         /(latest|recent)\s+(news|updates|developments)/i,
         /(summarize|summary)\s+(of\s+)?(the\s+)?(latest\s+)?(crypto|blockchain)?\s*news/i,
         /(what.?s\s+happening|whats\s+new)\s+(in\s+)?(crypto|web3)/i,
       ],
-      market_analysis: [
-        /(market\s+)?analysis/i,
-        /(price\s+)?trend/i,
-        /(should\s+i|buy|sell|invest)/i,
-        /( bullish|bearish|market\s+(sentiment|outlook))/i,
+      portfolio_review: [
+        /(portfolio|holdings|positions)\s*(analysis|review|check)/i,
+        /(my|your)\s+(portfolio|holdings)/i,
+        /(assess|evaluate)\s+(my|your)\s+(investments|positions)/i,
       ],
     }
 
     // Check patterns in order of specificity
     for (const [intent, intentPatterns] of Object.entries(patterns)) {
-      for (const pattern of intentPatterns) {
+      for (const pattern of intentPatterns as RegExp[]) {
         if (pattern.test(queryLower)) {
           return intent as TaskIntent
         }

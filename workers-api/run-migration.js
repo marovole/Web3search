@@ -3,13 +3,23 @@
  * 使用Supabase客户端执行SQL
  */
 
-const fs = require('fs');
-const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
+import 'dotenv/config';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { createClient } from '@supabase/supabase-js';
 
-// 从.dev.vars读取配置
-const SUPABASE_URL = 'https://hxxnkbxyjhhorfeodiji.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh4eG5rYnh5amhob3JmZW9kaWppIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjYzODgwMiwiZXhwIjoyMDc4MjE0ODAyfQ.APx9XNJhCb2m4C7g5jPOqbG4WysG1uZe943afkofi7g';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 从环境变量读取配置
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('❌ 错误: 未找到环境变量 SUPABASE_URL 或 SUPABASE_SERVICE_ROLE_KEY');
+  process.exit(1);
+}
 
 async function runMigration() {
   console.log('🚀 开始执行数据库迁移...\n');

@@ -132,7 +132,7 @@ export class NewsAgent extends BaseSubAgent {
       source: article.source?.name || 'Unknown',
       publishedAt: article.published_at || new Date().toISOString(),
       sentiment: 'neutral' as const,
-      engagement: Math.floor(Math.random() * 1000), // Placeholder
+      engagement: undefined, // Removed placeholder
       snippet: article.description || '',
     }))
   }
@@ -204,20 +204,20 @@ export class NewsAgent extends BaseSubAgent {
     sentimentScore: number
     recentMentions: number
   }> {
-    // Placeholder - in production, this would call APIs like:
+    // In production, this would call APIs like:
     // - Twitter/X API for follower counts
     // - Discord API for server members
     // - Telegram API for group members
     // - DexScreener or similar for holder counts
 
-    // Simulate some social metrics based on token
+    // Data unavailable without API keys
     return {
-      twitterFollowers: Math.floor(Math.random() * 50000),
-      discordMembers: Math.floor(Math.random() * 10000),
-      telegramMembers: Math.floor(Math.random() * 20000),
-      holderCount: Math.floor(Math.random() * 5000),
-      sentimentScore: (Math.random() * 2 - 1), // -1 to 1
-      recentMentions: Math.floor(Math.random() * 500),
+      twitterFollowers: undefined,
+      discordMembers: undefined,
+      telegramMembers: undefined,
+      holderCount: undefined,
+      sentimentScore: 0,
+      recentMentions: 0,
     }
   }
 

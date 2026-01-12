@@ -2,10 +2,16 @@
  * 测试Supabase数据库连接
  */
 
-const { createClient } = require('@supabase/supabase-js');
+import 'dotenv/config';
+import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://hxxnkbxyjhhorfeodiji.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh4eG5rYnh5amhob3JmZW9kaWppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2Mzg4MDIsImV4cCI6MjA3ODIxNDgwMn0.TFIpMV4-akowndYjS7k2xXuHSjrNxkUHoK4QitKluLQ';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error('❌ 错误: 未找到环境变量 SUPABASE_URL 或 SUPABASE_ANON_KEY');
+  process.exit(1);
+}
 
 async function testConnection() {
   console.log('🔍 测试数据库连接...\n');
