@@ -30,6 +30,7 @@ import usersRoutes from './routes/users'
 import billingRoutes from './routes/billing'
 import watchlistRoutes from './routes/watchlist'
 import agentsRoutes from './routes/agents'
+import multiAgentRoutes from './routes/multi-agent'
 import notificationsRoutes from './routes/notifications'
 import pushRoutes from './routes/push'
 import holdingsRoutes from './routes/holdings'
@@ -63,6 +64,7 @@ app.get('/', (c) => {
       chat: '/api/v1/chat/quick-chat (Uses v2 implementation with resilience)',
       chatV2: '/api/v2/chat/quick-chat (Same as v1, enhanced with model routing)',
       deepResearch: '/api/v1/deep-research (Async research tasks)',
+      multiAgent: '/api/v1/multi-agent/research (New Multi-Agent framework)',
       reports: '/api/v1/reports/generate',
       trending: '/api/v1/trending/hotspots',
       auth: '/api/v1/auth/me (Requires auth)',
@@ -89,6 +91,7 @@ app.route('/api/v1/users', usersRoutes)
 app.route('/api/v1/billing', billingRoutes)
 app.route('/api/v1/watchlist', watchlistRoutes)
 app.route('/api/v1/agents', agentsRoutes)
+app.route('/api/v1/multi-agent', multiAgentRoutes)
 app.route('/api/v1/notifications', notificationsRoutes)
 app.route('/api/v1/push', pushRoutes)
 app.route('/api/v1/holdings', holdingsRoutes)
