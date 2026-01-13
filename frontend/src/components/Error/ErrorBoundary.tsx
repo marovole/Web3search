@@ -25,7 +25,7 @@ function categorizeError(error: Error): ErrorType {
     errorMessage.includes('network') ||
     errorMessage.includes('fetch') ||
     errorMessage.includes('axios') ||
-    errorMessage.includes('ECONNREFUSED') ||
+    errorMessage.includes('econnrefused') ||
     errorMessage.includes('timeout')
   ) {
     return 'network'
@@ -103,9 +103,7 @@ class ErrorBoundary extends Component<Props, State> {
       const error = this.state.error
 
       // 生成错误追踪 ID（用于支持查询）
-      const errorTraceId = React.useMemo(() => {
-        return `ERR-${Date.now().toString(36).toUpperCase()}`
-      }, [])
+      const errorTraceId = `ERR-${Date.now().toString(36).toUpperCase()}`
 
       // 默认错误 UI
       return (
@@ -158,7 +156,7 @@ class ErrorBoundary extends Component<Props, State> {
             </button>
 
             <a
-              href="mailto:support@web3search.io?subject=错误报告 - {errorTraceId}&body=错误追踪号: {errorTraceId}%0D%0D错误信息: {error?.message}"
+              href={`mailto:support@web3search.io?subject=${encodeURIComponent(`错误报告 - ${errorTraceId}`)}&body=${encodeURIComponent(`错误追踪号: ${errorTraceId}\n\n错误信息: ${error?.message || '未知错误'}`)}`}
               className="px-6 py-2.5 text-gray-600 hover:text-gray-800 transition-colors"
             >
               联系客服

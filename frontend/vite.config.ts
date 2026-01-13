@@ -148,9 +148,7 @@ export default defineConfig({
           'vendor-map': ['leaflet', 'react-leaflet'],
         },
         // 优化chunk命名
-        chunkFileNames: (chunkInfo) => {
-          // 保持chunk名称的可读性
-          const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop() : 'chunk'
+        chunkFileNames: () => {
           return `js/[name]-[hash].js`
         },
         entryFileNames: 'js/[name]-[hash].js',

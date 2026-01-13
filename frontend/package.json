@@ -53,7 +53,7 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.24",
     "leaflet": "^1.9.4",
-    "lucide-react": "^0.460.0",
+    "lucide-react": "^0.562.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.65.0",
