@@ -4,6 +4,11 @@ import '@testing-library/jest-dom'
 import { BrowserRouter, Routes, Route, MemoryRouter } from 'react-router-dom'
 import { ProtectedRoute } from '../../../components/Auth/ProtectedRoute'
 
+const routerFutureConfig = {
+  v7_startTransition: true,
+  v7_relativeSplatPath: true,
+} as const
+
 const mockProfile = {
   id: 'user-123',
   plan: 'free' as const,
@@ -30,7 +35,7 @@ describe('ProtectedRoute', () => {
     })
 
     render(
-      <BrowserRouter>
+      <BrowserRouter future={routerFutureConfig}>
         <ProtectedRoute>
           <TestChild />
         </ProtectedRoute>
@@ -48,7 +53,7 @@ describe('ProtectedRoute', () => {
     })
 
     render(
-      <BrowserRouter>
+      <BrowserRouter future={routerFutureConfig}>
         <ProtectedRoute>
           <TestChild />
         </ProtectedRoute>
@@ -93,7 +98,7 @@ describe('ProtectedRoute', () => {
     })
 
     render(
-      <BrowserRouter>
+      <BrowserRouter future={routerFutureConfig}>
         <ProtectedRoute requiredPlan="pro">
           <TestChild />
         </ProtectedRoute>
@@ -138,7 +143,7 @@ describe('ProtectedRoute', () => {
     })
 
     render(
-      <BrowserRouter>
+      <BrowserRouter future={routerFutureConfig}>
         <ProtectedRoute requiredPlan="pro">
           <TestChild />
         </ProtectedRoute>

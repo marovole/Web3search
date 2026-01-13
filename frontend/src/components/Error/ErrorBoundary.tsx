@@ -142,7 +142,7 @@ class ErrorBoundary extends Component<Props, State> {
             </button>
           </div>
 
-          {import.meta.env.DEV && this.state.error && (
+          {import.meta.env?.DEV && this.state.error && (
             <details className="mt-6 text-left">
               <summary className="cursor-pointer text-sm font-mono text-red-600">
                 错误详情 (开发模式) - {errorType}

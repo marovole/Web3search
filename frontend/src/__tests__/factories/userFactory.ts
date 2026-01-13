@@ -22,8 +22,8 @@ export interface UserSubscription {
   expiresAt: string;
 }
 
-export const createUserFactory = () => ({
-  build: (overrides: Partial<User> = {}): User => ({
+export const createUserFactory = () => {
+  const build = (overrides: Partial<User> = {}): User => ({
     id: faker.string.uuid(),
     email: faker.internet.email(),
     name: faker.person.fullName(),
@@ -40,13 +40,12 @@ export const createUserFactory = () => ({
     createdAt: faker.date.past().toISOString(),
     updatedAt: faker.date.recent().toISOString(),
     ...overrides,
-  }),
+  });
 
-  buildMany: (count: number, overrides: Partial<User> = {}): User[] =>
-    Array.from({ length: count }, () => this.build(overrides)),
+  const buildMany = (count: number, overrides: Partial<User> = {}): User[] =>
+    Array.from({ length: count }, () => build(overrides));
 
-  // Predefined users for common test scenarios
-  testUser: (): User => this.build({
+  const testUser = (): User => build({
     id: 'test-user-1',
     email: 'test@example.com',
     name: 'Test User',
@@ -60,21 +59,29 @@ export const createUserFactory = () => ({
       plan: 'pro',
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     },
-  }),
+  });
 
-  freeUser: (): User => this.build({
+  const freeUser = (): User => build({
     subscription: {
       plan: 'free',
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     },
-  }),
+  });
 
-  enterpriseUser: (): User => this.build({
+  const enterpriseUser = (): User => build({
     subscription: {
       plan: 'enterprise',
       expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
     },
-  }),
-});
+  });
+
+  return {
+    build,
+    buildMany,
+    testUser,
+    freeUser,
+    enterpriseUser,
+  };
+};
 
 export const userFactory = createUserFactory();

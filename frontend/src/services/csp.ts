@@ -360,7 +360,7 @@ export class CSPManager {
 
     // 检查服务器是否已经设置了 CSP 头（通过 _headers 文件）
     // 如果是生产环境，不要注入 meta 标签，让服务器的 CSP 头生效
-    if (import.meta.env.PROD) {
+    if (import.meta.env?.PROD) {
       console.log('🔒 生产环境：使用服务器 CSP 头，跳过 meta 标签注入')
       return
     }

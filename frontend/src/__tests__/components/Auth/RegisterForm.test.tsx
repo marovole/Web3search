@@ -5,6 +5,11 @@ import '@testing-library/jest-dom'
 import { BrowserRouter } from 'react-router-dom'
 import { RegisterForm } from '../../../components/Auth/RegisterForm'
 
+const routerFutureConfig = {
+  v7_startTransition: true,
+  v7_relativeSplatPath: true,
+} as const
+
 const mockNavigate = jest.fn()
 const mockSignUp = jest.fn()
 
@@ -25,7 +30,7 @@ jest.mock('../../../components/ui/toast', () => ({
 
 const renderRegisterForm = () => {
   return render(
-    <BrowserRouter>
+    <BrowserRouter future={routerFutureConfig}>
       <RegisterForm />
     </BrowserRouter>
   )

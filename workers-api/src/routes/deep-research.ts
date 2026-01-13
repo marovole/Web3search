@@ -36,6 +36,7 @@ import {
 } from '../services/deep-research'
 
 const DEFAULT_RESEARCH_DEPTH: ResearchDepth = 'standard'
+const MAX_RESEARCH_QUERYSTRING_LENGTH = 2000
 
 const deepResearch = new Hono<{ Bindings: Env }>()
 
@@ -137,6 +138,12 @@ deepResearch.get(
     const conversationParam = c.req.query('conversation_id')
     const modelParam = c.req.query('model')
     const typeParam = c.req.query('type') as ResearchType | undefined
+
+    // Check URI query length before validation
+    const rawQuery = c.req.url.split('?')[1] || ''
+    if (rawQuery.length > MAX_RESEARCH_QUERYSTRING_LENGTH) {
+      return c.json({ error: { code: 'URI_TOO_LONG', message: 'Query string exceeds maximum length', status: 414 } }, 414)
+    }
 
     const validation = validateResearchQuery(queryParam || '')
     if (!validation.valid) {

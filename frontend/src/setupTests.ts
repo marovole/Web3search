@@ -4,33 +4,32 @@
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
 
-// Mock import.meta.env for Jest (Vite uses import.meta.env)
-// This must be set before any modules that use import.meta.env are imported
-Object.defineProperty(globalThis, 'import', {
-  value: {
-    meta: {
-      env: {
-        VITE_ENVIRONMENT: 'development',
-        VITE_USE_MOCK_API: 'false',
-        VITE_API_BASE_URL: 'http://localhost:8787',
-        VITE_ENABLE_SENTRY: 'false',
-        VITE_ENABLE_ANALYTICS: 'false',
-        VITE_ENABLE_EXPERIMENTAL_FEATURES: 'false',
-        VITE_ENABLE_PERFORMANCE_MONITORING: 'false',
-        VITE_DEBUG_MODE: 'false',
-        VITE_SENTRY_DSN: '',
-        VITE_SENTRY_ENVIRONMENT: 'development',
-        VITE_GA_MEASUREMENT_ID: '',
-        VITE_DEFAULT_CHAT_MODE: 'quick',
-        MODE: 'test',
-        DEV: true,
-        PROD: false,
-      },
-    },
-  },
-  configurable: true,
-  writable: true,
-});
+const shouldSuppressConsole = process.env.JEST_SUPPRESS_CONSOLE !== 'false';
+
+if (shouldSuppressConsole) {
+  delete process.env.DEBUG;
+  delete process.env.LOG_LEVEL;
+  process.env.MSW_LOG_LEVEL = 'silent';
+}
+
+// Mock Vite env for Jest
+globalThis.__VITE_ENV__ = {
+  VITE_ENVIRONMENT: 'development',
+  VITE_USE_MOCK_API: 'false',
+  VITE_API_BASE_URL: 'http://localhost:8787',
+  VITE_ENABLE_SENTRY: 'false',
+  VITE_ENABLE_ANALYTICS: 'false',
+  VITE_ENABLE_EXPERIMENTAL_FEATURES: 'false',
+  VITE_ENABLE_PERFORMANCE_MONITORING: 'false',
+  VITE_DEBUG_MODE: 'false',
+  VITE_SENTRY_DSN: '',
+  VITE_SENTRY_ENVIRONMENT: 'development',
+  VITE_GA_MEASUREMENT_ID: '',
+  VITE_DEFAULT_CHAT_MODE: 'quick',
+  MODE: 'test',
+  DEV: true,
+  PROD: false,
+};
 
 // Polyfill for Node.js environment
 import { TextEncoder, TextDecoder } from 'util';
@@ -226,3 +225,51 @@ const sessionStorageMock = (() => {
 Object.defineProperty(window, 'sessionStorage', {
   value: sessionStorageMock,
 });
+
+if (shouldSuppressConsole) {
+  const suppressedLogs = [
+    /^XSS/,
+    /^Starting deep research for query:/,
+    /^Selected project:/,
+    /^SSE connection opened$/,
+    /^Reconnecting in \d+ms/,
+  ];
+
+  const suppressedWarnings = [
+    /React Router Future Flag Warning/,
+  ];
+
+  const suppressedErrors = [
+    /Error sending message:/,
+    /Error parsing SSE data:/,
+    /EventSource error:/,
+    /SSE connection error:/,
+    /Failed to parse SSE message:/,
+  ];
+
+  const shouldSuppress = (args: unknown[], patterns: RegExp[]) => {
+    return args.some((arg) => {
+      if (typeof arg === 'string') {
+        return patterns.some((pattern) => pattern.test(arg));
+      }
+      if (arg instanceof Error) {
+        return patterns.some((pattern) => pattern.test(arg.message));
+      }
+      return false;
+    });
+  };
+
+  const patchConsole = (method: 'log' | 'warn' | 'error', patterns: RegExp[]) => {
+    const original = console[method].bind(console);
+    console[method] = (...args: unknown[]) => {
+      if (shouldSuppress(args, patterns)) {
+        return;
+      }
+      original(...args);
+    };
+  };
+
+  patchConsole('log', suppressedLogs);
+  patchConsole('warn', suppressedWarnings);
+  patchConsole('error', suppressedErrors);
+}

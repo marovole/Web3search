@@ -1,6 +1,6 @@
 /**
  * Tests for Trending Routes - Hotspots Endpoint
- * Tests keyword extraction, caching, and category classification
+ * Tests response structure, scoring, caching, and error handling
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -60,6 +60,118 @@ vi.mock('../../src/lib/supabase', () => {
   }
 })
 
+// Mock CoinGecko to avoid real API calls during tests
+vi.mock('../../src/lib/coingecko', () => {
+  const coinDataById = {
+    bitcoin: {
+      symbol: 'BTC',
+      name: 'Bitcoin',
+      price_usd: 30000,
+      price_change_24h: 2.5,
+      market_cap: 600_000_000,
+      market_cap_rank: 1,
+    },
+    ethereum: {
+      symbol: 'ETH',
+      name: 'Ethereum',
+      price_usd: 2000,
+      price_change_24h: 1.2,
+      market_cap: 300_000_000,
+      market_cap_rank: 2,
+    },
+    solana: {
+      symbol: 'SOL',
+      name: 'Solana',
+      price_usd: 120,
+      price_change_24h: -0.8,
+      market_cap: 40_000_000,
+      market_cap_rank: 10,
+    },
+    cardano: {
+      symbol: 'ADA',
+      name: 'Cardano',
+      price_usd: 0.5,
+      price_change_24h: 0.4,
+      market_cap: 18_000_000,
+      market_cap_rank: 12,
+    },
+    polygon: {
+      symbol: 'MATIC',
+      name: 'Polygon',
+      price_usd: 0.9,
+      price_change_24h: 1.8,
+      market_cap: 9_000_000,
+      market_cap_rank: 15,
+    },
+    'avalanche-2': {
+      symbol: 'AVAX',
+      name: 'Avalanche',
+      price_usd: 32,
+      price_change_24h: 3.1,
+      market_cap: 7_000_000,
+      market_cap_rank: 18,
+    },
+    polkadot: {
+      symbol: 'DOT',
+      name: 'Polkadot',
+      price_usd: 7,
+      price_change_24h: -1.4,
+      market_cap: 6_000_000,
+      market_cap_rank: 20,
+    },
+    chainlink: {
+      symbol: 'LINK',
+      name: 'Chainlink',
+      price_usd: 14,
+      price_change_24h: 0.9,
+      market_cap: 5_000_000,
+      market_cap_rank: 22,
+    },
+    uniswap: {
+      symbol: 'UNI',
+      name: 'Uniswap',
+      price_usd: 6,
+      price_change_24h: -0.2,
+      market_cap: 4_000_000,
+      market_cap_rank: 25,
+    },
+  }
+
+  const aliasMap: Record<string, string> = {
+    btc: 'bitcoin',
+    eth: 'ethereum',
+    sol: 'solana',
+    matic: 'polygon',
+    avax: 'avalanche-2',
+    dot: 'polkadot',
+    link: 'chainlink',
+    uni: 'uniswap',
+  }
+
+  const resolveCoinId = (symbol: string) => {
+    const normalized = symbol.toLowerCase().trim()
+    return aliasMap[normalized] ?? normalized
+  }
+
+  const getCoinPrice = vi.fn(async (coinId: string) => {
+    const data = coinDataById[coinId as keyof typeof coinDataById]
+    if (data) {
+      return data
+    }
+    return { error: 'NOT_FOUND', message: 'Coin not found' }
+  })
+
+  return {
+    createCoinGeckoClient: () => ({
+      getBatchPrices: vi.fn().mockResolvedValue(new Map()),
+      getCoinPrice,
+      resolveCoinId: vi.fn((symbol: string) => resolveCoinId(symbol)),
+    }),
+    getCachedBatchPrices: vi.fn().mockResolvedValue(new Map()),
+    getCachedCoinPrice: vi.fn().mockResolvedValue({ error: 'NOT_FOUND', message: 'Coin not found' }),
+  }
+})
+
 import { Hono } from 'hono'
 import trending from '../../src/routes/trending'
 
@@ -112,93 +224,39 @@ describe('Trending - Hotspots Endpoint', () => {
       expect(body.hotspots.length).toBeGreaterThan(0)
 
       const hotspot = body.hotspots[0]
-      expect(hotspot).toHaveProperty('id')
-      expect(hotspot).toHaveProperty('keyword')
-      expect(hotspot).toHaveProperty('count')
-      expect(hotspot).toHaveProperty('trend')
-      expect(hotspot).toHaveProperty('category')
-      expect(hotspot.trend).toBe('up')
+      expect(hotspot).toHaveProperty('coin_id')
+      expect(hotspot).toHaveProperty('symbol')
+      expect(hotspot).toHaveProperty('name')
+      expect(hotspot).toHaveProperty('market_cap_rank')
+      expect(hotspot).toHaveProperty('total_score')
+      expect(hotspot).toHaveProperty('scores_breakdown')
+      expect(hotspot).toHaveProperty('timestamp')
+      expect(hotspot.scores_breakdown).toHaveProperty('price')
+      expect(hotspot.scores_breakdown).toHaveProperty('news')
+      expect(body.count).toBe(body.hotspots.length)
     })
   })
 
-  describe('Keyword Extraction and Counting', () => {
-    it('correctly counts keyword frequencies', async () => {
-      const response = await fetchTrendingHotspots()
-      const body = await response.json()
-
-      // Bitcoin appears twice in test data
-      const bitcoinHotspot = body.hotspots.find((h: any) => h.keyword === 'bitcoin')
-      expect(bitcoinHotspot).toBeDefined()
-      expect(bitcoinHotspot.count).toBe(2)
-
-      // Ethereum appears twice
-      const ethHotspot = body.hotspots.find((h: any) => h.keyword === 'ethereum')
-      expect(ethHotspot).toBeDefined()
-      expect(ethHotspot.count).toBe(2)
-    })
-
-    it('performs case-insensitive keyword matching', async () => {
-      const response = await fetchTrendingHotspots()
-      const body = await response.json()
-
-      // Should match regardless of case in content
-      const bitcoinHotspot = body.hotspots.find((h: any) => h.keyword === 'bitcoin')
-      expect(bitcoinHotspot).toBeDefined()
-    })
-
-    it('sorts hotspots by count in descending order', async () => {
+  describe('Scoring and Ranking', () => {
+    it('sorts hotspots by total_score in descending order', async () => {
       const response = await fetchTrendingHotspots()
       const body = await response.json()
 
       for (let i = 0; i < body.hotspots.length - 1; i++) {
-        expect(body.hotspots[i].count).toBeGreaterThanOrEqual(body.hotspots[i + 1].count)
+        expect(body.hotspots[i].total_score).toBeGreaterThanOrEqual(
+          body.hotspots[i + 1].total_score
+        )
       }
     })
-  })
 
-  describe('Category Classification', () => {
-    it('classifies Layer 1 keywords correctly', async () => {
+    it('returns numeric scores for hotspots', async () => {
       const response = await fetchTrendingHotspots()
       const body = await response.json()
 
-      const bitcoinHotspot = body.hotspots.find((h: any) => h.keyword === 'bitcoin')
-      expect(bitcoinHotspot?.category).toBe('Layer 1')
-
-      const ethHotspot = body.hotspots.find((h: any) => h.keyword === 'ethereum')
-      expect(ethHotspot?.category).toBe('Layer 1')
-
-      const solHotspot = body.hotspots.find((h: any) => h.keyword === 'solana')
-      expect(solHotspot?.category).toBe('Layer 1')
-    })
-
-    it('classifies DeFi keywords correctly', async () => {
-      const response = await fetchTrendingHotspots()
-      const body = await response.json()
-
-      const defiHotspot = body.hotspots.find((h: any) => h.keyword === 'defi')
-      expect(defiHotspot?.category).toBe('DeFi')
-
-      const uniHotspot = body.hotspots.find((h: any) => h.keyword === 'uniswap')
-      expect(uniHotspot?.category).toBe('DeFi')
-    })
-
-    it('classifies Infrastructure keywords correctly', async () => {
-      const response = await fetchTrendingHotspots()
-      const body = await response.json()
-
-      const polygonHotspot = body.hotspots.find((h: any) => h.keyword === 'polygon')
-      expect(polygonHotspot?.category).toBe('Infrastructure')
-    })
-
-    it('classifies Trends keywords correctly', async () => {
-      const response = await fetchTrendingHotspots()
-      const body = await response.json()
-
-      const nftHotspot = body.hotspots.find((h: any) => h.keyword === 'nft')
-      expect(nftHotspot?.category).toBe('Trends')
-
-      const web3Hotspot = body.hotspots.find((h: any) => h.keyword === 'web3')
-      expect(web3Hotspot?.category).toBe('Trends')
+      const hotspot = body.hotspots[0]
+      expect(typeof hotspot.total_score).toBe('number')
+      expect(typeof hotspot.scores_breakdown.price).toBe('number')
+      expect(typeof hotspot.scores_breakdown.news).toBe('number')
     })
   })
 
@@ -315,7 +373,7 @@ describe('Trending - Hotspots Endpoint', () => {
       expect(body.error.code).toBe('DATABASE_ERROR')
     })
 
-    it('handles empty message list gracefully', async () => {
+    it('falls back to default coins when message list is empty', async () => {
       const { createSupabaseClient } = await import('../../src/lib/supabase')
       vi.mocked(createSupabaseClient).mockReturnValueOnce({
         from: vi.fn(() => ({
@@ -336,8 +394,9 @@ describe('Trending - Hotspots Endpoint', () => {
       expect(response.status).toBe(200)
 
       const body = await response.json()
-      expect(body.hotspots).toEqual([])
-      expect(body.count).toBe(0)
+      expect(body.hotspots.length).toBeGreaterThan(0)
+      expect(body.count).toBe(body.hotspots.length)
+      expect(body.hotspots.some((hotspot: { coin_id: string }) => hotspot.coin_id === 'bitcoin')).toBe(true)
     })
 
     it('handles malformed cache data gracefully', async () => {

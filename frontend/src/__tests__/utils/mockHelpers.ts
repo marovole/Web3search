@@ -1,26 +1,25 @@
-import { rest } from 'msw';
+import { http, HttpResponse } from 'msw';
 import { server } from '../mocks/server';
+
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Mock API response helpers
 export const mockHelpers = {
   // Mock successful API response
   mockSuccess: (endpoint: string, response: any, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET') => {
     const handler = {
-      GET: rest.get,
-      POST: rest.post,
-      PUT: rest.put,
-      DELETE: rest.delete,
+      GET: http.get,
+      POST: http.post,
+      PUT: http.put,
+      DELETE: http.delete,
     }[method];
 
     server.use(
-      handler(endpoint, (req, res, ctx) => {
-        return res(
-          ctx.status(200),
-          ctx.json({
-            success: true,
-            data: response,
-          })
-        );
+      handler(endpoint, () => {
+        return HttpResponse.json({
+          success: true,
+          data: response,
+        });
       })
     );
   },
@@ -28,20 +27,20 @@ export const mockHelpers = {
   // Mock error API response
   mockError: (endpoint: string, errorMessage: string, status = 400, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET') => {
     const handler = {
-      GET: rest.get,
-      POST: rest.post,
-      PUT: rest.put,
-      DELETE: rest.delete,
+      GET: http.get,
+      POST: http.post,
+      PUT: http.put,
+      DELETE: http.delete,
     }[method];
 
     server.use(
-      handler(endpoint, (req, res, ctx) => {
-        return res(
-          ctx.status(status),
-          ctx.json({
+      handler(endpoint, () => {
+        return HttpResponse.json(
+          {
             success: false,
             error: errorMessage,
-          })
+          },
+          { status }
         );
       })
     );
@@ -50,15 +49,15 @@ export const mockHelpers = {
   // Mock network error
   mockNetworkError: (endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET') => {
     const handler = {
-      GET: rest.get,
-      POST: rest.post,
-      PUT: rest.put,
-      DELETE: rest.delete,
+      GET: http.get,
+      POST: http.post,
+      PUT: http.put,
+      DELETE: http.delete,
     }[method];
 
     server.use(
-      handler(endpoint, (req, res, ctx) => {
-        return res.networkError('Network error');
+      handler(endpoint, () => {
+        return HttpResponse.error();
       })
     );
   },
@@ -66,22 +65,19 @@ export const mockHelpers = {
   // Mock delayed response
   mockDelay: (endpoint: string, delayMs = 1000, response: any = {}, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET') => {
     const handler = {
-      GET: rest.get,
-      POST: rest.post,
-      PUT: rest.put,
-      DELETE: rest.delete,
+      GET: http.get,
+      POST: http.post,
+      PUT: http.put,
+      DELETE: http.delete,
     }[method];
 
     server.use(
-      handler(endpoint, (req, res, ctx) => {
-        return res(
-          ctx.delay(delayMs),
-          ctx.status(200),
-          ctx.json({
-            success: true,
-            data: response,
-          })
-        );
+      handler(endpoint, async () => {
+        await pause(delayMs);
+        return HttpResponse.json({
+          success: true,
+          data: response,
+        });
       })
     );
   },
@@ -89,7 +85,7 @@ export const mockHelpers = {
   // Mock streaming response (for chat)
   mockStream: (endpoint: string, chunks: string[], delayBetweenChunks = 100) => {
     server.use(
-      rest.post(endpoint, (req, res, ctx) => {
+      http.post(endpoint, () => {
         const stream = new ReadableStream({
           start(controller) {
             chunks.forEach((chunk, index) => {
@@ -103,10 +99,12 @@ export const mockHelpers = {
           },
         });
 
-        return res(
-          ctx.status(200),
-          ctx.body(stream)
-        );
+        return new HttpResponse(stream, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/plain',
+          },
+        });
       })
     );
   },
@@ -118,24 +116,21 @@ export const mockHelpers = {
     const paginatedItems = items.slice(startIndex, endIndex);
 
     server.use(
-      rest.get(endpoint, (req, res, ctx) => {
-        return res(
-          ctx.status(200),
-          ctx.json({
-            success: true,
-            data: {
-              items: paginatedItems,
-              pagination: {
-                page,
-                pageSize,
-                total: items.length,
-                totalPages: Math.ceil(items.length / pageSize),
-                hasNext: endIndex < items.length,
-                hasPrev: page > 1,
-              },
+      http.get(endpoint, () => {
+        return HttpResponse.json({
+          success: true,
+          data: {
+            items: paginatedItems,
+            pagination: {
+              page,
+              pageSize,
+              total: items.length,
+              totalPages: Math.ceil(items.length / pageSize),
+              hasNext: endIndex < items.length,
+              hasPrev: page > 1,
             },
-          })
-        );
+          },
+        });
       })
     );
   },
@@ -143,14 +138,11 @@ export const mockHelpers = {
   // Mock file upload
   mockFileUpload: (endpoint: string, response: any) => {
     server.use(
-      rest.post(endpoint, (req, res, ctx) => {
-        return res(
-          ctx.status(200),
-          ctx.json({
-            success: true,
-            data: response,
-          })
-        );
+      http.post(endpoint, () => {
+        return HttpResponse.json({
+          success: true,
+          data: response,
+        });
       })
     );
   },
@@ -166,49 +158,40 @@ export const mockHelpers = {
   mockAuth: {
     login: (userData: any) => {
       server.use(
-        rest.post('/api/auth/login', (req, res, ctx) => {
-          return res(
-            ctx.status(200),
-            ctx.json({
-              success: true,
-              data: {
-                user: userData,
-                token: 'mock-jwt-token',
-                refreshToken: 'mock-refresh-token',
-              },
-            })
-          );
+        http.post('/api/auth/login', () => {
+          return HttpResponse.json({
+            success: true,
+            data: {
+              user: userData,
+              token: 'mock-jwt-token',
+              refreshToken: 'mock-refresh-token',
+            },
+          });
         })
       );
     },
 
     logout: () => {
       server.use(
-        rest.post('/api/auth/logout', (req, res, ctx) => {
-          return res(
-            ctx.status(200),
-            ctx.json({
-              success: true,
-              message: 'Logged out successfully',
-            })
-          );
+        http.post('/api/auth/logout', () => {
+          return HttpResponse.json({
+            success: true,
+            message: 'Logged out successfully',
+          });
         })
       );
     },
 
     refresh: (newToken: string) => {
       server.use(
-        rest.post('/api/auth/refresh', (req, res, ctx) => {
-          return res(
-            ctx.status(200),
-            ctx.json({
-              success: true,
-              data: {
-                token: newToken,
-                refreshToken: 'mock-refreshed-token',
-              },
-            })
-          );
+        http.post('/api/auth/refresh', () => {
+          return HttpResponse.json({
+            success: true,
+            data: {
+              token: newToken,
+              refreshToken: 'mock-refreshed-token',
+            },
+          });
         })
       );
     },
@@ -217,19 +200,16 @@ export const mockHelpers = {
   // Mock search functionality
   mockSearch: (query: string, results: any[]) => {
     server.use(
-      rest.get('/api/search', (req, res, ctx) => {
-        return res(
-          ctx.status(200),
-          ctx.json({
-            success: true,
-            data: {
-              results,
-              total: results.length,
-              query,
-              took: 15,
-            },
-          })
-        );
+      http.get('/api/search', () => {
+        return HttpResponse.json({
+          success: true,
+          data: {
+            results,
+            total: results.length,
+            query,
+            took: 15,
+          },
+        });
       })
     );
   },
@@ -238,33 +218,27 @@ export const mockHelpers = {
   mockChat: {
     sendMessage: (message: string, response: string) => {
       server.use(
-        rest.post('/api/chat/message', (req, res, ctx) => {
-          return res(
-            ctx.status(200),
-            ctx.json({
-              success: true,
-              data: {
-                id: 'msg-' + Date.now(),
-                message: response,
-                sender: 'ai',
-                timestamp: new Date().toISOString(),
-              },
-            })
-          );
+        http.post('/api/chat/message', () => {
+          return HttpResponse.json({
+            success: true,
+            data: {
+              id: `msg-${Date.now()}`,
+              message: response,
+              sender: 'ai',
+              timestamp: new Date().toISOString(),
+            },
+          });
         })
       );
     },
 
     getConversations: (conversations: any[]) => {
       server.use(
-        rest.get('/api/chat/conversations', (req, res, ctx) => {
-          return res(
-            ctx.status(200),
-            ctx.json({
-              success: true,
-              data: conversations,
-            })
-          );
+        http.get('/api/chat/conversations', () => {
+          return HttpResponse.json({
+            success: true,
+            data: conversations,
+          });
         })
       );
     },

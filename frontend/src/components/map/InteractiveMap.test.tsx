@@ -4,33 +4,41 @@
  * Part of Phase 4: Interactive Investment Map
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { InteractiveMap } from './InteractiveMap'
 import { MapContainer } from 'react-leaflet'
 
 // Mock react-leaflet
-jest.mock('react-leaflet', () => ({
-  MapContainer: jest.fn(({ children, center, zoom }) => (
-    <div data-testid="map-container" data-center={JSON.stringify(center)} data-zoom={zoom}>
-      {children}
-    </div>
-  )),
-  TileLayer: jest.fn(() => <div data-testid="tile-layer">Tile Layer</div>),
-  Marker: jest.fn(({ children, position }) => (
-    <div data-testid="marker" data-position={JSON.stringify(position)}>
-      {children}
-    </div>
-  )),
-  Popup: jest.fn(({ children }) => <div data-testid="popup">{children}</div>),
-  useMap: jest.fn(() => ({
+jest.mock('react-leaflet', () => {
+  const mockMap = {
     setView: jest.fn(),
     on: jest.fn(),
     off: jest.fn(),
     getBounds: jest.fn(() => ({
       contains: jest.fn(() => true),
     })),
-  })),
-}))
+  };
+
+  return {
+    MapContainer: jest.fn(({ children, center, zoom }) => (
+      <div data-testid="map-container" data-center={JSON.stringify(center)} data-zoom={zoom}>
+        {children}
+      </div>
+    )),
+    TileLayer: jest.fn(() => <div data-testid="tile-layer">Tile Layer</div>),
+    Marker: jest.fn(({ children, position, eventHandlers }) => (
+      <div
+        data-testid="marker"
+        data-position={JSON.stringify(position)}
+        onClick={() => eventHandlers?.click?.()}
+      >
+        {children}
+      </div>
+    )),
+    Popup: jest.fn(({ children }) => <div data-testid="popup">{children}</div>),
+    useMap: jest.fn(() => mockMap),
+  };
+})
 
 // Mock Leaflet
 describe('InteractiveMap', () => {
@@ -116,12 +124,17 @@ describe('InteractiveMap', () => {
     it('should render legend with category colors', () => {
       render(<InteractiveMap projects={mockProjects} />)
 
-      expect(screen.getByText('Project Categories')).toBeInTheDocument()
-      expect(screen.getByText('DeFi')).toBeInTheDocument()
-      expect(screen.getByText('NFT')).toBeInTheDocument()
-      expect(screen.getByText('Gaming')).toBeInTheDocument()
-      expect(screen.getByText('Infrastructure')).toBeInTheDocument()
-      expect(screen.getByText('DAO')).toBeInTheDocument()
+      const legend = screen.getByText('Project Categories').closest('div')
+      expect(legend).toBeInTheDocument()
+      if (!legend) return
+
+      const legendQueries = within(legend)
+      expect(legendQueries.getByText('Project Categories')).toBeInTheDocument()
+      expect(legendQueries.getByText('DeFi')).toBeInTheDocument()
+      expect(legendQueries.getByText('NFT')).toBeInTheDocument()
+      expect(legendQueries.getByText('Gaming')).toBeInTheDocument()
+      expect(legendQueries.getByText('Infrastructure')).toBeInTheDocument()
+      expect(legendQueries.getByText('DAO')).toBeInTheDocument()
     })
   })
 
@@ -146,35 +159,44 @@ describe('InteractiveMap', () => {
     it('should display project popup on marker hover/click', () => {
       render(<InteractiveMap projects={mockProjects} />)
 
-      expect(screen.getByTestId('popup')).toBeInTheDocument()
+      const popups = screen.getAllByTestId('popup')
+      expect(popups).toHaveLength(mockProjects.length)
     })
 
     it('should show project details in popup', () => {
-      const { container } = render(
+      render(
         <InteractiveMap projects={[mockProjects[0]]} />
       )
 
-      expect(screen.getByText('Uniswap')).toBeInTheDocument()
-      expect(screen.getByText('Decentralized exchange protocol')).toBeInTheDocument()
-      expect(screen.getByText('DeFi')).toBeInTheDocument()
-      expect(screen.getByText('Market Cap: $5000.00M')).toBeInTheDocument()
-      expect(screen.getByText('Founded: 2018')).toBeInTheDocument()
-      expect(screen.getByText('Visit Website →')).toBeInTheDocument()
+      const [popup] = screen.getAllByTestId('popup')
+      const popupQueries = within(popup)
+
+      expect(popupQueries.getByText('Uniswap')).toBeInTheDocument()
+      expect(popupQueries.getByText('Decentralized exchange protocol')).toBeInTheDocument()
+      expect(popupQueries.getByText('DEFI')).toBeInTheDocument()
+      expect(popupQueries.getByText(/Market Cap:/)).toBeInTheDocument()
+      expect(popupQueries.getByText('$5.00B')).toBeInTheDocument()
+      expect(popupQueries.getByText(/Founded:/)).toBeInTheDocument()
+      expect(popupQueries.getByText('2018')).toBeInTheDocument()
+      expect(popupQueries.getByText('Visit Website →')).toBeInTheDocument()
     })
   })
 
   describe('Project Selection', () => {
-    it('should show bottom panel when project is selected', () => {
-      const { rerender } = render(
+    it('should show bottom panel when project is selected', async () => {
+      render(
         <InteractiveMap projects={mockProjects} />
       )
 
       // Click first marker to select project
       const markers = screen.getAllByTestId('marker')
       fireEvent.click(markers[0])
+
+      const closeButton = await screen.findByRole('button', { name: '✕' })
+      expect(closeButton).toBeInTheDocument()
     })
 
-    it('should close panel when close button is clicked', () => {
+    it('should close panel when close button is clicked', async () => {
       render(<InteractiveMap projects={mockProjects} />)
 
       // Select project first
@@ -182,8 +204,12 @@ describe('InteractiveMap', () => {
       fireEvent.click(markers[0])
 
       // Close panel
-      const closeButton = screen.getByText('✕')
+      const closeButton = await screen.findByRole('button', { name: '✕' })
       fireEvent.click(closeButton)
+
+      await waitFor(() => {
+        expect(screen.queryByRole('button', { name: '✕' })).not.toBeInTheDocument()
+      })
     })
   })
 
@@ -192,7 +218,7 @@ describe('InteractiveMap', () => {
       const handleMapClick = jest.fn()
 
       // Mock the map click handler
-      jest.mocked(MapContainer).mockImplementation(({ children }) => {
+      jest.mocked(MapContainer).mockImplementationOnce(({ children }) => {
         // Simulate map click
         if (handleMapClick) {
           handleMapClick(40.7128, -74.006)

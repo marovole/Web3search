@@ -63,7 +63,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const fetchUserData = useCallback(async (accessToken: string) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || ''
+      const apiUrl = import.meta.env?.VITE_API_BASE_URL || ''
       const response = await fetch(`${apiUrl}/api/v1/auth/me`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
@@ -134,7 +134,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       try {
-        const apiUrl = import.meta.env.VITE_API_BASE_URL || ''
+        const apiUrl = import.meta.env?.VITE_API_BASE_URL || ''
         const response = await fetch(`${apiUrl}/api/v1/users/profile`, {
           method: 'PATCH',
           headers: {

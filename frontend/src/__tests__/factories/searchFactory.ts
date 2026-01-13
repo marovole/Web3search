@@ -21,8 +21,8 @@ export interface SearchResponse {
   pageSize: number;
 }
 
-export const createSearchFactory = () => ({
-  buildResult: (overrides: Partial<SearchResult> = {}): SearchResult => ({
+export const createSearchFactory = () => {
+  const buildResult = (overrides: Partial<SearchResult> = {}): SearchResult => ({
     id: faker.string.uuid(),
     title: faker.lorem.sentence(),
     description: faker.lorem.paragraph(),
@@ -33,13 +33,13 @@ export const createSearchFactory = () => ({
     publishedAt: faker.datatype.boolean() ? faker.date.past().toISOString() : undefined,
     author: faker.datatype.boolean() ? faker.person.fullName() : undefined,
     ...overrides,
-  }),
+  });
 
-  buildResults: (count: number, overrides: Partial<SearchResult> = {}): SearchResult[] =>
-    Array.from({ length: count }, () => this.buildResult(overrides)),
+  const buildResults = (count: number, overrides: Partial<SearchResult> = {}): SearchResult[] =>
+    Array.from({ length: count }, () => buildResult(overrides));
 
-  buildResponse: (overrides: Partial<SearchResponse> = {}): SearchResponse => {
-    const results = this.buildResults( faker.number.int({ min: 5, max: 20 }) );
+  const buildResponse = (overrides: Partial<SearchResponse> = {}): SearchResponse => {
+    const results = buildResults(faker.number.int({ min: 5, max: 20 }));
     return {
       results,
       total: results.length,
@@ -49,36 +49,35 @@ export const createSearchFactory = () => ({
       pageSize: 10,
       ...overrides,
     };
-  },
+  };
 
-  // Predefined test data
-  webResult: (title?: string): SearchResult => this.buildResult({
+  const webResult = (title?: string): SearchResult => buildResult({
     title: title || 'React Testing Library Documentation',
     description: 'Learn how to test React components with React Testing Library',
     url: 'https://testing-library.com/docs/react-testing-library/intro/',
     type: 'web',
     relevanceScore: 0.95,
-  }),
+  });
 
-  imageResult: (): SearchResult => this.buildResult({
+  const imageResult = (): SearchResult => buildResult({
     title: 'Test Image',
     description: 'A beautiful test image',
     url: 'https://example.com/image.jpg',
     type: 'image',
     relevanceScore: 0.87,
     thumbnail: faker.image.url(),
-  }),
+  });
 
-  videoResult: (): SearchResult => this.buildResult({
+  const videoResult = (): SearchResult => buildResult({
     title: 'Testing Tutorial Video',
     description: 'Learn about software testing best practices',
     url: 'https://youtube.com/watch?v=test',
     type: 'video',
     relevanceScore: 0.82,
     thumbnail: faker.image.url(),
-  }),
+  });
 
-  newsResult: (): SearchResult => this.buildResult({
+  const newsResult = (): SearchResult => buildResult({
     title: 'Latest Testing Framework News',
     description: 'Breaking news about testing tools and frameworks',
     url: 'https://news.example.com/testing-news',
@@ -86,15 +85,14 @@ export const createSearchFactory = () => ({
     relevanceScore: 0.79,
     author: faker.person.fullName(),
     publishedAt: faker.date.recent().toISOString(),
-  }),
+  });
 
-  // Search for specific query
-  searchForQuery: (query: string, resultCount = 10): SearchResponse => ({
-    results: Array.from({ length: resultCount }, (_, index) => 
-      this.buildResult({
+  const searchForQuery = (query: string, resultCount = 10): SearchResponse => ({
+    results: Array.from({ length: resultCount }, (_, index) =>
+      buildResult({
         title: `${query} - Result ${index + 1}`,
         description: `This is a search result for ${query}`,
-        relevanceScore: 1.0 - (index * 0.05), // Decreasing relevance
+        relevanceScore: 1.0 - (index * 0.05),
       })
     ),
     total: resultCount,
@@ -102,27 +100,38 @@ export const createSearchFactory = () => ({
     took: faker.number.int({ min: 15, max: 50 }),
     page: 1,
     pageSize: 10,
-  }),
+  });
 
-  // Empty search response
-  emptyResponse: (query: string): SearchResponse => ({
+  const emptyResponse = (query: string): SearchResponse => ({
     results: [],
     total: 0,
     query,
     took: 5,
     page: 1,
     pageSize: 10,
-  }),
+  });
 
-  // Error response simulation
-  errorResponse: (query: string, error = 'Search service unavailable'): SearchResponse => ({
+  const errorResponse = (query: string): SearchResponse => ({
     results: [],
     total: 0,
     query,
     took: 0,
     page: 1,
     pageSize: 10,
-  }),
-});
+  });
+
+  return {
+    buildResult,
+    buildResults,
+    buildResponse,
+    webResult,
+    imageResult,
+    videoResult,
+    newsResult,
+    searchForQuery,
+    emptyResponse,
+    errorResponse,
+  };
+};
 
 export const searchFactory = createSearchFactory();

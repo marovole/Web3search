@@ -1,4 +1,4 @@
-import { waitFor, screen } from '@testing-library/react';
+import { act, waitFor, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // Custom test helpers
@@ -153,11 +153,12 @@ export const testHelpers = {
       value: height,
     });
 
-    // Trigger resize event
-    window.dispatchEvent(new Event('resize'));
-    
-    // Wait for any debounced resize handlers
-    await testHelpers.delay(100);
+    await act(async () => {
+      // Trigger resize event
+      window.dispatchEvent(new Event('resize'));
+      // Wait for any debounced resize handlers
+      await testHelpers.delay(100);
+    });
   },
 
   // Test localStorage interactions
