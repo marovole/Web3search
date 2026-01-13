@@ -132,8 +132,21 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        // 禁用手动代码分割，让Vite自动处理
-        // manualChunks: undefined,
+        // 手动代码分割策略 - 按功能模块划分
+        manualChunks: {
+          // React 生态系统核心
+          'vendor-react': ['react', 'react-dom', 'react-router-dom', 'react-hook-form'],
+          // UI 组件库
+          'vendor-ui': ['@radix-ui/react-tabs', '@radix-ui/react-toast', '@radix-ui/react-select', '@radix-ui/react-dropdown-menu', 'class-variance-authority', 'clsx', 'tailwind-merge'],
+          // 数据处理
+          'vendor-data': ['axios', 'date-fns', 'zod', '@hookform/resolvers'],
+          // AI 和可视化
+          'vendor-ai': ['framer-motion'],
+          // Markdown 和文档
+          'vendor-md': ['react-markdown', 'remark-gfm', 'react-syntax-highlighter'],
+          // 地图和地理
+          'vendor-map': ['leaflet', 'react-leaflet'],
+        },
         // 优化chunk命名
         chunkFileNames: (chunkInfo) => {
           // 保持chunk名称的可读性
