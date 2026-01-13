@@ -238,7 +238,17 @@ beforeEach(() => {
   openRouterError = null
 })
 
-describe.skip('Chat API E2E - TODO: Fix mocking issues', () => {
+/**
+ * Chat API E2E Tests
+ * NOTE: These tests are skipped because they require complex mocking:
+ * - SSE stream handling with proper mock responses
+ * - OpenRouter API mocking for AI responses
+ * - CoinGecko API mocking for price data
+ * - Proper Supabase message persistence mock
+ *
+ * To enable: Fix mocking in createChatSupabaseMock and add OpenRouter/CoinGecko mocks
+ */
+describe.skip('Chat API E2E - requires complex mock setup', () => {
   it('streams SSE responses and saves the assistant reply', async () => {
     const response = await postChat({ query: 'Explain Web3 technology' })
 

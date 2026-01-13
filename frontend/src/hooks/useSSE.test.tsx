@@ -5,7 +5,7 @@
  */
 
 import { renderHook, act } from '@testing-library/react'
-import { useSSE } from '../lib/sse-tool'
+import { useSSE } from './useSSE'
 import { ChatSSEEvent, ResearchSSEvent } from '../lib/sse'
 
 describe('useSSE', () => {

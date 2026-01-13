@@ -46,9 +46,9 @@ export class GoogleAnalytics {
   private constructor() {
     // 默认配置
     this.config = {
-      measurementId: import.meta.env.VITE_GA_MEASUREMENT_ID || '',
+      measurementId: import.meta.env?.VITE_GA_MEASUREMENT_ID || '',
       enableConsent: true,
-      debugMode: import.meta.env.NODE_ENV === 'development',
+      debugMode: import.meta.env?.NODE_ENV === 'development',
       anonymizeIp: true,
       cookieFlags: 'G1', // GDPR合规
     }

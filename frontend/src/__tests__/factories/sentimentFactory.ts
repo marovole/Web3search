@@ -23,8 +23,8 @@ export interface SentimentAnalysis {
   processedAt: string;
 }
 
-export const createSentimentFactory = () => ({
-  buildAnalysis: (overrides: Partial<SentimentAnalysis> = {}): SentimentAnalysis => {
+export const createSentimentFactory = () => {
+  const buildAnalysis = (overrides: Partial<SentimentAnalysis> = {}): SentimentAnalysis => {
     const sentiment = faker.helpers.arrayElement(['positive', 'negative', 'neutral']);
     
     // Generate realistic scores based on sentiment
@@ -82,14 +82,13 @@ export const createSentimentFactory = () => ({
       processedAt: faker.date.recent().toISOString(),
       ...overrides,
     };
-  },
+  };
 
-  buildAnalyses: (count: number, overrides: Partial<SentimentAnalysis> = {}): SentimentAnalysis[] =>
-    Array.from({ length: count }, () => this.buildAnalysis(overrides)),
+  const buildAnalyses = (count: number, overrides: Partial<SentimentAnalysis> = {}): SentimentAnalysis[] =>
+    Array.from({ length: count }, () => buildAnalysis(overrides));
 
-  // Predefined test data
-  positiveAnalysis: (text = 'I love this product!'): SentimentAnalysis => 
-    this.buildAnalysis({
+  const positiveAnalysis = (text = 'I love this product!'): SentimentAnalysis =>
+    buildAnalysis({
       id: 'sentiment-positive-1',
       text,
       sentiment: 'positive',
@@ -105,10 +104,10 @@ export const createSentimentFactory = () => ({
         fear: 0.05,
         sadness: 0.15,
       },
-    }),
+    });
 
-  negativeAnalysis: (text = 'This is terrible!'): SentimentAnalysis => 
-    this.buildAnalysis({
+  const negativeAnalysis = (text = 'This is terrible!'): SentimentAnalysis =>
+    buildAnalysis({
       id: 'sentiment-negative-1',
       text,
       sentiment: 'negative',
@@ -124,10 +123,10 @@ export const createSentimentFactory = () => ({
         fear: 0.20,
         sadness: 0.10,
       },
-    }),
+    });
 
-  neutralAnalysis: (text = 'This is a product.'): SentimentAnalysis => 
-    this.buildAnalysis({
+  const neutralAnalysis = (text = 'This is a product.'): SentimentAnalysis =>
+    buildAnalysis({
       id: 'sentiment-neutral-1',
       text,
       sentiment: 'neutral',
@@ -143,10 +142,9 @@ export const createSentimentFactory = () => ({
         fear: 0.15,
         sadness: 0.45,
       },
-    }),
+    });
 
-  // Analyze specific text
-  analyzeText: (text: string): SentimentAnalysis => {
+  const analyzeText = (text: string): SentimentAnalysis => {
     // Simple sentiment detection based on keywords
     const positiveWords = ['love', 'great', 'excellent', 'amazing', 'wonderful', 'fantastic'];
     const negativeWords = ['hate', 'terrible', 'awful', 'bad', 'worst', 'horrible'];
@@ -164,20 +162,29 @@ export const createSentimentFactory = () => ({
       sentiment = 'neutral';
     }
     
-    return this.buildAnalysis({
+    return buildAnalysis({
       text,
       sentiment,
       confidence: 0.8,
     });
-  },
+  };
 
-  // Create sentiment history
-  createHistory: (days = 30): SentimentAnalysis[] => 
-    Array.from({ length: days }, (_, index) => 
-      this.buildAnalysis({
+  const createHistory = (days = 30): SentimentAnalysis[] =>
+    Array.from({ length: days }, (_, index) =>
+      buildAnalysis({
         processedAt: faker.date.past({ days: index }).toISOString(),
       })
-    ),
-});
+    );
+
+  return {
+    buildAnalysis,
+    buildAnalyses,
+    positiveAnalysis,
+    negativeAnalysis,
+    neutralAnalysis,
+    analyzeText,
+    createHistory,
+  };
+};
 
 export const sentimentFactory = createSentimentFactory();

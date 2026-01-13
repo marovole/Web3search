@@ -224,7 +224,7 @@ describe('Reports - Generate Endpoint', () => {
       expect(text).toContain('Ethereum')
       expect(text).toContain('total_sections')
 
-      reader.cancel()
+      await reader.cancel()
     })
   })
 
@@ -418,7 +418,9 @@ function createInMemoryKV(): KVNamespace {
 
 function createMockExecutionContext(): ExecutionContext {
   return {
-    waitUntil: vi.fn(),
+    waitUntil: vi.fn((promise: Promise<unknown>) => {
+      void promise.catch(() => {})
+    }),
     passThroughOnException: vi.fn(),
   } as unknown as ExecutionContext
 }

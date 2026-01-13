@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // Basic example demonstrating the testing setup works
@@ -137,17 +137,20 @@ describe('Basic Testing Example', () => {
     expect(input).toHaveAttribute('aria-describedby', 'input-help');
   });
 
-  it('should test localStorage interactions', () => {
+  it('should test localStorage interactions', async () => {
     // Test localStorage setup
     const StorageComponent = () => {
+      const [value, setValue] = React.useState('');
+
       React.useEffect(() => {
         localStorage.setItem('test-key', 'test-value');
+        setValue(localStorage.getItem('test-key') || '');
       }, []);
       
       return (
         <div data-testid="storage-component">
           <span data-testid="storage-value">
-            {localStorage.getItem('test-key')}
+            {value}
           </span>
         </div>
       );
@@ -155,7 +158,9 @@ describe('Basic Testing Example', () => {
 
     render(<StorageComponent />);
     
-    expect(screen.getByTestId('storage-value')).toHaveTextContent('test-value');
+    await waitFor(() => {
+      expect(screen.getByTestId('storage-value')).toHaveTextContent('test-value');
+    });
     expect(localStorage.getItem('test-key')).toBe('test-value');
   });
 

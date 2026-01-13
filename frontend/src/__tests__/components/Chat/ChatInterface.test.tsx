@@ -156,7 +156,7 @@ describe('ChatInterface', () => {
 
       expect(screen.getByTestId('mode-switch')).toBeInTheDocument()
       expect(screen.getByTestId('hotspot-panel')).toBeInTheDocument()
-      expect(screen.getByText('欢迎使用 Web3 AI 搜索引擎')).toBeInTheDocument()
+      expect(screen.getByText(/Quick Start/i)).toBeInTheDocument()
       expect(screen.getByTestId('autocomplete-input')).toBeInTheDocument()
     })
 
@@ -179,11 +179,11 @@ describe('ChatInterface', () => {
       render(<ChatInterface />)
       
       const input = screen.getByTestId('chat-input')
-      expect(input).toHaveAttribute('placeholder', '输入你的问题...')
+      expect(input).toHaveAttribute('placeholder', 'Ask anything about crypto...')
 
       // Switch to deep mode
       fireEvent.click(screen.getByTestId('mode-deep'))
-      expect(input).toHaveAttribute('placeholder', '输入加密货币项目名称（如：BTC, ETH, UNI）...')
+      expect(input).toHaveAttribute('placeholder', 'Enter project name for deep research...')
     })
   })
 
@@ -293,7 +293,7 @@ describe('ChatInterface', () => {
     it('should show welcome screen when no messages', () => {
       render(<ChatInterface />)
 
-      expect(screen.getByText('欢迎使用 Web3 AI 搜索引擎')).toBeInTheDocument()
+      expect(screen.getByText(/Quick Start/i)).toBeInTheDocument()
       expect(screen.getByTestId('hotspot-panel')).toBeInTheDocument()
       expect(screen.queryByTestId('message-list')).not.toBeInTheDocument()
     })
@@ -314,7 +314,7 @@ describe('ChatInterface', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('message-list')).toBeInTheDocument()
-        expect(screen.queryByText('欢迎使用 Web3 AI 搜索引擎')).not.toBeInTheDocument()
+        expect(screen.queryByText(/Quick Start/i)).not.toBeInTheDocument()
       })
     })
   })

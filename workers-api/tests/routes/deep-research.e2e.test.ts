@@ -225,7 +225,16 @@ beforeEach(() => {
   currentSupabase = createSupabaseMock(() => currentTaskFetch)
 })
 
-describe.skip('Deep Research E2E - TODO: Fix mocking issues', () => {
+/**
+ * Deep Research E2E Tests
+ * NOTE: These tests are skipped because they require complex mocking:
+ * - Proper Supabase client mock with chained method calls
+ * - ExecutionContext with waitUntil mock for background tasks
+ * - Mocking background task processing
+ *
+ * To enable: Fix mocking in createSupabaseMock and ensure waitUntil is properly stubbed
+ */
+describe.skip('Deep Research E2E - requires complex mock setup', () => {
   it('creates a research task and enqueues background processing', async () => {
     const env = createMockEnv()
     const ctx = createExecutionContext()

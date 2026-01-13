@@ -407,6 +407,7 @@ describe('withRetry', () => {
     }
 
     const promise = withRetry(operation, config)
+    const rejection = expect(promise).rejects.toThrow('Error')
 
     // Delays would be: 1000, 10000 (capped to 2000), 100000 (capped to 2000), ...
     await vi.advanceTimersByTimeAsync(1000)
@@ -414,7 +415,7 @@ describe('withRetry', () => {
     await vi.advanceTimersByTimeAsync(2000)
     await vi.advanceTimersByTimeAsync(2000)
 
-    await expect(promise).rejects.toThrow('Error')
+    await rejection
     expect(operation).toHaveBeenCalledTimes(5)
   })
 
@@ -450,11 +451,12 @@ describe('withRetry', () => {
     }
 
     const promise = withRetry(operation, config)
+    const rejection = expect(promise).rejects.toThrow('Persistent error')
 
     await vi.advanceTimersByTimeAsync(50) // Retry 1
     await vi.advanceTimersByTimeAsync(100) // Retry 2
 
-    await expect(promise).rejects.toThrow('Persistent error')
+    await rejection
     expect(operation).toHaveBeenCalledTimes(3)
   })
 })

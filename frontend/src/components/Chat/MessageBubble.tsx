@@ -76,12 +76,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         {/* Mobile Actions Overlay */}
         {showActions && (
           <div className="absolute -top-3 -right-3 z-20 flex gap-2 p-1 animate-scale-in">
-            <button
-              onClick={handleCopy}
-              className="p-2 bg-primary text-primary-foreground rounded-full shadow-lg"
-            >
-              {copied ? <Check size={14} /> : <Copy size={14} />}
-            </button>
+            {showCopyButton && (
+              <button
+                onClick={handleCopy}
+                className="p-2 bg-primary text-primary-foreground rounded-full shadow-lg"
+              >
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+              </button>
+            )}
             <button
               onClick={() => setShowActions(false)}
               className="p-2 bg-muted text-muted-foreground rounded-full shadow-lg"
@@ -176,7 +178,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             </div>
 
             {/* Footer Actions (Desktop) */}
-            {!isTyping && !message.isStreaming && (
+            {!isTyping && !message.isStreaming && showCopyButton && (
               <div className="mt-4 pt-3 border-t border-white/5 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={handleCopy}

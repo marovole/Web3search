@@ -404,7 +404,7 @@ export class SecurityHeaderManager {
    */
   private injectCSPMetaTag(cspValue: string): void {
     // 生产环境使用服务器 CSP 头，不注入 meta 标签
-    if (import.meta.env.PROD) {
+    if (import.meta.env?.PROD) {
       console.log('🛡️ 生产环境：使用服务器 CSP 头，跳过 meta 标签注入')
       return
     }

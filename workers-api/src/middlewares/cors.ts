@@ -20,16 +20,22 @@ const DEBUG_CORS = false
 
 export async function corsMiddleware(c: Context<{ Bindings: Env }>, next: Next) {
   const origin = c.req.header('origin') || ''
+  const isProduction = c.env.ENVIRONMENT === 'production'
 
   // Check if origin is allowed
   const isAllowedOrigin =
     ALLOWED_ORIGINS.includes(origin) ||
     origin.endsWith('.lulaai.xyz') || // Allow subdomains
     origin.endsWith('.web3search.pages.dev') || // Allow preview deployments
-    origin.startsWith('http://localhost') // Allow all localhost for development
-  
+    (origin.startsWith('http://localhost') && !isProduction) // Allow localhost only in non-production
+
+  // Block localhost in production
+  if (isProduction && origin.startsWith('http://localhost')) {
+    return c.text('Forbidden', 403)
+  }
+
   if (DEBUG_CORS) {
-    console.log(`[CORS] Origin: ${origin}, Allowed: ${isAllowedOrigin}`)
+    console.log(`[CORS] Origin: ${origin}, Allowed: ${isAllowedOrigin}, Production: ${isProduction}`)
   }
 
   // Handle preflight requests

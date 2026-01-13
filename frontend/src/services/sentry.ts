@@ -21,11 +21,11 @@ import type { Breadcrumb, SeverityLevel as SentrySeverity } from '@sentry/types'
 // ============================================
 
 const isBrowser = typeof window !== 'undefined'
-const defaultRelease = `${import.meta.env.VITE_APP_NAME || 'web3search-frontend'}@${
-  import.meta.env.VITE_APP_VERSION || 'dev'
+const defaultRelease = `${import.meta.env?.VITE_APP_NAME || 'web3search-frontend'}@${
+  import.meta.env?.VITE_APP_VERSION || 'dev'
 }`
 const defaultEnvironment =
-  import.meta.env.VITE_SENTRY_ENVIRONMENT || import.meta.env.VITE_ENVIRONMENT || 'production'
+  import.meta.env?.VITE_SENTRY_ENVIRONMENT || import.meta.env?.VITE_ENVIRONMENT || 'production'
 
 let initialized = false
 
@@ -210,8 +210,8 @@ export function initSentry(options?: InitSentryOptions): void {
     return
   }
 
-  const enabled = options?.enabled ?? import.meta.env.VITE_ENABLE_SENTRY === 'true'
-  const dsn = import.meta.env.VITE_SENTRY_DSN
+  const enabled = options?.enabled ?? import.meta.env?.VITE_ENABLE_SENTRY === 'true'
+  const dsn = import.meta.env?.VITE_SENTRY_DSN
 
   // Skip initialization if disabled or DSN not configured
   if (!enabled || !dsn) {
