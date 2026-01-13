@@ -33,7 +33,7 @@ async function initializeServices() {
     await Promise.all([
       monitoring.initialize(),
       security.initialize({
-        csp: { enabled: true, reportOnly: process.env.NODE_ENV === 'development' },
+        csp: { enabled: true, reportOnly: import.meta.env.DEV },
         xss: { enabled: true },
         dependencies: { enabled: true, autoScan: true },
         headers: { enabled: true, hsts: true },
