@@ -105,7 +105,7 @@ function App() {
 
         // 设置应用上下文信息
         setContext('app', {
-          version: process.env.npm_package_version || '1.0.0',
+          version: import.meta.env.VITE_APP_VERSION || '1.0.0',
           name: 'Web3search Frontend',
           buildTime: new Date().toISOString(),
           uxEnhancements: uxConfig
@@ -141,17 +141,17 @@ function App() {
   }, [uxConfig])
 
   return (
-    <AuthProvider>
-      <LoadingProvider>
-        <UserPreferencesProvider>
-          <SearchHistoryProvider>
-            <SearchFavoritesProvider>
-              <KeyboardShortcutsProvider>
-                <Router>
-                  <ThemeProvider defaultTheme="dark" storageKey="web3search-theme">
-                    <ToastProvider>
-                      <OfflineIndicator />
-                      <ErrorBoundary>
+    <ErrorBoundary>
+      <AuthProvider>
+        <LoadingProvider>
+          <UserPreferencesProvider>
+            <SearchHistoryProvider>
+              <SearchFavoritesProvider>
+                <KeyboardShortcutsProvider>
+                  <Router>
+                    <ThemeProvider defaultTheme="dark" storageKey="web3search-theme">
+                      <ToastProvider>
+                        <OfflineIndicator />
                         <Routes>
                           {/* 认证路由 - 不显示侧边栏 */}
                           <Route path="/auth/login" element={
@@ -282,16 +282,16 @@ function App() {
                             </AppLayout>
                           } />
                         </Routes>
-                      </ErrorBoundary>
-                    </ToastProvider>
-                  </ThemeProvider>
-                </Router>
-              </KeyboardShortcutsProvider>
-            </SearchFavoritesProvider>
-          </SearchHistoryProvider>
-        </UserPreferencesProvider>
-      </LoadingProvider>
-    </AuthProvider>
+                      </ToastProvider>
+                    </ThemeProvider>
+                  </Router>
+                </KeyboardShortcutsProvider>
+              </SearchFavoritesProvider>
+            </SearchHistoryProvider>
+          </UserPreferencesProvider>
+        </LoadingProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }
 
