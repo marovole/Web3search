@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '../../lib/supabase'
 import type { Env } from '../../types/env'
 import type { ChatCompletionMessage, ChatRole } from '../../types/chat'
 import type { MarketContext } from '../../lib/context-builders/market-context'

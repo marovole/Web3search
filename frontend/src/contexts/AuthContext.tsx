@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
-import type { User, Session } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
+import { useConvexAuth, useMutation, useQuery } from 'convex/react'
+import { api } from '../../convex/_generated/api'
+import type { Id } from '../../convex/_generated/dataModel'
 
 interface UserProfile {
   id: string
@@ -34,9 +35,18 @@ interface UserQuota {
   }
 }
 
+interface ConvexUser {
+  _id: Id<'users'>
+  email?: string
+  username?: string
+  name?: string
+  image?: string
+  tokenIdentifier: string
+}
+
 interface AuthContextType {
-  user: User | null
-  session: Session | null
+  user: ConvexUser | null
+  userId: Id<'users'> | null
   profile: UserProfile | null
   quota: UserQuota | null
   loading: boolean
@@ -55,126 +65,55 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
+  const { isLoading: convexLoading, isAuthenticated: convexAuthenticated } = useConvexAuth()
+  const [user, setUser] = useState<ConvexUser | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [quota, setQuota] = useState<UserQuota | null>(null)
   const [loading, setLoading] = useState(true)
-
-  const fetchUserData = useCallback(async (accessToken: string) => {
-    try {
-      const apiUrl = import.meta.env?.VITE_API_BASE_URL || ''
-      const response = await fetch(`${apiUrl}/api/v1/auth/me`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setProfile(data.user)
-        setQuota(data.quota)
-      }
-    } catch (error) {
-      console.error('[Auth] Failed to fetch user data:', error)
-    }
-  }, [])
+  const [clientSessionId] = useState(() => {
+    const stored = localStorage.getItem('client_session_id')
+    if (stored) return stored
+    const newId = crypto.randomUUID()
+    localStorage.setItem('client_session_id', newId)
+    return newId
+  })
 
   useEffect(() => {
-    if (!supabase) {
+    if (!convexLoading) {
       setLoading(false)
-      return
     }
+  }, [convexLoading])
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.access_token) {
-        fetchUserData(session.access_token)
-      }
-      setLoading(false)
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-
-      if (event === 'SIGNED_IN' && session?.access_token) {
-        await fetchUserData(session.access_token)
-      } else if (event === 'SIGNED_OUT') {
-        setProfile(null)
-        setQuota(null)
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [fetchUserData])
-
-  const signUp = useCallback(async (email: string, password: string) => {
-    if (!supabase) return { error: new Error('Auth service unavailable') }
-    const { error } = await supabase.auth.signUp({ email, password })
-    return { error: error as Error | null }
+  const signUp = useCallback(async (_email: string, _password: string) => {
+    return { error: new Error('Auth not configured. Use Convex Auth or external provider.') }
   }, [])
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    if (!supabase) return { error: new Error('Auth service unavailable') }
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error: error as Error | null }
+  const signIn = useCallback(async (_email: string, _password: string) => {
+    return { error: new Error('Auth not configured. Use Convex Auth or external provider.') }
   }, [])
 
   const signOut = useCallback(async () => {
-    if (supabase) {
-      await supabase.auth.signOut()
-    }
+    setUser(null)
     setProfile(null)
     setQuota(null)
+    localStorage.removeItem('client_session_id')
   }, [])
 
   const refreshProfile = useCallback(async () => {
-    if (session?.access_token) {
-      await fetchUserData(session.access_token)
-    }
-  }, [session?.access_token, fetchUserData])
+    // Will be implemented with Convex queries when auth is fully configured
+  }, [])
 
-  const updateProfile = useCallback(
-    async (updates: Partial<UserProfile>) => {
-      if (!session?.access_token) {
-        return { error: new Error('Not authenticated') }
-      }
-
-      try {
-        const apiUrl = import.meta.env?.VITE_API_BASE_URL || ''
-        const response = await fetch(`${apiUrl}/api/v1/users/profile`, {
-          method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(updates),
-        })
-
-        if (!response.ok) {
-          const data = await response.json()
-          return { error: new Error(data.error?.message || 'Failed to update profile') }
-        }
-
-        const data = await response.json()
-        setProfile(data.profile)
-        return { error: null }
-      } catch (error) {
-        return { error: error as Error }
-      }
-    },
-    [session?.access_token]
-  )
+  const updateProfile = useCallback(async (_updates: Partial<UserProfile>) => {
+    return { error: new Error('Profile updates not implemented yet') }
+  }, [])
 
   const value: AuthContextType = {
     user,
-    session,
+    userId: user?._id ?? null,
     profile,
     quota,
     loading,
-    isAuthenticated: !!user,
+    isAuthenticated: convexAuthenticated || !!user,
     signUp,
     signIn,
     signOut,
@@ -193,7 +132,7 @@ export const useAuth = (): AuthContextType => {
   return context
 }
 
-export const useRequireAuth = (): { user: User; profile: UserProfile | null; loading: boolean } => {
+export const useRequireAuth = (): { user: ConvexUser | null; profile: UserProfile | null; loading: boolean } => {
   const { user, profile, loading, isAuthenticated } = useAuth()
 
   useEffect(() => {
@@ -203,8 +142,20 @@ export const useRequireAuth = (): { user: User; profile: UserProfile | null; loa
   }, [isAuthenticated, loading])
 
   return {
-    user: user!,
+    user,
     profile,
     loading,
   }
+}
+
+export const useClientSession = () => {
+  const [clientSessionId] = useState(() => {
+    const stored = localStorage.getItem('client_session_id')
+    if (stored) return stored
+    const newId = crypto.randomUUID()
+    localStorage.setItem('client_session_id', newId)
+    return newId
+  })
+
+  return { clientSessionId }
 }

@@ -42,10 +42,11 @@ export async function processNewsBrief(env: Env): Promise<void> {
   console.log(`[NewsBrief] Processing ${tasks.length} tasks`)
 
   for (const task of tasks) {
+    const t = task as { id: string; user_id: string; config: unknown }
     try {
-      await processUserNewsBrief(env, task.id, task.user_id, task.config as NewsBriefConfig)
+      await processUserNewsBrief(env, t.id, t.user_id, t.config as NewsBriefConfig)
     } catch (taskError) {
-      console.error(`[NewsBrief] Task ${task.id} failed:`, taskError)
+      console.error(`[NewsBrief] Task ${t.id} failed:`, taskError)
     }
   }
 
@@ -82,7 +83,7 @@ async function processUserNewsBrief(
         .limit(20)
 
       if (watchlist && watchlist.length > 0) {
-        tokenSymbols = (watchlist as WatchlistItem[]).map(w => w.symbol)
+        tokenSymbols = (watchlist as unknown as WatchlistItem[]).map(w => w.symbol)
       }
     }
 

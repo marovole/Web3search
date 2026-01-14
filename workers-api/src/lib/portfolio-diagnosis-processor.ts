@@ -99,7 +99,7 @@ async function processUserPortfolio(
       return
     }
 
-    const holdingsWithPrices = await fetchPricesForHoldings(holdings as Holding[])
+    const holdingsWithPrices = await fetchPricesForHoldings(holdings as unknown as Holding[])
     
     const totalValue = holdingsWithPrices.reduce((sum, h) => sum + (h.current_value || 0), 0)
     

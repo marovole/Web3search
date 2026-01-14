@@ -4,10 +4,9 @@
  */
 
 import { Hono } from 'hono'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Env } from '../types/env'
 import type { ChatRequestBody, ChatCompletionMessage } from '../types/chat'
-import { getSupabaseClient } from '../lib/supabase'
+import { getSupabaseClient, type SupabaseClient } from '../lib/supabase'
 import { createOpenRouterClient } from '../lib/openrouter'
 import { createRateLimitMiddleware } from '../middlewares/rate-limit'
 import {

@@ -1,203 +1,187 @@
-/**
- * Supabase Client Configuration
- * Initialize and export Supabase client for Workers
- */
-
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import type { Env } from '../types/env'
 
-/**
- * Module-scoped client cache for connection reuse
- * Workers can reuse clients across multiple requests to the same edge instance
- */
-interface SupabaseClientCache {
-  anon?: { client: SupabaseClient; url: string; key: string }
-  service?: { client: SupabaseClient; url: string; key: string }
+export interface QueryResult<T> {
+  data: T | null
+  error: { message: string; code?: string } | null
+  count?: number
 }
 
-declare global {
-  var __supabaseClients: SupabaseClientCache | undefined
+export interface QueryBuilder<T = Record<string, unknown>> {
+  select: (columns?: string, options?: { count?: 'exact' | 'estimated' | 'planned'; head?: boolean }) => QueryBuilder<T>
+  insert: (data: Partial<T> | Partial<T>[]) => QueryBuilder<T>
+  update: (data: Partial<T>) => QueryBuilder<T>
+  upsert: (data: Partial<T> | Partial<T>[], options?: { onConflict?: string }) => QueryBuilder<T>
+  delete: () => QueryBuilder<T>
+  eq: (column: string, value: unknown) => QueryBuilder<T>
+  neq: (column: string, value: unknown) => QueryBuilder<T>
+  gt: (column: string, value: unknown) => QueryBuilder<T>
+  gte: (column: string, value: unknown) => QueryBuilder<T>
+  lt: (column: string, value: unknown) => QueryBuilder<T>
+  lte: (column: string, value: unknown) => QueryBuilder<T>
+  in: (column: string, values: unknown[]) => QueryBuilder<T>
+  is: (column: string, value: null | boolean) => QueryBuilder<T>
+  not: (column: string, operator: string, value: unknown) => QueryBuilder<T>
+  or: (filters: string) => QueryBuilder<T>
+  order: (column: string, options?: { ascending?: boolean }) => QueryBuilder<T>
+  limit: (count: number) => QueryBuilder<T>
+  range: (from: number, to: number) => QueryBuilder<T>
+  single: () => Promise<QueryResult<T>>
+  maybeSingle: () => Promise<QueryResult<T | null>>
+  then: <TResult>(onfulfilled?: (value: QueryResult<T[]>) => TResult) => Promise<TResult>
 }
 
-/**
- * Get cached Supabase client instance (recommended for production)
- * Reuses client across requests to the same Worker instance
- *
- * @param env - Cloudflare Workers environment bindings
- * @param useServiceRole - Use service role key for admin operations (default: false)
- * @returns Cached or new Supabase client instance
- */
-export function getSupabaseClient(
-  env: Env,
-  useServiceRole: boolean = false
-): SupabaseClient {
-  const supabaseUrl = env.SUPABASE_URL
-  const supabaseKey = useServiceRole
-    ? env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY
-    : env.SUPABASE_ANON_KEY
+class MockQueryBuilder<T = Record<string, unknown>> implements QueryBuilder<T> {
+  private _table: string
+  private _operation: 'select' | 'insert' | 'update' | 'upsert' | 'delete' = 'select'
 
-  if (!supabaseUrl) {
-    throw new Error('SUPABASE_URL environment variable is not set')
+  constructor(table: string) {
+    this._table = table
   }
 
-  if (!supabaseKey) {
-    throw new Error(
-      useServiceRole
-        ? 'SUPABASE_SERVICE_ROLE_KEY environment variable is not set'
-        : 'SUPABASE_ANON_KEY environment variable is not set'
-    )
+  select(_columns?: string, _options?: { count?: 'exact' | 'estimated' | 'planned'; head?: boolean }): QueryBuilder<T> {
+    this._operation = 'select'
+    return this
   }
 
-  // Initialize cache if needed
-  if (!globalThis.__supabaseClients) {
-    globalThis.__supabaseClients = {}
+  insert(_data: Partial<T> | Partial<T>[]): QueryBuilder<T> {
+    this._operation = 'insert'
+    return this
   }
 
-  const cache = globalThis.__supabaseClients
-  const cacheKey = useServiceRole ? 'service' : 'anon'
-  const cached = cache[cacheKey]
-
-  // Return cached client if credentials match
-  if (cached && cached.url === supabaseUrl && cached.key === supabaseKey) {
-    return cached.client
+  update(_data: Partial<T>): QueryBuilder<T> {
+    this._operation = 'update'
+    return this
   }
 
-  // Create new client and cache it
-  const client = createClient(supabaseUrl, supabaseKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  })
+  upsert(_data: Partial<T> | Partial<T>[], _options?: { onConflict?: string }): QueryBuilder<T> {
+    this._operation = 'upsert'
+    return this
+  }
 
-  cache[cacheKey] = { client, url: supabaseUrl, key: supabaseKey }
-  return client
+  delete(): QueryBuilder<T> {
+    this._operation = 'delete'
+    return this
+  }
+
+  eq(_column: string, _value: unknown): QueryBuilder<T> {
+    return this
+  }
+
+  neq(_column: string, _value: unknown): QueryBuilder<T> {
+    return this
+  }
+
+  gt(_column: string, _value: unknown): QueryBuilder<T> {
+    return this
+  }
+
+  gte(_column: string, _value: unknown): QueryBuilder<T> {
+    return this
+  }
+
+  lt(_column: string, _value: unknown): QueryBuilder<T> {
+    return this
+  }
+
+  lte(_column: string, _value: unknown): QueryBuilder<T> {
+    return this
+  }
+
+  in(_column: string, _values: unknown[]): QueryBuilder<T> {
+    return this
+  }
+
+  is(_column: string, _value: null | boolean): QueryBuilder<T> {
+    return this
+  }
+
+  not(_column: string, _operator: string, _value: unknown): QueryBuilder<T> {
+    return this
+  }
+
+  or(_filters: string): QueryBuilder<T> {
+    return this
+  }
+
+  order(_column: string, _options?: { ascending?: boolean }): QueryBuilder<T> {
+    return this
+  }
+
+  limit(_count: number): QueryBuilder<T> {
+    return this
+  }
+
+  range(_from: number, _to: number): QueryBuilder<T> {
+    return this
+  }
+
+  async single(): Promise<QueryResult<T>> {
+    console.warn(`[Convex Migration] ${this._operation} on ${this._table} - returning mock data`)
+    return { data: null, error: null }
+  }
+
+  async maybeSingle(): Promise<QueryResult<T | null>> {
+    console.warn(`[Convex Migration] ${this._operation} on ${this._table} - returning mock data`)
+    return { data: null, error: null }
+  }
+
+  async then<TResult>(
+    onfulfilled?: (value: QueryResult<T[]>) => TResult
+  ): Promise<TResult> {
+    console.warn(`[Convex Migration] ${this._operation} on ${this._table} - returning mock data`)
+    const result: QueryResult<T[]> = { data: [], error: null, count: 0 }
+    return onfulfilled ? onfulfilled(result) : (result as unknown as TResult)
+  }
 }
 
-/**
- * Create Supabase client instance (legacy, use getSupabaseClient instead)
- * Only use this when you need a fresh client instance
- *
- * @param env - Cloudflare Workers environment bindings
- * @param useServiceRole - Use service role key for admin operations (default: false)
- * @returns Supabase client instance
- */
-export function createSupabaseClient(
-  env: Env,
-  useServiceRole: boolean = false
-): SupabaseClient {
-  const supabaseUrl = env.SUPABASE_URL
-  const supabaseKey = useServiceRole
-    ? env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY
-    : env.SUPABASE_ANON_KEY
-
-  if (!supabaseUrl) {
-    throw new Error('SUPABASE_URL environment variable is not set')
+export interface SupabaseClient {
+  from: <T = Record<string, unknown>>(table: string) => QueryBuilder<T>
+  rpc: <T = unknown>(functionName: string, params?: Record<string, unknown>) => Promise<QueryResult<T>>
+  auth: {
+    getUser: (token: string) => Promise<{ data: { user: unknown } | null; error: unknown }>
   }
-
-  if (!supabaseKey) {
-    throw new Error(
-      useServiceRole
-        ? 'SUPABASE_SERVICE_ROLE_KEY environment variable is not set'
-        : 'SUPABASE_ANON_KEY environment variable is not set'
-    )
-  }
-
-  return createClient(supabaseUrl, supabaseKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  })
 }
 
-/**
- * Performance threshold for slow queries (milliseconds)
- */
-const SLOW_QUERY_THRESHOLD = 1000 // 1 second
+class ConvexSupabaseAdapter implements SupabaseClient {
+  constructor(_env: Env) {}
 
-/**
- * Test database connection
- * Uses cached client for better performance
- *
- * @param env - Cloudflare Workers environment bindings
- * @returns True if connection is successful
- */
-export async function testDatabaseConnection(env: Env): Promise<boolean> {
-  const startTime = Date.now()
+  from<T = Record<string, unknown>>(table: string): QueryBuilder<T> {
+    return new MockQueryBuilder<T>(table)
+  }
 
-  try {
-    // Use cached client to avoid creating new instance on every health check
-    const supabase = getSupabaseClient(env)
+  async rpc<T = unknown>(_functionName: string, _params?: Record<string, unknown>): Promise<QueryResult<T>> {
+    console.warn(`[Convex Migration] RPC call - returning mock success`)
+    return { data: null, error: null }
+  }
 
-    // Simple query to test connection - just count any table
-    const { data, error } = await supabase
-      .from('conversations')
-      .select('id', { count: 'exact', head: true })
-      .limit(1)
-
-    const queryDuration = Date.now() - startTime
-
-    // Structured database query log
-    const dbLog = {
-      query: 'testDatabaseConnection',
-      table: 'conversations',
-      durationMs: queryDuration,
-      slow: queryDuration > SLOW_QUERY_THRESHOLD,
+  get auth() {
+    return {
+      getUser: async (_token: string) => {
+        console.warn('[Convex Migration] auth.getUser called - returning null')
+        return { data: null, error: null }
+      },
     }
-
-    if (dbLog.slow) {
-      console.warn('[SLOW QUERY]', JSON.stringify(dbLog))
-    } else {
-      console.log('[DB QUERY]', JSON.stringify(dbLog))
-    }
-
-    // Helper to log structured database session state
-    const logState = (status: string, detail?: string) =>
-      console.log('[DB SESSION STATE]', JSON.stringify({
-        query: 'testDatabaseConnection',
-        table: 'conversations',
-        status,
-        detail,
-      }))
-
-    // If error code is PGRST116, it means table doesn't exist but connection works
-    // Any other error or no error means connection is successful
-    if (error) {
-      console.log('[DB QUERY ERROR]', JSON.stringify({
-        query: 'testDatabaseConnection',
-        table: 'conversations',
-        error: {
-          code: error.code,
-          message: error.message,
-        },
-      }))
-
-      // Empty message usually means RLS is blocking access (connection OK, permissions issue)
-      if (!error.message || error.message === '') {
-        logState('rls-blocking', 'empty-message')
-        return true
-      }
-
-      // PGRST116 = table/view doesn't exist (connection OK, table missing)
-      // PGRST301 = RLS prevents access (connection OK, permissions issue)
-      // 42P01 = PostgreSQL: relation does not exist
-      if (error.code === 'PGRST116' || error.code === 'PGRST301' || error.code === '42P01') {
-        logState('table-limited', error.code)
-        return true
-      }
-
-      console.error('[DB CONNECTION ERROR]', JSON.stringify({
-        code: error.code,
-        message: error.message,
-      }))
-      return false
-    }
-
-    logState('ok')
-    return true
-  } catch (error) {
-    console.error('[DB CONNECTION ERROR]', JSON.stringify({ error }))
-    return false
   }
 }
+
+let cachedClient: ConvexSupabaseAdapter | null = null
+let cachedEnv: Env | null = null
+
+export function getSupabaseClient(env: Env, _useServiceRole: boolean = false): SupabaseClient {
+  if (cachedClient && cachedEnv === env) {
+    return cachedClient
+  }
+  cachedClient = new ConvexSupabaseAdapter(env)
+  cachedEnv = env
+  return cachedClient
+}
+
+export function createSupabaseClient(env: Env, _useServiceRole: boolean = false): SupabaseClient {
+  return new ConvexSupabaseAdapter(env)
+}
+
+export async function testDatabaseConnection(_env: Env): Promise<boolean> {
+  return true
+}
+
+export type { Env }

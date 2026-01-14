@@ -3,6 +3,29 @@ import { createOpenRouterClient } from './openrouter'
 import { getSupabaseClient } from './supabase'
 import { registerAllAgentTools } from './agent-tools'
 
+interface AgentRun {
+  id: string
+  task_id: string
+  user_id: string
+  status: string
+  started_at: string
+  completed_at?: string
+  duration_ms?: number
+  input?: unknown
+  output?: unknown
+  triggered_by?: string
+  error_message?: string
+  steps?: unknown
+  tokens_used?: number
+}
+
+interface AgentTask {
+  id: string
+  run_count: number
+  success_count: number
+  failure_count: number
+}
+
 export interface AgentTool {
   name: string
   description: string
@@ -67,7 +90,7 @@ export async function executeAgentTask(
   const supabase = getSupabaseClient(env, true)
 
   const { data: run, error: runError } = await supabase
-    .from('agent_runs')
+    .from<AgentRun>('agent_runs')
     .insert({
       task_id: taskId,
       user_id: userId,
@@ -83,7 +106,8 @@ export async function executeAgentTask(
     return { success: false, output: null, steps: [], tokensUsed: 0, error: 'Failed to create run' }
   }
 
-  const context: AgentContext = { env, userId, taskId, runId: run.id }
+  const runData = run as AgentRun
+  const context: AgentContext = { env, userId, taskId, runId: runData.id }
   const steps: AgentStep[] = []
   let tokensUsed = 0
 
@@ -92,16 +116,16 @@ export async function executeAgentTask(
     tokensUsed = result.tokensUsed
 
     await supabase
-      .from('agent_runs')
+      .from<AgentRun>('agent_runs')
       .update({
         status: 'completed',
         completed_at: new Date().toISOString(),
-        duration_ms: Date.now() - new Date(run.started_at).getTime(),
+        duration_ms: Date.now() - new Date(runData.started_at).getTime(),
         output: result.output,
         steps,
         tokens_used: tokensUsed,
       })
-      .eq('id', run.id)
+      .eq('id', runData.id)
 
     await supabase
       .from('agent_tasks')
@@ -117,16 +141,16 @@ export async function executeAgentTask(
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
 
     await supabase
-      .from('agent_runs')
+      .from<AgentRun>('agent_runs')
       .update({
         status: 'failed',
         completed_at: new Date().toISOString(),
-        duration_ms: Date.now() - new Date(run.started_at).getTime(),
+        duration_ms: Date.now() - new Date(runData.started_at).getTime(),
         error_message: errorMessage,
         steps,
         tokens_used: tokensUsed,
       })
-      .eq('id', run.id)
+      .eq('id', runData.id)
 
     await supabase
       .from('agent_tasks')
@@ -274,16 +298,19 @@ function getToolsForTaskType(_taskType: string): AgentTool[] {
 }
 
 async function getRunCount(supabase: ReturnType<typeof getSupabaseClient>, taskId: string): Promise<number> {
-  const { data } = await supabase.from('agent_tasks').select('run_count').eq('id', taskId).single()
-  return data?.run_count || 0
+  const { data } = await supabase.from<AgentTask>('agent_tasks').select('run_count').eq('id', taskId).single()
+  const task = data as AgentTask | null
+  return task?.run_count || 0
 }
 
 async function getSuccessCount(supabase: ReturnType<typeof getSupabaseClient>, taskId: string): Promise<number> {
-  const { data } = await supabase.from('agent_tasks').select('success_count').eq('id', taskId).single()
-  return data?.success_count || 0
+  const { data } = await supabase.from<AgentTask>('agent_tasks').select('success_count').eq('id', taskId).single()
+  const task = data as AgentTask | null
+  return task?.success_count || 0
 }
 
 async function getFailureCount(supabase: ReturnType<typeof getSupabaseClient>, taskId: string): Promise<number> {
-  const { data } = await supabase.from('agent_tasks').select('failure_count').eq('id', taskId).single()
-  return data?.failure_count || 0
+  const { data } = await supabase.from<AgentTask>('agent_tasks').select('failure_count').eq('id', taskId).single()
+  const task = data as AgentTask | null
+  return task?.failure_count || 0
 }

@@ -147,21 +147,26 @@ users.get('/quota', authMiddleware(), async (c) => {
     return c.json({ error: { code: 'DATABASE_ERROR', message: 'Failed to fetch quota', status: 500 } }, 500)
   }
 
+  if (!quota) {
+    return c.json({ error: { code: 'QUOTA_NOT_FOUND', message: 'Quota not found', status: 404 } }, 404)
+  }
+
+  const q = quota as Record<string, unknown>
   return c.json({
     quota: {
-      watchlist: { used: quota.watchlist_count, limit: quota.watchlist_limit },
-      agents: { used: quota.agent_count, limit: quota.agent_limit },
+      watchlist: { used: q.watchlist_count ?? 0, limit: q.watchlist_limit ?? 10 },
+      agents: { used: q.agent_count ?? 0, limit: q.agent_limit ?? 3 },
       daily: {
-        alerts: { used: quota.daily_alerts_sent, limit: quota.daily_alerts_limit },
-        deep_research: { used: quota.daily_deep_research, limit: quota.daily_deep_research_limit },
-        quick_chat: { used: quota.daily_quick_chat, limit: quota.daily_quick_chat_limit },
+        alerts: { used: q.daily_alerts_sent ?? 0, limit: q.daily_alerts_limit ?? 100 },
+        deep_research: { used: q.daily_deep_research ?? 0, limit: q.daily_deep_research_limit ?? 10 },
+        quick_chat: { used: q.daily_quick_chat ?? 0, limit: q.daily_quick_chat_limit ?? 50 },
       },
       monthly: {
-        reports: { used: quota.monthly_reports, limit: quota.monthly_reports_limit },
+        reports: { used: q.monthly_reports ?? 0, limit: q.monthly_reports_limit ?? 30 },
       },
       resets: {
-        daily: quota.daily_reset_at,
-        monthly: quota.monthly_reset_at,
+        daily: q.daily_reset_at ?? null,
+        monthly: q.monthly_reset_at ?? null,
       },
     },
   })

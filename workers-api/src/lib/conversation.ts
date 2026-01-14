@@ -3,7 +3,7 @@
  * Shared helpers for managing conversations and messages in Supabase
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from './supabase'
 import type { ChatCompletionMessage } from '../types/chat'
 
 // Re-export ChatCompletionMessage for convenience
@@ -74,7 +74,7 @@ export async function fetchConversationHistory(
     return []
   }
 
-  return (data ?? []) as ChatCompletionMessage[]
+  return (data ?? []) as unknown as ChatCompletionMessage[]
 }
 
 /**
@@ -135,7 +135,8 @@ export async function persistMessage(
       console.warn('Failed to store message:', error)
       return undefined
     }
-    return data?.id
+    const record = data as { id?: string } | null
+    return record?.id
   }
 
   const { error } = await query

@@ -179,7 +179,7 @@ export async function sendPushToUser(
   let failed = 0
   const expired: string[] = []
 
-  for (const sub of subscriptions as PushSubscriptionRecord[]) {
+  for (const sub of subscriptions as unknown as PushSubscriptionRecord[]) {
     const result = await sendPushNotification(env, {
       endpoint: sub.endpoint,
       keys: { p256dh: sub.p256dh, auth: sub.auth }

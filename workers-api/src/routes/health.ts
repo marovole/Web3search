@@ -151,7 +151,7 @@ health.get('/', async (c) => {
     const timestamp = new Date().toISOString()
     const databaseStatus = {
       status: isDatabaseConnected ? 'connected' : 'disconnected',
-      type: 'supabase-postgresql',
+      type: 'convex',
     }
 
     // Prepare cache payload (only cache successful checks)

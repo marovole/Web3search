@@ -75,7 +75,7 @@ auth.get('/me', authMiddleware(), async (c) => {
   })
 })
 
-auth.post('/refresh', authMiddleware({ verifyWithSupabase: true }), async (c) => {
+auth.post('/refresh', authMiddleware({ verifyWithConvex: true }), async (c) => {
   const user = getCurrentUser(c)
   if (!user) {
     return c.json({ error: { code: 'NOT_AUTHENTICATED', message: 'Not authenticated', status: 401 } }, 401)

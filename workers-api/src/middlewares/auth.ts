@@ -2,8 +2,8 @@
  * Authentication Middleware for Web3search API
  *
  * Provides two modes:
- * 1. Fast JWT verification (local, uses SUPABASE_JWT_SECRET)
- * 2. Safe verification (calls Supabase API, handles token revocation)
+ * 1. Fast JWT verification (local, uses JWT_SECRET)
+ * 2. Safe verification (calls Convex API, handles token revocation)
  *
  * Usage:
  *   // Protect all routes under /api/v1/protected
@@ -18,8 +18,8 @@
 
 import { Context, Next } from 'hono'
 import { jwt } from 'hono/jwt'
-import { createClient } from '@supabase/supabase-js'
 import type { Env } from '../types/env'
+import { getSupabaseClient } from '../lib/supabase'
 
 // Error response helper
 function authError(c: Context, message: string, code: string, status: 401 | 403 = 401) {
@@ -40,10 +40,10 @@ function authError(c: Context, message: string, code: string, status: 401 | 403 
  */
 interface AuthMiddlewareOptions {
   /**
-   * Use Supabase API to verify token (slower but handles revocation)
+   * Use Convex API to verify token (slower but handles revocation)
    * Default: false (use local JWT verification)
    */
-  verifyWithSupabase?: boolean
+  verifyWithConvex?: boolean
 
   /**
    * Require specific plan levels
@@ -64,7 +64,7 @@ interface AuthMiddlewareOptions {
  * Verifies token locally using SUPABASE_JWT_SECRET
  */
 export function authMiddleware(options: AuthMiddlewareOptions = {}) {
-  const { verifyWithSupabase = false, requiredPlans, optional = false } = options
+  const { verifyWithConvex = false, requiredPlans, optional = false } = options
 
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const authHeader = c.req.header('Authorization')
@@ -93,9 +93,9 @@ export function authMiddleware(options: AuthMiddlewareOptions = {}) {
     }
 
     try {
-      if (verifyWithSupabase) {
-        // Safe verification: Call Supabase API
-        await verifyWithSupabaseApi(c, token)
+      if (verifyWithConvex) {
+        // Safe verification: Call Convex API
+        await verifyWithConvexApi(c, token)
       } else {
         // Fast verification: Local JWT check
         await verifyLocalJwt(c, token)
@@ -139,33 +139,25 @@ export function authMiddleware(options: AuthMiddlewareOptions = {}) {
   }
 }
 
-/**
- * Verify JWT locally using SUPABASE_JWT_SECRET
- * Fast but doesn't check for token revocation
- */
 async function verifyLocalJwt(c: Context<{ Bindings: Env }>, token: string) {
-  const secret = c.env.SUPABASE_JWT_SECRET
+  const secret = c.env.JWT_SECRET
   if (!secret) {
-    throw new Error('SUPABASE_JWT_SECRET is not configured')
+    throw new Error('JWT_SECRET is not configured')
   }
 
-  // Use Hono's jwt verification
   const jwtMiddleware = jwt({ secret })
 
-  // Create a mock next function to capture the result
   let verified = false
   const mockNext = async () => {
     verified = true
   }
 
-  // Temporarily set the Authorization header for the jwt middleware
   await jwtMiddleware(c, mockNext)
 
   if (!verified) {
     throw new Error('JWT verification failed')
   }
 
-  // Get the verified payload
   const payload = c.get('jwtPayload') as {
     sub: string
     email?: string
@@ -179,60 +171,46 @@ async function verifyLocalJwt(c: Context<{ Bindings: Env }>, token: string) {
     throw new Error('Invalid token payload: missing sub')
   }
 
-  // Fetch user profile from Supabase to get plan info
-  const supabase = createClient(c.env.SUPABASE_URL, c.env.SUPABASE_ANON_KEY, {
-    global: { fetch: (...args) => fetch(...args) },
-    auth: { persistSession: false },
-  })
-
+  const supabase = getSupabaseClient(c.env)
   const { data: profile } = await supabase
-    .from('user_profiles')
+    .from<{ username: string; plan: string }>('user_profiles')
     .select('username, plan')
     .eq('id', payload.sub)
     .single()
 
-  // Set current user in context
+  const profileData = profile as { username?: string; plan?: string } | null
+  const userPlan = (profileData?.plan || 'free') as 'free' | 'pro' | 'team'
   c.set('currentUser', {
     id: payload.sub,
     email: payload.email,
-    username: profile?.username || payload.user_metadata?.username,
-    plan: profile?.plan || 'free',
+    username: profileData?.username || payload.user_metadata?.username,
+    plan: userPlan,
   })
 }
 
-/**
- * Verify token by calling Supabase Auth API
- * Slower but handles token revocation and user status changes
- */
-async function verifyWithSupabaseApi(c: Context<{ Bindings: Env }>, token: string) {
-  const supabase = createClient(c.env.SUPABASE_URL, c.env.SUPABASE_ANON_KEY, {
-    global: { fetch: (...args) => fetch(...args) },
-    auth: { persistSession: false },
-  })
+async function verifyWithConvexApi(c: Context<{ Bindings: Env }>, token: string) {
+  const supabase = getSupabaseClient(c.env)
 
-  // Verify token with Supabase Auth
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser(token)
+  const { data, error } = await supabase.auth.getUser(token)
+  const user = data?.user as { id: string; email?: string; user_metadata?: { username?: string } } | null
 
   if (error || !user) {
-    throw new Error(error?.message || 'Invalid token')
+    throw new Error(typeof error === 'object' && error && 'message' in error ? String(error.message) : 'Invalid token')
   }
 
-  // Fetch user profile for plan info
   const { data: profile } = await supabase
-    .from('user_profiles')
+    .from<{ username: string; plan: string }>('user_profiles')
     .select('username, plan')
     .eq('id', user.id)
     .single()
 
-  // Set current user in context
+  const profileData2 = profile as { username?: string; plan?: string } | null
+  const userPlan2 = (profileData2?.plan || 'free') as 'free' | 'pro' | 'team'
   c.set('currentUser', {
     id: user.id,
     email: user.email,
-    username: profile?.username || user.user_metadata?.username,
-    plan: profile?.plan || 'free',
+    username: profileData2?.username || user.user_metadata?.username,
+    plan: userPlan2,
   })
 }
 

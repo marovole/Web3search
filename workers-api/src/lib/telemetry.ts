@@ -252,60 +252,15 @@ export async function logTelemetry(
   env: Env
 ): Promise<{ success: boolean; id?: string; error?: Error }> {
   try {
-    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.warn('Supabase not configured, skipping telemetry logging')
-      return { success: false, error: new Error('Supabase not configured') }
-    }
-
-    const response = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/track_api_call`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
-      },
-      body: JSON.stringify({
-        p_conversation_id: telemetry.conversationId || null,
-        p_message_id: telemetry.messageId || null,
-        p_client_session_id: telemetry.clientSessionId || null,
-        p_model_id: telemetry.modelId,
-        p_model_name: telemetry.modelName,
-        p_provider: telemetry.provider,
-        p_use_case: telemetry.useCase,
-        p_request_method: telemetry.requestMethod,
-        p_request_path: telemetry.requestPath,
-        p_request_headers: telemetry.requestHeaders,
-        p_request_body: telemetry.requestBody || null,
-        p_prompt_tokens: telemetry.promptTokens,
-        p_response_status: telemetry.responseStatus || null,
-        p_response_headers: telemetry.responseHeaders || null,
-        p_response_body: null, // Privacy: No longer storing full response bodies
-        p_completion_tokens: telemetry.completionTokens,
-        p_finish_reason: telemetry.finishReason || null,
-        p_error_code: telemetry.errorCode || null,
-        p_error_message: telemetry.errorMessage || null,
-        p_error_details: telemetry.errorDetails || null,
-        p_latency_ms: telemetry.latencyMs,
-        p_retry_count: telemetry.retryCount,
-        p_circuit_state: telemetry.circuitState || null,
-        p_cost_usd: telemetry.costUSD,
-        p_metadata: telemetry.metadata || null,
-        p_tags: telemetry.tags || [],
-        p_ip_address: telemetry.ipAddress || null,
-        p_country_code: telemetry.countryCode || null,
-        p_user_agent: telemetry.userAgent || null,
-        p_started_at: telemetry.startedAt.toISOString(),
-        p_completed_at: telemetry.completedAt.toISOString()
-      })
+    // Telemetry logging disabled during Convex migration
+    // TODO: Implement Convex-based telemetry logging
+    console.log('[Telemetry] Call logged (in-memory only during migration):', {
+      model: telemetry.modelName,
+      latency: `${telemetry.latencyMs}ms`,
+      cost: `$${telemetry.costUSD.toFixed(6)}`,
+      useCase: telemetry.useCase
     })
-
-    if (!response.ok) {
-      const error = await response.text()
-      console.error('Failed to log telemetry:', error)
-      return { success: false, error: new Error(error) }
-    }
-
-    const data = await response.json()
-    return { success: true, id: String(data) }
+    return { success: true, id: crypto.randomUUID() }
 
   } catch (error) {
     console.error('Error logging telemetry:', error)

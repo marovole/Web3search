@@ -292,16 +292,17 @@ export async function runAgentTasks(env: Env, taskType: string) {
     logger.info(`Processing ${dueTasks.length} ${taskType} tasks`)
 
     for (const task of dueTasks) {
+      const t = task as { id: string; user_id: string; task_type: string; config: Record<string, unknown> }
       try {
-        await executeAgentTask(env, task.id, task.user_id, task.task_type, task.config)
+        await executeAgentTask(env, t.id, t.user_id, t.task_type, t.config)
         const nextRunAt = calculateNextRun(taskType)
         await supabase
           .from('agent_tasks')
           .update({ next_run_at: nextRunAt.toISOString() })
-          .eq('id', task.id)
+          .eq('id', t.id)
       } catch (taskError) {
         logger.error(
-          `Task ${task.id} execution failed`,
+          `Task ${t.id} execution failed`,
           taskError instanceof Error ? taskError : undefined
         )
       }

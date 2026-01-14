@@ -3,7 +3,7 @@
  * Provides strict type definitions for the research pipeline services
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '../../lib/supabase'
 import type { Env } from '../../types/env'
 import type { MarketContext } from '../../lib/context-builders/market-context'
 import type { ModelConfig } from '../../lib/model-routing'
