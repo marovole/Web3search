@@ -6,8 +6,8 @@
 import { BaseSubAgent } from './index'
 import type { SharedContext, AgentInput, AgentResult, AggregatedResult, SourceCitation } from '../types'
 import type { ISSEEmitter } from '../../../services/deep-research/types'
-import type { Env } from '../../../types/env'
-import type { ModelConfig } from '../../model-routing'
+import type { Env as _Env } from '../../../types/env'
+import type { ModelConfig as _ModelConfig } from '../../model-routing'
 
 
 export class ReporterAgent extends BaseSubAgent {
@@ -97,7 +97,7 @@ export class ReporterAgent extends BaseSubAgent {
       .sort((a, b) => b.relevanceScore - a.relevanceScore)
       .slice(0, 20)
 
-    return topResults.map((result, index) => ({
+    return topResults.map((result, _index) => ({
       sourceId: result.id,
       title: result.title,
       url: result.url,

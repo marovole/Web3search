@@ -149,7 +149,7 @@ export class CoinGeckoClient {
         }
       }
 
-      const data = await response.json<any>()
+      const data = await response.json() as Record<string, unknown>
 
       if (!data.market_data || !data.market_data.current_price) {
         return {

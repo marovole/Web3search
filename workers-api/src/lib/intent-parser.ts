@@ -10,11 +10,6 @@ import type {
   ParsedIntent,
   IntentEntities,
   IntentParseResult,
-  TokenEntity,
-  PriceConditionEntity,
-  PercentChangeEntity,
-  CONFIDENCE_THRESHOLD,
-  needsConfirmation,
 } from '../types/agent-intent'
 
 const INTENT_PARSER_PROMPT = `你是一个加密货币投资助手的意图解析器。分析用户的自然语言输入，识别他们想要执行的操作。

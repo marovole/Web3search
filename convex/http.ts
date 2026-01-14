@@ -1,8 +1,11 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { api } from "./_generated/api";
+import { auth } from "./auth";
 
 const http = httpRouter();
+
+auth.addHttpRoutes(http);
 
 http.route({
   path: "/api/health",

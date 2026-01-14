@@ -1,11 +1,13 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
 
 /**
  * Web3search Convex Schema
  * Complete database schema migrated from Supabase PostgreSQL
  */
 export default defineSchema({
+  ...authTables,
   // ============================================
   // User System Tables
   // ============================================
@@ -139,8 +141,7 @@ export default defineSchema({
     tokenCountCompletion: v.optional(v.number()),
     deletedAt: v.optional(v.number()),
   })
-    .index("by_conversation", ["conversationId"])
-    .index("by_conversation_time", ["conversationId", "_creationTime"]),
+    .index("by_conversation", ["conversationId"]),
 
   // ============================================
   // Agent System Tables

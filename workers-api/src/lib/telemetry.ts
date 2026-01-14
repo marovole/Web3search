@@ -249,7 +249,7 @@ function estimateTokens(text: string): number {
  */
 export async function logTelemetry(
   telemetry: TelemetryData,
-  env: Env
+  _env: Env
 ): Promise<{ success: boolean; id?: string; error?: Error }> {
   try {
     // Telemetry logging disabled during Convex migration
@@ -293,7 +293,7 @@ export function createTelemetryTrace(
   requestId: string
 ): TraceData {
   const traceId = requestId || crypto.randomUUID()
-  const duration = telemetry.latencyMs
+  const _duration = telemetry.latencyMs
 
   return {
     traceId,
@@ -373,7 +373,7 @@ async function logToSentry(
   try {
     if (!env.SENTRY_DSN) return
 
-    // @ts-ignore - Sentry integration would be added here
+    // @ts-expect-error - Sentry integration would be added here
     // Sentry.captureException(telemetry.errorMessage, {
     //   tags: telemetry.tags,
     //   extra: telemetry.errorDetails

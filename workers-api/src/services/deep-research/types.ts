@@ -10,7 +10,6 @@ import type { ModelConfig } from '../../lib/model-routing'
 import type {
   ResearchDepth,
   ResearchType,
-  ResearchSource,
   DeepResearchSSEEvent,
   ToolCallEvent,
   ThinkingEvent,

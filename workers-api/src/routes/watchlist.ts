@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import type { Env } from '../types/env'
 import { authMiddleware, getCurrentUser } from '../middlewares/auth'
-import { checkWatchlistQuota, incrementQuota } from '../middlewares/quota'
+import { checkWatchlistQuota } from '../middlewares/quota'
 import { getSupabaseClient } from '../lib/supabase'
 
 const watchlist = new Hono<{ Bindings: Env }>()

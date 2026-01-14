@@ -139,7 +139,7 @@ export function authMiddleware(options: AuthMiddlewareOptions = {}) {
   }
 }
 
-async function verifyLocalJwt(c: Context<{ Bindings: Env }>, token: string) {
+async function verifyLocalJwt(c: Context<{ Bindings: Env }>, _token: string) {
   const secret = c.env.JWT_SECRET
   if (!secret) {
     throw new Error('JWT_SECRET is not configured')

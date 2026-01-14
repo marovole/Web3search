@@ -15,7 +15,6 @@ import {
 } from '../lib/openrouter'
 import { createRateLimitMiddleware } from '../middlewares/rate-limit'
 import { createCoinGeckoClient } from '../lib/coingecko'
-import { ROUTING_STRATEGIES, getModelConfig } from '../lib/model-routing'
 import {
   ensureConversationExists,
   fetchConversationHistory,

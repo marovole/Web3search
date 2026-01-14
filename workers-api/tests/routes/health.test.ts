@@ -41,7 +41,7 @@ describe('Health Check Routes', () => {
 
       expect(body.database).toEqual({
         status: 'connected',
-        type: 'supabase-postgresql'
+        type: 'convex'
       })
     })
 

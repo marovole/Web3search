@@ -213,7 +213,7 @@ Requirements:
     const content = data.choices[0]?.message?.content || ''
     
     const lines = content.split('\n').filter((line: string) => line.trim())
-    const brief = lines[0]?.replace(/^[1\.\-\*\s]+/, '').trim() || 
+    const brief = lines[0]?.replace(/^[1.\-*\s]+/, '').trim() || 
                   (language === 'zh' ? '查看今日加密货币市场要闻' : 'Check today\'s crypto market news')
     
     return {

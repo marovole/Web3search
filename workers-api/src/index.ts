@@ -19,7 +19,7 @@ import {
 } from './jobs'
 import healthRoutes from './routes/health'
 import searchRoutes from './routes/search'
-import chatRoutes from './routes/chat'
+import _chatRoutes from './routes/chat'
 import chatV2Routes from './routes/chat-v2'
 import deepResearchRoutes from './routes/deep-research'
 import reportRoutes from './routes/reports'

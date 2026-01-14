@@ -67,17 +67,20 @@ export class ResultAggregator {
     // Summarize by agent type
     const agentSummary = successful.map((r) => {
       switch (r.agentId) {
-        case 'researcher':
+        case 'researcher': {
           const researchOutput = r.output as { searchResultsCount?: number }
           return `Research: ${researchOutput?.searchResultsCount || 0} sources analyzed`
+        }
         case 'analyzer':
           return 'Analysis: Market trends and insights identified'
-        case 'risk':
+        case 'risk': {
           const riskOutput = r.output as { overallRiskLevel?: string }
           return `Risk: ${riskOutput?.overallRiskLevel || 'Unknown'} level`
-        case 'news':
+        }
+        case 'news': {
           const newsOutput = r.output as { articleCount?: number }
           return `News: ${newsOutput?.articleCount || 0} articles analyzed`
+        }
         case 'reporter':
           return 'Report: Comprehensive synthesis generated'
         default:
@@ -98,7 +101,7 @@ export class ResultAggregator {
   /**
    * Generate result sections
    */
-  private generateSections(results: AgentResult[], includeAll: boolean): ResultSection[] {
+  private generateSections(results: AgentResult[], _includeAll: boolean): ResultSection[] {
     const sections: ResultSection[] = []
 
     // Process each agent's output

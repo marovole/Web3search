@@ -1,9 +1,8 @@
 import type { SupabaseClient } from '../../lib/supabase'
 import type { Env } from '../../types/env'
 import type { ChatCompletionMessage, ChatRole } from '../../types/chat'
-import type { MarketContext } from '../../lib/context-builders/market-context'
 import type { ModelConfig } from '../../lib/model-routing'
-import type { ResearchDepth, ResearchType } from '../../types/deep-research'
+import type { ResearchDepth } from '../../types/deep-research'
 import type {
   GeneratedResearchPlan,
   ParsedResearchPlan,
@@ -111,7 +110,7 @@ export async function generateResearchPlan(
           .filter(Boolean)
       }
     }
-  } catch (e) {
+  } catch (_e) {
     console.warn('Failed to parse research plan JSON, falling back to extraction')
   }
 
@@ -279,7 +278,7 @@ export async function synthesizeFindings(
     if (jsonMatch) {
       parsedResult = JSON.parse(jsonMatch[0])
     }
-  } catch (e) {
+  } catch (_e) {
     console.warn('Failed to parse synthesis JSON, using raw content')
   }
 

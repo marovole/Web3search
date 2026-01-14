@@ -6,8 +6,8 @@
 import { BaseSubAgent } from './index'
 import type { SharedContext, AgentInput, AgentResult, RiskAssessment, RiskMetricMap } from '../types'
 import type { ISSEEmitter } from '../../../services/deep-research/types'
-import type { Env } from '../../../types/env'
-import type { ModelConfig } from '../../model-routing'
+import type { Env as _Env } from '../../../types/env'
+import type { ModelConfig as _ModelConfig } from '../../model-routing'
 
 
 export class RiskAgent extends BaseSubAgent {
@@ -78,7 +78,7 @@ export class RiskAgent extends BaseSubAgent {
   private async assessTokenRisk(
     tokenAddress: string,
     context: SharedContext,
-    emitter?: ISSEEmitter
+    _emitter?: ISSEEmitter
   ): Promise<RiskAssessment> {
     const assessment: RiskAssessment = {
       overallScore: 50, // Start neutral

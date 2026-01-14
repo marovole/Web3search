@@ -10,7 +10,7 @@ import { createSSEResponse, createHeartbeatInterval } from '../services/deep-res
 import { CentralCoordinator } from '../lib/multi-agent/coordinator'
 import { getModelConfig } from '../lib/model-routing'
 import { getTaskRouter } from '../lib/multi-agent/coordinator/task-router'
-import { createTaskStorage, type TaskRecord } from '../lib/multi-agent/task-storage'
+import { createTaskStorage } from '../lib/multi-agent/task-storage'
 import type { TaskIntent, TaskConfig } from '../lib/multi-agent/types'
 
 const multiAgent = new Hono<{ Bindings: Env }>()
@@ -79,7 +79,7 @@ multiAgent.post('/research', authMiddleware(), async (c) => {
   console.log(router.createRoutingSummary(body.query, intent))
 
   // Return SSE response
-  return createSSEResponse(async (emitter, controller) => {
+  return createSSEResponse(async (emitter, _controller) => {
     const heartbeat = createHeartbeatInterval(emitter)
 
     try {

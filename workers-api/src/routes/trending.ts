@@ -29,7 +29,7 @@ trending.get('/hotspots', async (c) => {
       if (cached) {
         try {
           return c.json(JSON.parse(cached))
-        } catch (parseError) {
+        } catch (_parseError) {
           // Cache data is malformed, continue to database query
           console.warn('[Trending] Malformed cache data, falling back to database')
         }
@@ -92,7 +92,7 @@ trending.get('/hotspots', async (c) => {
     const hotspotPromises = topKeywords.map(async ([keyword, searchCount]) => {
       try {
         // Resolve keyword to coin ID and fetch market data
-        const coinId = (coinGecko as any).resolveCoinId(keyword)
+        const coinId = (coinGecko as { resolveCoinId: (symbol: string) => string }).resolveCoinId(keyword)
         
         // Skip if we've already seen this coin (handles aliases like 'btc'/'bitcoin')
         if (seenCoinIds.has(coinId)) {

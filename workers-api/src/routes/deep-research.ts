@@ -29,7 +29,6 @@ import {
   generateResearchPlan,
   searchSources,
   synthesizeFindings,
-  SSEEmitter,
   createSSEResponse,
   createHeartbeatInterval,
   type ModelConfig,
@@ -250,7 +249,7 @@ function streamDeepResearch({ query, conversationId, modelConfig, supabase, env,
   const isTokenomics = researchType === 'tokenomics'
 
   return createSSEResponse(
-    async (emitter, controller) => {
+    async (emitter, _controller) => {
       const heartbeat = createHeartbeatInterval(emitter)
 
       try {

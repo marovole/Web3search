@@ -12,10 +12,9 @@ import {
 } from '../lib/intent-parser'
 import type { 
   ParsedIntent, 
-  ConversationMessage, 
   TaskCreationResult 
 } from '../types/agent-intent'
-import { createOpenRouterClient } from '../lib/openrouter'
+import { createOpenRouterClient as _createOpenRouterClient } from '../lib/openrouter'
 
 const app = new Hono<{ Bindings: Env }>()
 

@@ -217,7 +217,7 @@ export class CentralCoordinator {
     modelConfig: ModelConfig,
     executeHandler: (coordinator: CentralCoordinator, emitter: ISSEEmitter) => Promise<void>
   ): Response {
-    return createSSEResponse(async (emitter, controller) => {
+    return createSSEResponse(async (emitter, _controller) => {
       const heartbeat = createHeartbeatInterval(emitter)
 
       try {

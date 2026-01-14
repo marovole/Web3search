@@ -6,8 +6,8 @@
 import { BaseSubAgent } from './index'
 import type { SharedContext, AgentInput, AgentResult, NewsArticle, SocialMetricMap } from '../types'
 import type { ISSEEmitter } from '../../../services/deep-research/types'
-import type { Env } from '../../../types/env'
-import type { ModelConfig } from '../../model-routing'
+import type { Env as _Env } from '../../../types/env'
+import type { ModelConfig as _ModelConfig } from '../../model-routing'
 
 
 export class NewsAgent extends BaseSubAgent {
@@ -65,7 +65,7 @@ export class NewsAgent extends BaseSubAgent {
     }
   }
 
-  private async collectNews(query: string, emitter?: ISSEEmitter): Promise<NewsArticle[]> {
+  private async collectNews(_query: string, _emitter?: ISSEEmitter): Promise<NewsArticle[]> {
     // Extract potential token symbol
     const tokenPattern = /\b[A-Z]{2,8}\b/g
     const tokens = query.match(tokenPattern) || []
@@ -154,9 +154,9 @@ export class NewsAgent extends BaseSubAgent {
   }
 
   private async collectSocialMetrics(
-    query: string,
+    _query: string,
     context: SharedContext,
-    emitter?: ISSEEmitter
+    _emitter?: ISSEEmitter
   ): Promise<SocialMetricMap> {
     const metrics: SocialMetricMap = {}
 
@@ -194,8 +194,8 @@ export class NewsAgent extends BaseSubAgent {
   }
 
   private async fetchSocialMetrics(
-    symbol: string,
-    address: string
+    _symbol: string,
+    _address: string
   ): Promise<{
     twitterFollowers?: number
     discordMembers?: number

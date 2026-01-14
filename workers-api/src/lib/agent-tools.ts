@@ -21,7 +21,7 @@ export const getTokenPriceTool: AgentTool = {
       required: true,
     },
   },
-  async execute(params: Record<string, unknown>, context: AgentContext): Promise<ToolResult> {
+  async execute(params: Record<string, unknown>, _context: AgentContext): Promise<ToolResult> {
     const symbol = params.symbol as string
     if (!symbol) {
       return { success: false, error: 'Missing required parameter: symbol' }
@@ -75,7 +75,7 @@ export const getRiskScoreTool: AgentTool = {
       required: true,
     },
   },
-  async execute(params: Record<string, unknown>, context: AgentContext): Promise<ToolResult> {
+  async execute(params: Record<string, unknown>, _context: AgentContext): Promise<ToolResult> {
     const symbol = params.symbol as string
     if (!symbol) {
       return { success: false, error: 'Missing required parameter: symbol' }
@@ -258,7 +258,7 @@ export const checkPriceConditionTool: AgentTool = {
       required: true,
     },
   },
-  async execute(params: Record<string, unknown>, context: AgentContext): Promise<ToolResult> {
+  async execute(params: Record<string, unknown>, _context: AgentContext): Promise<ToolResult> {
     const symbol = params.symbol as string
     const condition = params.condition as string
     const targetValue = params.target_value as number

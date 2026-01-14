@@ -293,7 +293,7 @@ function buildTaskPrompt(taskType: string, config: Record<string, unknown>): str
   return `Execute task type: ${taskType}\nConfiguration: ${JSON.stringify(config, null, 2)}`
 }
 
-function getToolsForTaskType(_taskType: string): AgentTool[] {
+export function getToolsForTaskType(_taskType: string): AgentTool[] {
   return getAvailableTools()
 }
 

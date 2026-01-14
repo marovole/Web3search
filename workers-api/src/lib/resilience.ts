@@ -277,7 +277,7 @@ export async function executeWithResilience<T>(
   operation: () => Promise<T>,
   options: {
     modelId: string
-    modelConfig: ModelConfig
+    _modelConfig: ModelConfig
     env: Env
     retryConfig?: RetryConfig
     circuitConfig?: CircuitBreakerConfig
@@ -285,7 +285,7 @@ export async function executeWithResilience<T>(
 ): Promise<RequestResult<T>> {
   const {
     modelId,
-    modelConfig,
+    _modelConfig,
     env,
     retryConfig = DEFAULT_RETRY_CONFIG,
     circuitConfig = DEFAULT_CIRCUIT_CONFIG

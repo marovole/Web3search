@@ -47,7 +47,6 @@ export class KvTaskStorage implements TaskStorage {
     }
 
     const key = this.getTaskKey(task.id)
-    const userKey = this.getUserTasksKey(task.userId, task.id)
 
     // Store task
     await this.kv?.put(key, JSON.stringify(record), { expirationTtl: this.TTL })

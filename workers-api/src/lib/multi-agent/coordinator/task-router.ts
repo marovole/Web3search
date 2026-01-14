@@ -3,8 +3,7 @@
  * Routes tasks to appropriate agent combinations based on intent
  */
 
-import type { TaskIntent, TaskConfig, SubAgent } from '../types'
-import { getSubAgentRegistry } from '../agents/registry'
+import type { TaskIntent, TaskConfig } from '../types'
 
 export interface TaskRoute {
   intent: TaskIntent

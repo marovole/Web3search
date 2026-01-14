@@ -433,7 +433,7 @@ function determineRecommendationType(token: TrendingToken): string {
   return 'ai_picked'
 }
 
-function determineRiskLevel(token: TrendingToken, userRisk: string): string {
+function determineRiskLevel(token: TrendingToken, _userRisk: string): string {
   if (token.market_cap > 10_000_000_000) return 'low'
   if (token.market_cap > 1_000_000_000) return 'medium'
   if (token.market_cap > 100_000_000) return 'high'

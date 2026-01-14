@@ -17,7 +17,7 @@ import {
 } from '../lib/model-routing'
 import { executeOpenRouterRequest } from '../lib/resilience'
 import { buildTelemetryData, logToMultipleDestinations } from '../lib/telemetry'
-import { parseStreamResponse, createStreamingResponse } from '../lib/streaming'
+import { createStreamingResponse } from '../lib/streaming'
 import {
   ensureConversationExists,
   fetchConversationHistory,
@@ -45,7 +45,7 @@ chatV2.post(
     key: (c) => c.req.header('cf-connecting-ip') || 'anonymous',
   }),
   async (c) => {
-    const startTime = Date.now()
+    const _startTime = Date.now()
     const requestId = crypto.randomUUID()
 
     // Parse and validate request
@@ -238,15 +238,15 @@ interface StreamingResponseParams {
   supabase: SupabaseClient
   conversationId: string
   userMessageId: string | undefined
-  modelConfig: any
-  telemetry: any
+  modelConfig: unknown
+  telemetry: unknown
 }
 
 async function handleStreamingResponse({
   upstream,
   supabase,
   conversationId,
-  modelConfig
+  _modelConfig
 }: StreamingResponseParams) {
   if (!upstream.body) {
     throw new Error('OpenRouter stream missing body')
@@ -288,8 +288,8 @@ interface NonStreamingResponseParams {
   supabase: SupabaseClient
   conversationId: string
   userMessageId: string | undefined
-  modelConfig: any
-  telemetry: any
+  modelConfig: unknown
+  telemetry: unknown
 }
 
 async function handleNonStreamingResponse({
@@ -298,7 +298,7 @@ async function handleNonStreamingResponse({
   conversationId,
   modelConfig
 }: NonStreamingResponseParams) {
-  const result = await response.json() as any
+  const result = await response.json() as { choices?: Array<{ message?: { content?: string } }> }
   const assistantContent = result.choices?.[0]?.message?.content?.trim() || ''
 
   if (!assistantContent) {

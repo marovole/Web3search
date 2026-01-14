@@ -5,7 +5,6 @@
 
 import type { Env } from '../../types/env'
 import type { ModelConfig } from '../model-routing'
-import type { ResearchDepth } from '../../types/deep-research'
 import type { ISSEEmitter } from '../../services/deep-research/types'
 
 // ============================================================================

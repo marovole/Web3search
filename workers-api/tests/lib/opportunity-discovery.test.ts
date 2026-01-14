@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../lib/supabase', () => ({
+vi.mock('../../src/lib/supabase', () => ({
   getSupabaseClient: vi.fn(() => ({
     from: vi.fn(() => ({
       select: vi.fn(() => ({
@@ -18,7 +18,7 @@ vi.mock('../lib/supabase', () => ({
   }))
 }))
 
-vi.mock('../lib/openrouter', () => ({
+vi.mock('../../src/lib/openrouter', () => ({
   createOpenRouterClient: vi.fn(() => ({
     request: vi.fn(() => Promise.resolve({
       ok: true,
@@ -29,7 +29,7 @@ vi.mock('../lib/openrouter', () => ({
   }))
 }))
 
-vi.mock('../lib/push', () => ({
+vi.mock('../../src/lib/push', () => ({
   sendPushToUser: vi.fn(() => Promise.resolve({ sent: 1, failed: 0, expired: [] })),
   createNotificationPayload: vi.fn((type, title, body, data) => ({
     title,
@@ -55,7 +55,7 @@ describe('Opportunity Discovery Processor', () => {
 
   describe('passesMarketCapFilter', () => {
     it('should pass any market cap when filter is "any"', async () => {
-      const { getSupabaseClient } = await import('../lib/supabase')
+      const { getSupabaseClient } = await import('../../src/lib/supabase')
       const mockSupabase = getSupabaseClient(mockEnv as never, true)
       expect(mockSupabase).toBeDefined()
     })

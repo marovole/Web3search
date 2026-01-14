@@ -6,8 +6,8 @@
 import { BaseSubAgent } from './index'
 import type { SharedContext, AgentInput, AgentResult, NormalizedSearchResult, PriceDataMap } from '../types'
 import type { ISSEEmitter } from '../../../services/deep-research/types'
-import type { Env } from '../../../types/env'
-import type { ModelConfig } from '../../model-routing'
+import type { Env as _Env } from '../../../types/env'
+import type { ModelConfig as _ModelConfig } from '../../model-routing'
 
 
 export class ResearcherAgent extends BaseSubAgent {
@@ -99,7 +99,7 @@ export class ResearcherAgent extends BaseSubAgent {
 
   private async performParallelSearch(
     queries: string[],
-    emitter?: ISSEEmitter
+    _emitter?: ISSEEmitter
   ): Promise<NormalizedSearchResult[]> {
     const results: NormalizedSearchResult[] = []
     const searchPromises = queries.map(async (query) => {
@@ -195,7 +195,7 @@ export class ResearcherAgent extends BaseSubAgent {
 
   private async collectPriceData(
     query: string,
-    emitter?: ISSEEmitter
+    _emitter?: ISSEEmitter
   ): Promise<PriceDataMap> {
     const tokenPattern = /\b0x[a-fA-F0-9]{40}\b|\b[A-Z]{2,8}\b/g
     const matches = query.match(tokenPattern) || []
@@ -263,7 +263,7 @@ export class ResearcherAgent extends BaseSubAgent {
 
   private categorizeResult(
     result: NormalizedSearchResult,
-    query: string
+    _query: string
   ): string {
     const titleLower = result.title.toLowerCase()
     const snippetLower = result.snippet.toLowerCase()

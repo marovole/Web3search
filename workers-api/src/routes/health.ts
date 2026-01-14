@@ -11,7 +11,7 @@ import type { Env } from '../types/env'
 import { testDatabaseConnection } from '../lib/supabase'
 
 // Health check response type
-interface HealthCheckPayload {
+interface _HealthCheckPayload {
   status: string
   timestamp: string
   database: {

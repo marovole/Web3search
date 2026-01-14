@@ -88,7 +88,7 @@ reports.post(
     }
 
     // Validate required fields
-    const { topic, sections, format = 'markdown', save_to_database = false } = body
+    const { topic, sections, format: _format = 'markdown', save_to_database = false } = body
     if (!topic || !sections || sections.length === 0) {
       return c.json(
         {
@@ -294,7 +294,7 @@ Content:`
  * Returns both the generated content and token usage statistics
  */
 async function generateSectionContent(
-  openrouter: any,
+  openrouter: { request: (payload: Record<string, unknown>) => Promise<Response> },
   prompt: string
 ): Promise<SectionGenerationResult> {
   const payload = {
@@ -336,7 +336,7 @@ async function generateSectionContent(
  * Save completed report to Supabase database
  */
 async function saveReportToDatabase(
-  supabase: any,
+  supabase: ReturnType<typeof getSupabaseClient>,
   state: ReportGenerationState,
   tokensUsed: number
 ): Promise<string> {
