@@ -17,7 +17,7 @@ export async function onRequest(context: {
   const url = new URL(context.request.url);
   const pathname = url.pathname;
 
-  // API 请求代理到后端
+  // 只代理 API 请求，忽略静态资源
   if (pathname.startsWith('/api/')) {
     const backendUrl = 'https://web3search-api.marovole.workers.dev' + pathname + url.search;
 
@@ -56,6 +56,6 @@ export async function onRequest(context: {
     }
   }
 
-  // 对于其他请求，继续正常处理
+  // 对于其他请求（包括静态资源），继续正常处理
   return context.next();
 }
