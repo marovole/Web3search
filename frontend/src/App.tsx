@@ -90,6 +90,9 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   )
 }
 
+import { ConvexProvider } from "convex/react";
+import { convex } from "./lib/convex";
+
 function App() {
   // UX enhancement config
   const uxConfig = { features: {} as Record<string, boolean> }
@@ -141,8 +144,9 @@ function App() {
   }, [uxConfig])
 
   return (
-    <AuthProvider>
-      <LoadingProvider>
+    <ConvexProvider client={convex}>
+      <AuthProvider>
+        <LoadingProvider>
         <UserPreferencesProvider>
           <SearchHistoryProvider>
             <SearchFavoritesProvider>

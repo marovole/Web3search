@@ -6,10 +6,10 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey)
 
 if (!isSupabaseConfigured) {
-  console.warn('[Supabase] Missing environment variables. Auth features will not work.')
+  console.warn('[Supabase] Missing environment variables. Auth features are disabled.')
 }
 
-let supabaseClient: SupabaseClient
+let supabaseClient: any = null
 
 if (isSupabaseConfigured) {
   supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -19,18 +19,6 @@ if (isSupabaseConfigured) {
       detectSessionInUrl: true,
     },
   })
-} else {
-  supabaseClient = createClient(
-    'https://placeholder.supabase.co',
-    'placeholder-key',
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        detectSessionInUrl: false,
-      },
-    }
-  )
 }
 
 export const supabase = supabaseClient

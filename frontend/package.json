@@ -50,6 +50,7 @@
     "broadcast-channel": "^7.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "convex": "^1.31.4",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.24",
     "leaflet": "^1.9.4",

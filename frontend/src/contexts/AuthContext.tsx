@@ -79,6 +79,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [])
 
   useEffect(() => {
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
@@ -106,17 +111,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [fetchUserData])
 
   const signUp = useCallback(async (email: string, password: string) => {
+    if (!supabase) return { error: new Error('Auth service unavailable') }
     const { error } = await supabase.auth.signUp({ email, password })
     return { error: error as Error | null }
   }, [])
 
   const signIn = useCallback(async (email: string, password: string) => {
+    if (!supabase) return { error: new Error('Auth service unavailable') }
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error: error as Error | null }
   }, [])
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut()
+    if (supabase) {
+      await supabase.auth.signOut()
+    }
     setProfile(null)
     setQuota(null)
   }, [])
