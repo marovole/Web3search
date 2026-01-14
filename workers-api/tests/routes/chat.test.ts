@@ -129,11 +129,12 @@ describe('Deep Research SSE endpoint', () => {
     expect(response.status).toBe(200)
   })
 
-  it('returns 400 when query is missing', async () => {
+  it('returns 400 when query is missing or invalid', async () => {
     const response = await fetchDeepResearch()
     expect(response.status).toBe(400)
     const body = await response.json()
-    expect(body.error.code).toBe('MISSING_QUERY')
+    // GET /stream uses validateResearchQuery which returns INVALID_QUERY for empty/missing query
+    expect(body.error.code).toBe('INVALID_QUERY')
   })
 
   it('returns 414 when query exceeds maximum length', async () => {

@@ -16,8 +16,10 @@ import { GlobalSearchDialog } from './components/Search/GlobalSearchDialog'
 import { useSidebar } from './hooks/useSidebar'
 import { useKeyboardShortcutsContext } from './contexts/KeyboardShortcutsContext'
 import Sidebar from './components/Layout/Sidebar'
+import { ConvexProvider } from "convex/react";
+import { convex } from "./lib/convex";
 
-// 懒加载页面组件（已修复嵌套懒加载问题）
+// 懒加载页面组件
 const ChatPage = React.lazy(() => import('./pages/ChatPage'))
 const SharedReportPage = React.lazy(() => import('./pages/SharedReportPage'))
 const HistoryPage = React.lazy(() => import('./pages/HistoryPage'))
@@ -60,8 +62,6 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <div className="min-h-screen font-sans antialiased text-foreground">
-      {/* Background is handled in index.css body, but we can add a subtle overlay if needed */}
-
       <Sidebar
         isOpen={isOpen}
         onToggle={toggle}
@@ -71,7 +71,6 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
       <div className={cn(
         "transition-all duration-200 ease-out min-h-screen flex flex-col",
-        // Add margin for desktop sidebar (w-64)
         !isMobile && "md:ml-64"
       )}>
         <main className="flex-1 relative h-screen">
@@ -81,7 +80,6 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </main>
       </div>
 
-      {/* 全局搜索对话框 */}
       <GlobalSearchDialog
         isOpen={searchOpen}
         onClose={() => setSearchOpen(false)}
@@ -90,43 +88,20 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   )
 }
 
-import { ConvexProvider } from "convex/react";
-import { convex } from "./lib/convex";
-
 function App() {
-  // UX enhancement config
   const uxConfig = { features: {} as Record<string, boolean> }
 
-  // 初始化监控服务（延迟导入，避免React初始化冲突）
   React.useEffect(() => {
     const initMonitoring = async () => {
       try {
-        const { initSentry, addBreadcrumb, setContext, trackCoreWebVitals, trackPageLoad, trackResourceLoading } = await import('./services/sentry-lite')
-
-        // 初始化Sentry错误监控和RUM
+        const { initSentry, setContext, trackCoreWebVitals, trackPageLoad, trackResourceLoading } = await import('./services/sentry-lite')
         initSentry()
-
-        // 设置应用上下文信息
         setContext('app', {
-          version: process.env.npm_package_version || '1.0.0',
+          version: import.meta.env.VITE_APP_VERSION || '1.0.0',
           name: 'Web3search Frontend',
           buildTime: new Date().toISOString(),
           uxEnhancements: uxConfig
         })
-
-        // 添加面包屑导航
-        addBreadcrumb({
-          message: '应用启动',
-          category: 'navigation',
-          level: 'info',
-          data: {
-            userAgent: navigator.userAgent,
-            url: window.location.href,
-            uxFeatures: uxConfig.features
-          }
-        })
-
-        // 初始化RUM监控
         trackCoreWebVitals()
         trackPageLoad()
         trackResourceLoading()
@@ -134,168 +109,81 @@ function App() {
         logger.error('初始化监控失败:', error)
       }
     }
-
     initMonitoring()
-
-    // 清理函数
-    return () => {
-      // 清理监控（如需要）
-    }
   }, [uxConfig])
 
   return (
-    <ConvexProvider client={convex}>
-      <AuthProvider>
-        <LoadingProvider>
-        <UserPreferencesProvider>
-          <SearchHistoryProvider>
-            <SearchFavoritesProvider>
-              <KeyboardShortcutsProvider>
-                <Router>
-                  <ThemeProvider defaultTheme="dark" storageKey="web3search-theme">
-                    <ToastProvider>
-                      <OfflineIndicator />
-                      <ErrorBoundary>
-                        <Routes>
-                          {/* 认证路由 - 不显示侧边栏 */}
-                          <Route path="/auth/login" element={
-                            <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
-                              <LoginPage />
-                            </Suspense>
-                          } />
-                          <Route path="/auth/register" element={
-                            <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
-                              <RegisterPage />
-                            </Suspense>
-                          } />
-                          <Route path="/auth/forgot-password" element={
-                            <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
-                              <ForgotPasswordPage />
-                            </Suspense>
-                          } />
-                          <Route path="/auth/reset-password" element={
-                            <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
-                              <ResetPasswordPage />
-                            </Suspense>
-                          } />
-                          {/* 应用路由 - 显示侧边栏 */}
-                          <Route path="/*" element={
-                            <AppLayout>
-                              <Routes>
-                                <Route path="/" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="chat" />}>
-                                    <ChatPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/chat" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="chat" />}>
-                                    <ChatPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/shared/:shareToken" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="report" />}>
-                                    <SharedReportPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/history" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="history" />}>
-                                    <HistoryPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/watchlist" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="search" />}>
-                                    <WatchlistPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/search" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="search" />}>
-                                    <SearchPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/github" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="search" />}>
-                                    <GitHubSearchPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/agents" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
-                                    <AgentsPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/upgrade" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
-                                    <UpgradePage />
-                                  </Suspense>
-                                } />
-                                <Route path="/notifications" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
-                                    <NotificationsPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/settings" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
-                                    <SettingsPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/reports" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="report" />}>
-                                    <ReportsPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/analytics" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="search" />}>
-                                    <AnalyticsPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/holdings" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="search" />}>
-                                    <HoldingsPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/portfolio" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="search" />}>
-                                    <HoldingsPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/recommendations" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="search" />}>
-                                    <RecommendationsPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/discover" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="search" />}>
-                                    <RecommendationsPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/agent-chat" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="chat" />}>
-                                    <AgentChatPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/assistant" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="chat" />}>
-                                    <AgentChatPage />
-                                  </Suspense>
-                                } />
-                                <Route path="/agent-dashboard" element={
-                                  <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
-                                    <AgentDashboardPage />
-                                  </Suspense>
-                                } />
-                              </Routes>
-                            </AppLayout>
-                          } />
-                        </Routes>
-                      </ErrorBoundary>
-                    </ToastProvider>
-                  </ThemeProvider>
-                </Router>
-              </KeyboardShortcutsProvider>
-            </SearchFavoritesProvider>
-          </SearchHistoryProvider>
-        </UserPreferencesProvider>
-      </LoadingProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <ConvexProvider client={convex}>
+        <AuthProvider>
+          <LoadingProvider>
+            <UserPreferencesProvider>
+              <SearchHistoryProvider>
+                <SearchFavoritesProvider>
+                  <KeyboardShortcutsProvider>
+                    <Router>
+                      <ThemeProvider defaultTheme="dark" storageKey="web3search-theme">
+                        <ToastProvider>
+                          <OfflineIndicator />
+                          <Routes>
+                            <Route path="/auth/login" element={
+                              <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
+                                <LoginPage />
+                              </Suspense>
+                            } />
+                            <Route path="/auth/register" element={
+                              <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
+                                <RegisterPage />
+                              </Suspense>
+                            } />
+                            <Route path="/auth/forgot-password" element={
+                              <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
+                                <ForgotPasswordPage />
+                              </Suspense>
+                            } />
+                            <Route path="/auth/reset-password" element={
+                              <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
+                                <ResetPasswordPage />
+                              </Suspense>
+                            } />
+                            <Route path="/*" element={
+                              <AppLayout>
+                                <Routes>
+                                  <Route path="/" element={<Suspense fallback={<AdaptiveSkeleton pageType="chat" />}><ChatPage /></Suspense>} />
+                                  <Route path="/chat" element={<Suspense fallback={<AdaptiveSkeleton pageType="chat" />}><ChatPage /></Suspense>} />
+                                  <Route path="/shared/:shareToken" element={<Suspense fallback={<AdaptiveSkeleton pageType="report" />}><SharedReportPage /></Suspense>} />
+                                  <Route path="/history" element={<Suspense fallback={<AdaptiveSkeleton pageType="history" />}><HistoryPage /></Suspense>} />
+                                  <Route path="/watchlist" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><WatchlistPage /></Suspense>} />
+                                  <Route path="/search" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><SearchPage /></Suspense>} />
+                                  <Route path="/github" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><GitHubSearchPage /></Suspense>} />
+                                  <Route path="/agents" element={<Suspense fallback={<AdaptiveSkeleton pageType="settings" />}><AgentsPage /></Suspense>} />
+                                  <Route path="/upgrade" element={<Suspense fallback={<AdaptiveSkeleton pageType="settings" />}><UpgradePage /></Suspense>} />
+                                  <Route path="/notifications" element={<Suspense fallback={<AdaptiveSkeleton pageType="settings" />}><NotificationsPage /></Suspense>} />
+                                  <Route path="/settings" element={<Suspense fallback={<AdaptiveSkeleton pageType="settings" />}><SettingsPage /></Suspense>} />
+                                  <Route path="/reports" element={<Suspense fallback={<AdaptiveSkeleton pageType="report" />}><ReportsPage /></Suspense>} />
+                                  <Route path="/analytics" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><AnalyticsPage /></Suspense>} />
+                                  <Route path="/holdings" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><HoldingsPage /></Suspense>} />
+                                  <Route path="/portfolio" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><HoldingsPage /></Suspense>} />
+                                  <Route path="/recommendations" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><RecommendationsPage /></Suspense>} />
+                                  <Route path="/discover" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><RecommendationsPage /></Suspense>} />
+                                  <Route path="/agent-chat" element={<Suspense fallback={<AdaptiveSkeleton pageType="chat" />}><AgentChatPage /></Suspense>} />
+                                  <Route path="/assistant" element={<Suspense fallback={<AdaptiveSkeleton pageType="chat" />}><AgentChatPage /></Suspense>} />
+                                  <Route path="/agent-dashboard" element={<Suspense fallback={<AdaptiveSkeleton pageType="settings" />}><AgentDashboardPage /></Suspense>} />
+                                </Routes>
+                              </AppLayout>
+                            } />
+                          </Routes>
+                        </ToastProvider>
+                      </ThemeProvider>
+                    </Router>
+                  </KeyboardShortcutsProvider>
+                </SearchFavoritesProvider>
+              </SearchHistoryProvider>
+            </UserPreferencesProvider>
+          </LoadingProvider>
+        </AuthProvider>
+      </ConvexProvider>
+    </ErrorBoundary>
   )
 }
 

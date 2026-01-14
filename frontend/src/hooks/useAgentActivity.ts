@@ -13,7 +13,7 @@ import type {
   AgentTaskType,
 } from '../types/agent-activity'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || ''
 
 interface DashboardData {
   stats: AgentDashboardStats

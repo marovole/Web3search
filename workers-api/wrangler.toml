@@ -19,6 +19,14 @@ compatibility_flags = ["nodejs_compat"]
 name = "web3search-api-dev"
 vars = { ENVIRONMENT = "development" }
 
+[[env.development.kv_namespaces]]
+binding = "CACHE"
+id = "edb34a61693d46ce8d0894534f0ce9b3"
+
+[[env.development.kv_namespaces]]
+binding = "MULTI_AGENT_TASKS"
+id = "499541d68e6e4e55be911b54960d46eb"
+
 # ============================================
 # Production Environment
 # ============================================
@@ -76,7 +84,7 @@ command = ""
 # Scheduled Events (Cron Triggers)
 # ============================================
 [triggers]
-crons = ["*/5 * * * *", "0 * * * *", "*/10 * * * *", "0 0 * * *", "0 0 1 * *", "0 9 * * 1", "0 10 * * 3"]
+crons = []
 
 # ============================================
 # Limits

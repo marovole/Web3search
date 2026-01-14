@@ -14,15 +14,25 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, placeholder = 'Search..
   const [query, setQuery] = React.useState('')
   const [suggestions, setSuggestions] = React.useState<string[]>([])
   const [isLoading, setIsLoading] = React.useState(false)
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const latestQueryRef = React.useRef('')
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
+    latestQueryRef.current = value
     setQuery(value)
     
     // Mock suggestion loading
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
     if (value.length > 0) {
       setIsLoading(true)
-      setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
+        if (latestQueryRef.current !== value) {
+          return
+        }
         const mockSuggestions = [
           `${value} price analysis`,
           `${value} market trends`,

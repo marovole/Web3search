@@ -52,7 +52,7 @@ const DEFAULT_CONFIG: Partial<EnvConfig> = {
  * 获取环境变量值，提供类型安全
  */
 function getEnvVar(key: string, defaultValue?: string): string {
-  const value = import.meta.env[key]
+  const value = import.meta.env?.[key]
   if (value === undefined) {
     if (defaultValue !== undefined) {
       console.warn(`⚠️ Environment variable ${key} not found, using default: ${defaultValue}`)
@@ -68,7 +68,7 @@ function getEnvVar(key: string, defaultValue?: string): string {
  * 支持环境变量配置和运行时检测
  */
 function getApiBaseUrl(): string {
-  const envUrl = import.meta.env.VITE_API_BASE_URL
+  const envUrl = import.meta.env?.VITE_API_BASE_URL
   const defaultUrl = 'https://api.lulaai.xyz'
   
   // 已弃用的旧API URL列表

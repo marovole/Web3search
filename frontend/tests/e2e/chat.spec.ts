@@ -236,7 +236,9 @@ test.describe('Deep Research', () => {
     await page.getByTestId('mode-switch-deep').click()
   })
 
-  // Workers API 有 30 秒执行时间限制，Deep Research 会超时，跳过此测试
+  // NOTE: Deep Research E2E test skipped - requires real API call with 60+ second timeout
+  // Workers API has 30 second execution limit, and full research takes longer
+  // To enable: Run against staging environment with extended timeout or mock the API
   test.skip('should generate Deep Research report', async ({ page }) => {
     // Type a crypto symbol
     const input = page.locator('textarea[placeholder*="输入加密货币项目名称"]')
@@ -262,24 +264,22 @@ test.describe('Deep Research', () => {
 })
 
 test.describe('Report Viewing', () => {
+  // NOTE: Report Viewing tests require a pre-existing report to test
+  // These tests would need to first generate a report, then test viewing/export features
+  // To enable: Create test fixtures with sample reports or mock the report API
   test('should display report viewer with table of contents', async ({ page }) => {
-    // Skip if no reports available
-    // This test would need actual report data to work properly
     test.skip()
   })
 
   test('should export report as Markdown', async ({ page }) => {
-    // Skip - requires actual report
     test.skip()
   })
 
   test('should export report as PDF', async ({ page }) => {
-    // Skip - requires actual report
     test.skip()
   })
 
   test('should generate share link', async ({ page }) => {
-    // Skip - requires actual report
     test.skip()
   })
 })

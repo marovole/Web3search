@@ -99,6 +99,12 @@ class Settings(BaseSettings):
         description="Database connection URL"
     )
 
+    # Share URL configuration
+    share_url_domain: str = Field(
+        default="web3search.com",
+        description="Domain for shareable report URLs"
+    )
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

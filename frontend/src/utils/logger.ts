@@ -14,8 +14,8 @@ const LOG_LEVELS: Record<LogLevel, number> = {
   none: 4,
 }
 
-const isDevelopment = import.meta.env.DEV
-const isProduction = import.meta.env.PROD
+const isDevelopment = import.meta.env?.DEV
+const isProduction = import.meta.env?.PROD
 
 const defaultConfig: LoggerConfig = {
   level: isDevelopment ? 'debug' : 'error',

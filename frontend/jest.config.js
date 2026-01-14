@@ -1,9 +1,6 @@
 import { defaults } from 'jest-config';
 
 export default {
-  // Use the Vite Jest preset
-  preset: 'ts-jest/presets/default-esm',
-  
   // Test environment
   testEnvironment: 'jsdom',
   
@@ -15,21 +12,17 @@ export default {
   
   // Transform
   transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', {
-      useESM: true,
-      tsconfig: {
-        jsx: 'react-jsx',
-        esModuleInterop: true,
-      },
-    }],
+    '^.+\\.(ts|tsx|js|jsx)$': '<rootDir>/scripts/jest-transform.cjs',
   },
   
   // Module name mapping for absolute imports
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^msw/node$': '<rootDir>/node_modules/msw/lib/node/index.js',
+    '^@mswjs/interceptors/ClientRequest$': '<rootDir>/node_modules/@mswjs/interceptors/lib/node/interceptors/ClientRequest/index.js',
     '^.+\\.module\\.(css|sass|scss)$': 'identity-obj-proxy',
-    '^.+\\.(css|sass|scss)$': '<rootDir>/__mocks__/styleMock.js',
-    '^.+\\.(jpg|jpeg|png|gif|webp|avif|svg)$': '<rootDir>/__mocks__/fileMock.js',
+    '^.+\\.(css|sass|scss)$': '<rootDir>/__mocks__/styleMock.cjs',
+    '^.+\\.(jpg|jpeg|png|gif|webp|avif|svg)$': '<rootDir>/__mocks__/fileMock.cjs',
     '^(\\.\\./)*utils/env$': '<rootDir>/src/__tests__/mocks/envMock.ts',
     '^@/utils/env$': '<rootDir>/src/__tests__/mocks/envMock.ts',
     '^(\\.\\./)*utils/logger$': '<rootDir>/src/__tests__/mocks/loggerMock.ts',
@@ -91,6 +84,8 @@ export default {
     '<rootDir>/src/__tests__/mocks/',
     '<rootDir>/src/__tests__/utils/',
     '<rootDir>/src/__tests__/factories/',
+    '<rootDir>/src/__tests__/setup.ts',
+    '<rootDir>/src/__tests__/setup-simple.ts',
   ],
   
   // Transform ignore patterns - allow transformation of specific ES modules
@@ -103,5 +98,5 @@ export default {
   testTimeout: 10000, // 10 seconds
 
   // Extensions to transform
-  extensionsToTreatAsEsm: ['.ts', '.tsx'],
+  extensionsToTreatAsEsm: [],
 };

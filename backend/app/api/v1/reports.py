@@ -10,6 +10,7 @@ from typing import Optional
 import os
 
 from app.core.database import get_db
+from app.config import settings
 from app.api.middleware.auth import optional_auth, get_current_user
 from app.models.user import User
 from app.schemas.report import (
@@ -577,8 +578,8 @@ async def create_share_link(
         await db.commit()
         await db.refresh(report)
 
-        # 构建分享URL（TODO: 从配置获取域名）
-        share_url = f"https://web3search.com/shared/{share_token}"
+        # 构建分享URL
+        share_url = f"https://{settings.share_url_domain}/shared/{share_token}"
 
         return ShareReportResponse(
             share_token=share_token,

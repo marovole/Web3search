@@ -4,7 +4,8 @@
  * Covers Chat, Research, and Map components
  */
 
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { DashboardPage } from './dashboard'
 
 // Mock the child components
@@ -54,6 +55,8 @@ jest.mock('../components/map/InteractiveMap', () => ({
 }))
 
 describe('DashboardPage', () => {
+  const user = userEvent.setup()
+
   describe('Initial Rendering', () => {
     it('should render the dashboard header', () => {
       render(<DashboardPage />)
@@ -76,7 +79,7 @@ describe('DashboardPage', () => {
       const chatComponent = screen.getByTestId('streaming-chat')
       expect(chatComponent).toHaveAttribute(
         'data-api-url',
-        'https://web3search-api.marovole.workers.dev/api/v1/chat'
+        'http://localhost:8787/api/v1/chat/quick-chat'
       )
     })
 
@@ -115,29 +118,28 @@ describe('DashboardPage', () => {
   })
 
   describe('Project Interaction', () => {
-    it('should handle project click from map', () => {
+    it('should handle project click from map', async () => {
       render(<DashboardPage />)
 
       const uniswapButton = screen.getByRole('button', { name: 'Uniswap' })
       expect(uniswapButton).toBeInTheDocument()
 
       // Click should not throw error
-      uniswapButton.click()
+      await user.click(uniswapButton)
     })
 
     it('should show project details when project is clicked', async () => {
       const { container } = render(<DashboardPage />)
 
       const uniswapButton = screen.getByRole('button', { name: 'Uniswap' })
-      uniswapButton.click()
+      await user.click(uniswapButton)
 
       // Wait for project details to appear
-      await waitFor(() => {
-        expect(screen.getByText('Project Details')).toBeInTheDocument()
-      })
+      const detailsHeading = await screen.findByRole('heading', { name: 'Project Details' })
+      const detailsSection = detailsHeading.parentElement as HTMLElement
 
-      expect(screen.getByText('Uniswap')).toBeInTheDocument()
-      expect(screen.getByText('DeFi')).toBeInTheDocument()
+      expect(within(detailsSection).getByText('Uniswap')).toBeInTheDocument()
+      expect(within(detailsSection).getByText(/defi/i)).toBeInTheDocument()
     })
 
     it('should show details for different projects', async () => {
@@ -145,14 +147,13 @@ describe('DashboardPage', () => {
 
       // Click OpenSea
       const openseaButton = screen.getByRole('button', { name: 'OpenSea' })
-      openseaButton.click()
+      await user.click(openseaButton)
 
-      await waitFor(() => {
-        expect(screen.getByText('Project Details')).toBeInTheDocument()
-      })
+      const detailsHeading = await screen.findByRole('heading', { name: 'Project Details' })
+      const detailsSection = detailsHeading.parentElement as HTMLElement
 
-      expect(screen.getByText('OpenSea')).toBeInTheDocument()
-      expect(screen.getByText('NFT')).toBeInTheDocument()
+      expect(within(detailsSection).getByText('OpenSea')).toBeInTheDocument()
+      expect(within(detailsSection).getByText('NFT')).toBeInTheDocument()
     })
   })
 
@@ -247,7 +248,7 @@ describe('DashboardPage', () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
       render(<DashboardPage />)
 
-      const errorButton = screen.getByRole('button', { name: 'Trigger Error' })
+      const errorButton = within(screen.getByTestId('streaming-chat')).getByRole('button', { name: 'Trigger Error' })
       errorButton.click()
 
       expect(consoleSpy).toHaveBeenCalledWith('Chat error:', expect.any(Error))
@@ -258,11 +259,9 @@ describe('DashboardPage', () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
       render(<DashboardPage />)
 
-      const researchErrorButton = screen.getByText('Trigger Error').closest('div')?.querySelector('button')
-      if (researchErrorButton) {
-        researchErrorButton.click()
-        expect(consoleSpy).toHaveBeenCalledWith('Research error:', expect.any(Error))
-      }
+      const researchErrorButton = within(screen.getByTestId('research-sse')).getByRole('button', { name: 'Trigger Error' })
+      researchErrorButton.click()
+      expect(consoleSpy).toHaveBeenCalledWith('Research error:', expect.any(Error))
       consoleSpy.mockRestore()
     })
 
@@ -270,7 +269,7 @@ describe('DashboardPage', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
       render(<DashboardPage />)
 
-      const completeButton = screen.getByRole('button', { name: 'Complete Message' })
+      const completeButton = within(screen.getByTestId('streaming-chat')).getByRole('button', { name: 'Complete Message' })
       completeButton.click()
 
       expect(consoleSpy).toHaveBeenCalledWith('Chat message completed:', 'Test message')
@@ -281,7 +280,7 @@ describe('DashboardPage', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
       render(<DashboardPage />)
 
-      const completeButton = screen.getByText('Complete Research')
+      const completeButton = within(screen.getByTestId('research-sse')).getByRole('button', { name: 'Complete Research' })
       completeButton.click()
 
       expect(consoleSpy).toHaveBeenCalledWith('Research completed:', { result: 'Test result' })
@@ -292,7 +291,7 @@ describe('DashboardPage', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
       render(<DashboardPage />)
 
-      const progressButton = screen.getByText('Update Progress')
+      const progressButton = within(screen.getByTestId('research-sse')).getByRole('button', { name: 'Update Progress' })
       progressButton.click()
 
       expect(consoleSpy).toHaveBeenCalledWith('Research progress: 50% - Testing')

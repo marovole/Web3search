@@ -3,10 +3,15 @@ import { render, RenderOptions } from '@testing-library/react';
 import { ThemeProvider } from '@/components/theme-provider';
 import { BrowserRouter } from 'react-router-dom';
 
+const routerFutureConfig = {
+  v7_startTransition: true,
+  v7_relativeSplatPath: true,
+} as const;
+
 // Custom render function that includes common providers
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={routerFutureConfig}>
       <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         {children}
       </ThemeProvider>
@@ -30,7 +35,7 @@ export const renderWithTheme = (
   options?: Omit<RenderOptions, 'wrapper'>
 ) => {
   const ThemeWrapper = ({ children }: { children: React.ReactNode }) => (
-    <BrowserRouter>
+    <BrowserRouter future={routerFutureConfig}>
       <ThemeProvider defaultTheme={theme} storageKey="vite-ui-theme">
         {children}
       </ThemeProvider>
@@ -47,7 +52,7 @@ export const renderWithRouter = (
   options?: Omit<RenderOptions, 'wrapper'>
 ) => {
   const RouterWrapper = ({ children }: { children: React.ReactNode }) => (
-    <BrowserRouter>
+    <BrowserRouter future={routerFutureConfig}>
       <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         {children}
       </ThemeProvider>

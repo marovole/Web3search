@@ -65,7 +65,7 @@ class ResearchErrorBoundary extends Component<Props, State> {
             <RefreshCw className="w-3 h-3" />
             重试
           </button>
-          {import.meta.env.DEV && this.state.error && (
+          {import.meta.env?.DEV && this.state.error && (
             <p className="mt-2 text-xs text-red-300/60 font-mono truncate max-w-full px-2">
               {this.state.error.message}
             </p>

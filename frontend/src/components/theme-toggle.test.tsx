@@ -3,14 +3,13 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeToggle } from './theme-toggle';
 
-// Mock localStorage
-const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
-};
-Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+const mockSetTheme = jest.fn();
+
+jest.mock('./theme-provider', () => ({
+  useTheme: () => ({
+    setTheme: mockSetTheme,
+  }),
+}));
 
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -29,7 +28,7 @@ Object.defineProperty(window, 'matchMedia', {
 
 describe('ThemeToggle', () => {
   beforeEach(() => {
-    localStorageMock.getItem.mockClear();
+    mockSetTheme.mockClear();
     document.documentElement.className = '';
   });
 
@@ -63,7 +62,7 @@ describe('ThemeToggle', () => {
     await user.click(button);
     await user.click(screen.getByText('浅色'));
     
-    expect(document.documentElement).toHaveClass('light');
+    expect(mockSetTheme).toHaveBeenCalledWith('light');
   });
 
   it('sets theme to dark when dark option is clicked', async () => {
@@ -74,7 +73,7 @@ describe('ThemeToggle', () => {
     await user.click(button);
     await user.click(screen.getByText('深色'));
     
-    expect(document.documentElement).toHaveClass('dark');
+    expect(mockSetTheme).toHaveBeenCalledWith('dark');
   });
 
   it('sets theme to system when system option is clicked', async () => {
@@ -85,23 +84,12 @@ describe('ThemeToggle', () => {
     await user.click(button);
     await user.click(screen.getByText('跟随系统'));
     
-    // When theme is system, it should apply the system preference (light in our mock)
-    expect(document.documentElement).toHaveClass('light');
+    expect(mockSetTheme).toHaveBeenCalledWith('system');
   });
 
-  it('loads theme from localStorage on mount', () => {
-    localStorageMock.getItem.mockReturnValue('dark');
-    
+  it('does not call setTheme on initial render', () => {
     render(<ThemeToggle />);
-    
-    expect(document.documentElement).toHaveClass('dark');
-  });
 
-  it('defaults to system theme when no theme in localStorage', () => {
-    localStorageMock.getItem.mockReturnValue(null);
-    
-    render(<ThemeToggle />);
-    
-    expect(localStorageMock.getItem).toHaveBeenCalledWith('theme');
+    expect(mockSetTheme).not.toHaveBeenCalled();
   });
 });

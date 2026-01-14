@@ -29,8 +29,8 @@ export interface UserActivityData {
   type: 'search' | 'chat' | 'sentiment';
 }
 
-export const createDashboardFactory = () => ({
-  buildStats: (overrides: Partial<DashboardStats> = {}): DashboardStats => ({
+export const createDashboardFactory = () => {
+  const buildStats = (overrides: Partial<DashboardStats> = {}): DashboardStats => ({
     totalSearches: faker.number.int({ min: 100, max: 10000 }),
     totalConversations: faker.number.int({ min: 10, max: 1000 }),
     totalSentimentAnalyses: faker.number.int({ min: 20, max: 2000 }),
@@ -41,27 +41,26 @@ export const createDashboardFactory = () => ({
       count: faker.number.int({ min: 10, max: 100 }) - (index * 10),
     })),
     ...overrides,
-  }),
+  });
 
-  buildTimeSeriesData: (days = 30): TimeSeriesData[] =>
+  const buildTimeSeriesData = (days = 30): TimeSeriesData[] =>
     Array.from({ length: days }, (_, index) => ({
       date: faker.date.past({ days: index }).toISOString().split('T')[0],
       searches: faker.number.int({ min: 20, max: 200 }),
       conversations: faker.number.int({ min: 5, max: 50 }),
       sentimentAnalyses: faker.number.int({ min: 10, max: 100 }),
-    })),
+    }));
 
-  buildUserActivityData: (count = 50): UserActivityData[] =>
+  const buildUserActivityData = (count = 50): UserActivityData[] =>
     Array.from({ length: count }, () => ({
       userId: faker.string.uuid(),
       userName: faker.person.fullName(),
       lastActive: faker.date.recent().toISOString(),
       activityCount: faker.number.int({ min: 1, max: 50 }),
       type: faker.helpers.arrayElement(['search', 'chat', 'sentiment']),
-    })),
+    }));
 
-  // Predefined test data
-  testStats: (): DashboardStats => this.buildStats({
+  const testStats = (): DashboardStats => buildStats({
     totalSearches: 1250,
     totalConversations: 45,
     totalSentimentAnalyses: 89,
@@ -74,19 +73,18 @@ export const createDashboardFactory = () => ({
       { query: 'sentiment analysis', count: 28 },
       { query: 'dashboard', count: 25 },
     ],
-  }),
+  });
 
-  emptyStats: (): DashboardStats => this.buildStats({
+  const emptyStats = (): DashboardStats => buildStats({
     totalSearches: 0,
     totalConversations: 0,
     totalSentimentAnalyses: 0,
     averageResponseTime: 0,
     userGrowth: 0,
     popularQueries: [],
-  }),
+  });
 
-  // Growing trend data
-  growingTrendStats: (): DashboardStats => this.buildStats({
+  const growingTrendStats = (): DashboardStats => buildStats({
     totalSearches: 5000,
     totalConversations: 250,
     totalSentimentAnalyses: 400,
@@ -99,10 +97,9 @@ export const createDashboardFactory = () => ({
       { query: 'machine learning', count: 76 },
       { query: 'blockchain', count: 65 },
     ],
-  }),
+  });
 
-  // Declining trend data
-  decliningTrendStats: (): DashboardStats => this.buildStats({
+  const decliningTrendStats = (): DashboardStats => buildStats({
     totalSearches: 800,
     totalConversations: 20,
     totalSentimentAnalyses: 35,
@@ -113,10 +110,9 @@ export const createDashboardFactory = () => ({
       { query: 'another old', count: 12 },
       { query: 'deprecated', count: 8 },
     ],
-  }),
+  });
 
-  // Create realistic weekly data
-  createWeeklyData: (): TimeSeriesData[] => {
+  const createWeeklyData = (): TimeSeriesData[] => {
     const data: TimeSeriesData[] = [];
     const today = new Date();
     
@@ -137,10 +133,9 @@ export const createDashboardFactory = () => ({
     }
     
     return data;
-  },
+  };
 
-  // Create monthly trend data
-  createMonthlyTrend: (months = 12): TimeSeriesData[] => {
+  const createMonthlyTrend = (months = 12): TimeSeriesData[] => {
     const data: TimeSeriesData[] = [];
     const today = new Date();
     
@@ -159,7 +154,19 @@ export const createDashboardFactory = () => ({
     }
     
     return data;
-  },
-});
+  };
+
+  return {
+    buildStats,
+    buildTimeSeriesData,
+    buildUserActivityData,
+    testStats,
+    emptyStats,
+    growingTrendStats,
+    decliningTrendStats,
+    createWeeklyData,
+    createMonthlyTrend,
+  };
+};
 
 export const dashboardFactory = createDashboardFactory();

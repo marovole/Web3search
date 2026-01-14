@@ -1,10 +1,15 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { factories, testHelpers, mockHelpers, a11yHelpers } from '../utils';
+import * as factories from '../factories';
+import { testHelpers, mockHelpers, a11yHelpers } from '../utils';
+import { setupMockServer } from '../mocks/server';
 import { ThemeToggle } from '../../components/theme-toggle';
+import { ThemeProvider } from '../../components/theme-provider';
 
 // Example demonstrating comprehensive testing setup
+
+setupMockServer();
 
 describe('Comprehensive Testing Example', () => {
   const user = userEvent.setup();
@@ -228,7 +233,7 @@ describe('Comprehensive Testing Example', () => {
 
     it('should test button accessibility', () => {
       const TestButton = () => (
-        <button data-testid="test-button" aria-label="Test button">
+        <button data-testid="test-button" aria-label="Test button" type="button">
           Click me
         </button>
       );
@@ -257,22 +262,17 @@ describe('Comprehensive Testing Example', () => {
 
   describe('Integration with Existing Component', () => {
     it('should test ThemeToggle with comprehensive setup', async () => {
-      // Mock localStorage
-      const localStorageMock = {
-        getItem: jest.fn(),
-        setItem: jest.fn(),
-        removeItem: jest.fn(),
-        clear: jest.fn(),
-      };
-      Object.defineProperty(window, 'localStorage', { value: localStorageMock });
-
-      render(<ThemeToggle />);
+      const { container } = render(
+        <ThemeProvider>
+          <ThemeToggle />
+        </ThemeProvider>
+      );
 
       // Test accessibility
-      await a11yHelpers.testAccessibility(<ThemeToggle />);
+      await a11yHelpers.testElementAccessibility(container);
 
       // Test button accessibility
-      a11yHelpers.testButtonAccessibility('button', '切换主题');
+      expect(screen.getByRole('button', { name: '切换主题' })).toBeInTheDocument();
 
       // Test theme switching
       const button = screen.getByRole('button');
@@ -285,15 +285,31 @@ describe('Comprehensive Testing Example', () => {
 
       // Test theme selection
       await user.click(screen.getByText('深色'));
-      expect(document.documentElement).toHaveClass('dark');
+      await waitFor(() => {
+        expect(document.documentElement).toHaveClass('dark');
+      });
     });
   });
 
   describe('Performance and Utilities', () => {
     it('should test responsive behavior', async () => {
+      const ResponsiveSize = () => {
+        const [width, setWidth] = React.useState(window.innerWidth);
+
+        React.useEffect(() => {
+          const handleResize = () => {
+            setWidth(window.innerWidth);
+          };
+          window.addEventListener('resize', handleResize);
+          return () => window.removeEventListener('resize', handleResize);
+        }, []);
+
+        return <span data-testid="width-display">{width}px</span>;
+      };
+
       const TestComponent = () => (
         <div data-testid="responsive-component">
-          <span data-testid="width-display">{window.innerWidth}px</span>
+          <ResponsiveSize />
         </div>
       );
 

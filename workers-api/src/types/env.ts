@@ -23,8 +23,11 @@ export interface Env {
   // GitHub API
   GITHUB_TOKEN?: string
 
-  // KV Namespace (Cache) - Optional for now
+  // KV Namespace (Cache)
   CACHE?: KVNamespace
+
+  // Multi-Agent Task Storage
+  MULTI_AGENT_TASKS?: KVNamespace
 
   // OpenRouter Circuit Breaker State (Optional)
   OPENROUTER_CIRCUIT_STATE?: KVNamespace

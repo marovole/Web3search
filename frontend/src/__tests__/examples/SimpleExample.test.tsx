@@ -1,7 +1,8 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { factories, testHelpers } from '../utils';
+import * as factories from '../factories';
+import { testHelpers } from '../utils';
 
 // Simple example demonstrating test data factories and utilities
 
@@ -169,10 +170,31 @@ describe('Simple Testing Example', () => {
     });
 
     it('should test responsive behavior', async () => {
+      const ResponsiveSize = () => {
+        const [size, setSize] = React.useState({
+          width: window.innerWidth,
+          height: window.innerHeight,
+        });
+
+        React.useEffect(() => {
+          const handleResize = () => {
+            setSize({ width: window.innerWidth, height: window.innerHeight });
+          };
+          window.addEventListener('resize', handleResize);
+          return () => window.removeEventListener('resize', handleResize);
+        }, []);
+
+        return (
+          <>
+            <span data-testid="width-display">{size.width}px</span>
+            <span data-testid="height-display">{size.height}px</span>
+          </>
+        );
+      };
+
       const TestComponent = () => (
         <div data-testid="responsive-component">
-          <span data-testid="width-display">{window.innerWidth}px</span>
-          <span data-testid="height-display">{window.innerHeight}px</span>
+          <ResponsiveSize />
         </div>
       );
 

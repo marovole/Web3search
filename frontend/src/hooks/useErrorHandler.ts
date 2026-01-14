@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { captureException } from '../services/sentry'
 
 interface ErrorHandlerState {
   hasError: boolean
@@ -34,10 +35,9 @@ const useErrorHandler = (): UseErrorHandlerReturn => {
       errorInfo: errorInfo || null,
     }))
 
-    // 在生产环境中记录错误
-    if (import.meta.env.PROD) {
-      // TODO: 集成错误监控服务
-      // reportError(error, errorInfo)
+    // Capture errors in production only
+    if (import.meta.env?.PROD) {
+      captureException(error, { component: 'useErrorHandler', errorInfo })
     }
   }, [])
 
@@ -56,7 +56,7 @@ const useErrorHandler = (): UseErrorHandlerReturn => {
       retryCount: prev.retryCount + 1,
     }))
 
-    // 等待一小段时间再重试
+    // Wait briefly before retrying
     await new Promise(resolve => setTimeout(resolve, 1000))
 
     setIsRetrying(false)

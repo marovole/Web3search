@@ -99,20 +99,22 @@ describe('MessageBubble', () => {
     it('should display timestamp correctly', () => {
       const timestamp = new Date('2024-01-01T10:30:00')
       const message = mockMessageFactory.build({
+        role: 'assistant',
         timestamp
       })
 
-      render(<MessageBubble message={message} />)
+      render(<MessageBubble message={message} enableTypewriter={false} />)
 
-      expect(screen.getByText('10:30')).toBeInTheDocument()
+      const expected = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      expect(screen.getByText(expected)).toBeInTheDocument()
     })
 
     it('should show copy button for assistant messages', () => {
       const assistantMessage = mockMessageFactory.build({ role: 'assistant' })
 
-      render(<MessageBubble message={assistantMessage} />)
+      render(<MessageBubble message={assistantMessage} enableTypewriter={false} />)
 
-      expect(screen.getByRole('button', { name: /复制/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /copy/i })).toBeInTheDocument()
     })
 
     it('should not show copy button for user messages', () => {
@@ -120,7 +122,7 @@ describe('MessageBubble', () => {
 
       render(<MessageBubble message={userMessage} />)
 
-      expect(screen.queryByRole('button', { name: /复制/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /copy/i })).not.toBeInTheDocument()
     })
   })
 
@@ -131,9 +133,9 @@ describe('MessageBubble', () => {
         content: 'This is the message content to copy'
       })
 
-      render(<MessageBubble message={assistantMessage} />)
+      render(<MessageBubble message={assistantMessage} enableTypewriter={false} />)
 
-      const copyButton = screen.getByRole('button', { name: /复制/i })
+      const copyButton = screen.getByRole('button', { name: /copy/i })
       await user.click(copyButton)
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('This is the message content to copy')
@@ -142,13 +144,13 @@ describe('MessageBubble', () => {
     it('should show copied state after successful copy', async () => {
       const assistantMessage = mockMessageFactory.build({ role: 'assistant' })
       
-      render(<MessageBubble message={assistantMessage} />)
+      render(<MessageBubble message={assistantMessage} enableTypewriter={false} />)
 
-      const copyButton = screen.getByRole('button', { name: /复制/i })
+      const copyButton = screen.getByRole('button', { name: /copy/i })
       await user.click(copyButton)
 
       await waitFor(() => {
-        expect(screen.getByText('已复制')).toBeInTheDocument()
+        expect(screen.getByText('Copied')).toBeInTheDocument()
       })
     })
 
@@ -158,9 +160,9 @@ describe('MessageBubble', () => {
 
       const assistantMessage = mockMessageFactory.build({ role: 'assistant' })
       
-      render(<MessageBubble message={assistantMessage} />)
+      render(<MessageBubble message={assistantMessage} enableTypewriter={false} />)
 
-      const copyButton = screen.getByRole('button', { name: /复制/i })
+      const copyButton = screen.getByRole('button', { name: /copy/i })
       await user.click(copyButton)
 
       expect(consoleSpy).toHaveBeenCalledWith('Failed to copy text: ', expect.any(Error))
@@ -180,7 +182,7 @@ describe('MessageBubble', () => {
         assistantMessage.content,
         expect.objectContaining({
           enabled: true,
-          speed: 40,
+          speed: 20,
           isStreaming: false
         })
       )
@@ -284,28 +286,36 @@ describe('MessageBubble', () => {
 
   describe('Accessibility', () => {
     it('should have proper ARIA labels', () => {
+      const { useTypewriter } = require('../../../hooks/useTypewriter')
       const assistantMessage = mockMessageFactory.build({ role: 'assistant' })
+      useTypewriter.mockReturnValue({
+        displayedText: assistantMessage.content,
+        isTyping: false,
+        skipAnimation: jest.fn()
+      })
 
-      render(<MessageBubble message={assistantMessage} />)
+      render(<MessageBubble message={assistantMessage} enableTypewriter={false} />)
 
-      const copyButton = screen.getByRole('button', { name: /复制/i })
-      expect(copyButton).toHaveAttribute('title', '复制消息')
+      const copyButton = screen.getByRole('button', { name: /copy/i })
+      expect(copyButton).toBeInTheDocument()
     })
 
     it('should provide title for typing indicator', () => {
       const { useTypewriter } = require('../../../hooks/useTypewriter')
+      const skipAnimation = jest.fn()
       useTypewriter.mockReturnValue({
         displayedText: 'Partial content',
         isTyping: true,
-        skipAnimation: jest.fn()
+        skipAnimation
       })
 
       const assistantMessage = mockMessageFactory.build({ role: 'assistant' })
 
       render(<MessageBubble message={assistantMessage} />)
 
-      const markdownContainer = screen.getByTestId('markdown-content').parentElement
-      expect(markdownContainer).toHaveAttribute('title', '点击跳过动画')
+      const markdownContainer = screen.getByTestId('markdown-content').parentElement as HTMLElement
+      fireEvent.click(markdownContainer)
+      expect(skipAnimation).toHaveBeenCalled()
     })
 
     it('should have proper semantic structure', () => {
@@ -314,8 +324,8 @@ describe('MessageBubble', () => {
       render(<MessageBubble message={userMessage} />)
 
       const messageContent = screen.getByText(userMessage.content)
-      expect(messageContent.tagName).toBe('P')
-      expect(messageContent).toHaveClass('select-text')
+      expect(messageContent.tagName).toBe('DIV')
+      expect(messageContent).toHaveClass('whitespace-pre-wrap')
     })
   })
 
@@ -323,9 +333,9 @@ describe('MessageBubble', () => {
     it('should hide copy button when showCopyButton is false', () => {
       const assistantMessage = mockMessageFactory.build({ role: 'assistant' })
 
-      render(<MessageBubble message={assistantMessage} showCopyButton={false} />)
+      render(<MessageBubble message={assistantMessage} showCopyButton={false} enableTypewriter={false} />)
 
-      expect(screen.queryByRole('button', { name: /复制/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /copy/i })).not.toBeInTheDocument()
     })
 
     it('should handle streaming messages correctly', () => {

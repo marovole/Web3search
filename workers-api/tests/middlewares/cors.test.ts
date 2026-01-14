@@ -105,16 +105,13 @@ describe('corsMiddleware', () => {
       expect(response.headers.get('Access-Control-Max-Age')).toBe('86400')
     })
 
-    it('responds 204 for localhost origins in production allowlist', async () => {
+    it('blocks localhost origins in production even if listed', async () => {
       const response = await sendCorsRequest({
         method: 'OPTIONS',
         origin: 'http://localhost:5173',
       })
 
-      expect(response.status).toBe(204)
-      expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
-        'http://localhost:5173'
-      )
+      expect(response.status).toBe(403)
     })
 
     it('responds 204 for preview deployment domains', async () => {
