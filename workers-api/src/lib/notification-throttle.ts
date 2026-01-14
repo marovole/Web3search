@@ -105,7 +105,7 @@ export async function shouldThrottle(
 
     // Check minimum interval
     if (notifications.length > 0) {
-      const lastNotification = notifications[0]
+      const lastNotification = notifications[0] as { created_at: string; id: string }
       const lastTime = new Date(lastNotification.created_at).getTime()
       const elapsed = (Date.now() - lastTime) / 1000
 
@@ -115,7 +115,7 @@ export async function shouldThrottle(
           return {
             allowed: false,
             shouldMerge: true,
-            mergeWithId: lastNotification.id,
+            mergeWithId: lastNotification.id as string | undefined,
             reason: 'Merged with recent notification',
           }
         }
@@ -130,12 +130,13 @@ export async function shouldThrottle(
     // If task-specific, check task-level throttling
     if (taskId) {
       const taskNotifications = notifications.filter((n) => {
-        const data = n.data as Record<string, unknown> | null
+        const record = n as { data?: Record<string, unknown> }
+        const data = record.data as Record<string, unknown> | null
         return data?.task_id === taskId
       })
 
       if (taskNotifications.length > 0) {
-        const lastTaskNotification = taskNotifications[0]
+        const lastTaskNotification = taskNotifications[0] as { created_at: string; id: string }
         const lastTime = new Date(lastTaskNotification.created_at).getTime()
         const elapsed = (Date.now() - lastTime) / 1000
 
@@ -144,7 +145,7 @@ export async function shouldThrottle(
             return {
               allowed: false,
               shouldMerge: true,
-              mergeWithId: lastTaskNotification.id,
+              mergeWithId: lastTaskNotification.id as string | undefined,
               reason: 'Merged with recent task notification',
             }
           }

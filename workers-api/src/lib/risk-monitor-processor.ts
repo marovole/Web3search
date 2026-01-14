@@ -45,15 +45,16 @@ export async function processRiskMonitor(env: Env): Promise<RiskMonitorResult[]>
   const client = new CoinGeckoClient()
 
   for (const task of tasks) {
-    const config = task.config as RiskMonitorConfig
+    const t = task as { id: string; user_id: string; config: unknown; metadata?: Record<string, unknown> }
+    const config = t.config as RiskMonitorConfig
     if (!config?.token_id) continue
 
     const priceResult = await client.getCoinPrice(config.token_id.toLowerCase())
     if ('error' in priceResult) continue
 
     const assessment = assessRisk(priceResult, config)
-    const previousScore = (task.metadata as Record<string, number>)?.last_risk_score ?? 100
-    const previousFlags = ((task.metadata as Record<string, string[]>)?.last_red_flags ?? []) as string[]
+    const previousScore = (t.metadata as Record<string, number>)?.last_risk_score ?? 100
+    const previousFlags = ((t.metadata as Record<string, string[]>)?.last_red_flags ?? []) as string[]
 
     const threshold = config.sensitivity === 'high' ? 5 : config.sensitivity === 'medium' ? 10 : 20
     const scoreDiff = Math.abs(assessment.score - previousScore)
@@ -65,8 +66,8 @@ export async function processRiskMonitor(env: Env): Promise<RiskMonitorResult[]>
       const message = buildRiskMessage(config.symbol, previousScore, assessment, newFlags)
 
       results.push({
-        task_id: task.id,
-        user_id: task.user_id,
+        task_id: t.id,
+        user_id: t.user_id,
         changed: true,
         previous_score: previousScore,
         current_score: assessment.score,
@@ -75,12 +76,12 @@ export async function processRiskMonitor(env: Env): Promise<RiskMonitorResult[]>
       })
 
       await supabase.from('notifications').insert({
-        user_id: task.user_id,
+        user_id: t.user_id,
         type: 'risk_alert',
         title: `风险提醒: ${config.symbol}`,
         message,
         data: {
-          task_id: task.id,
+          task_id: t.id,
           symbol: config.symbol,
           previous_score: previousScore,
           current_score: assessment.score,
@@ -99,7 +100,7 @@ export async function processRiskMonitor(env: Env): Promise<RiskMonitorResult[]>
           last_checked_at: new Date().toISOString(),
         },
       })
-      .eq('id', task.id)
+      .eq('id', t.id)
   }
 
   console.log(`[RiskMonitor] Processed ${tasks.length} tasks, ${results.length} changes detected`)

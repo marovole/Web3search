@@ -78,10 +78,11 @@ export async function processOpportunityDiscovery(env: Env): Promise<void> {
   console.log(`[OpportunityDiscovery] Processing ${tasks.length} tasks`)
 
   for (const task of tasks) {
+    const t = task as { id: string; user_id: string; config: unknown }
     try {
-      await processUserOpportunities(env, task.id, task.user_id, task.config as OpportunityConfig)
+      await processUserOpportunities(env, t.id, t.user_id, t.config as OpportunityConfig)
     } catch (taskError) {
-      console.error(`[OpportunityDiscovery] Task ${task.id} failed:`, taskError)
+      console.error(`[OpportunityDiscovery] Task ${t.id} failed:`, taskError)
     }
   }
 
@@ -114,7 +115,7 @@ async function processUserOpportunities(
       .eq('user_id', userId)
       .single()
 
-    const preferences: UserPreferences = userPrefs || {
+    const preferences: UserPreferences = (userPrefs as UserPreferences | null) || {
       user_id: userId,
       risk_tolerance: 'medium',
       investment_horizon: 'medium',
@@ -143,9 +144,9 @@ async function processUserOpportunities(
       .gte('recommended_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
 
     const excludeTokens = new Set<string>([
-      ...(holdings?.map(h => h.coingecko_id).filter(Boolean) || []),
-      ...(watchlist?.map(w => w.coingecko_id).filter(Boolean) || []),
-      ...(recentRecs?.map(r => r.token_id) || [])
+      ...((holdings as unknown as Array<{coingecko_id?: string}>)?.map(h => h.coingecko_id).filter(Boolean) as string[] || []),
+      ...((watchlist as unknown as Array<{coingecko_id?: string}>)?.map(w => w.coingecko_id).filter(Boolean) as string[] || []),
+      ...((recentRecs as unknown as Array<{token_id: string}>)?.map(r => r.token_id) || [])
     ])
 
     const candidates = await fetchCandidateTokens(env, preferences, excludeTokens)

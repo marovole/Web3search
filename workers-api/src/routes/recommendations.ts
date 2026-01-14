@@ -179,7 +179,8 @@ app.get('/:id', authMiddleware(), async (c) => {
     return c.json({ error: { code: 'DB_ERROR', message: error.message, status: 500 } }, 500)
   }
 
-  if (!data.viewed_at) {
+  const recData = data as { viewed_at?: string } | null
+  if (!recData?.viewed_at) {
     await supabase
       .from('recommendations')
       .update({ viewed_at: new Date().toISOString(), status: 'viewed' })

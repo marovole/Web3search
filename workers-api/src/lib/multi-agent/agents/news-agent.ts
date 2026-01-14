@@ -132,7 +132,7 @@ export class NewsAgent extends BaseSubAgent {
       source: article.source?.name || 'Unknown',
       publishedAt: article.published_at || new Date().toISOString(),
       sentiment: 'neutral' as const,
-      engagement: undefined, // Removed placeholder
+      engagement: 0,
       snippet: article.description || '',
     }))
   }

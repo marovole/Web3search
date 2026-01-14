@@ -68,8 +68,9 @@ trending.get('/hotspots', async (c) => {
       'near', 'algorand', 'algo', 'cosmos', 'atom'
     ]
 
-    hotTopics?.forEach((msg) => {
-      const content = msg.content.toLowerCase()
+    const hotTopicsTyped = hotTopics as unknown as Array<{ content: string }> | null
+    hotTopicsTyped?.forEach((msg) => {
+      const content = (msg.content as string).toLowerCase()
       cryptoKeywords.forEach((keyword) => {
         if (content.includes(keyword)) {
           keywordCounts.set(keyword, (keywordCounts.get(keyword) || 0) + 1)

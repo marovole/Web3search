@@ -38,7 +38,8 @@ export async function processPriceAlerts(env: Env): Promise<PriceAlertResult[]> 
 
   const tokenIds = new Set<string>()
   for (const task of tasks) {
-    const config = task.config as PriceAlertConfig
+    const t = task as { config: unknown }
+    const config = t.config as PriceAlertConfig
     if (config?.token_id) {
       tokenIds.add(config.token_id.toLowerCase())
     }
@@ -50,7 +51,8 @@ export async function processPriceAlerts(env: Env): Promise<PriceAlertResult[]> 
   const prices = await client.getBatchPrices(Array.from(tokenIds))
 
   for (const task of tasks) {
-    const config = task.config as PriceAlertConfig
+    const t = task as { id: string; user_id: string; config: unknown }
+    const config = t.config as PriceAlertConfig
     if (!config?.token_id) continue
 
     const priceData = prices.get(config.token_id.toLowerCase())
@@ -60,8 +62,8 @@ export async function processPriceAlerts(env: Env): Promise<PriceAlertResult[]> 
 
     if (triggered) {
       results.push({
-        task_id: task.id,
-        user_id: task.user_id,
+        task_id: t.id,
+        user_id: t.user_id,
         triggered: true,
         current_price: priceData.price_usd,
         target_value: config.target_value,
@@ -70,12 +72,12 @@ export async function processPriceAlerts(env: Env): Promise<PriceAlertResult[]> 
       })
 
       await supabase.from('notifications').insert({
-        user_id: task.user_id,
+        user_id: t.user_id,
         type: 'price_alert',
         title: `价格预警: ${config.symbol}`,
         message,
         data: {
-          task_id: task.id,
+          task_id: t.id,
           symbol: config.symbol,
           current_price: priceData.price_usd,
           target_value: config.target_value,
@@ -84,7 +86,7 @@ export async function processPriceAlerts(env: Env): Promise<PriceAlertResult[]> 
       })
 
       if (!config.repeat) {
-        await supabase.from('agent_tasks').update({ status: 'completed' }).eq('id', task.id)
+        await supabase.from('agent_tasks').update({ status: 'completed' }).eq('id', t.id)
       }
     }
   }

@@ -47,10 +47,11 @@ app.get('/dashboard', authMiddleware(), async (c) => {
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const runsToday = runs?.filter(r => new Date(r.started_at) >= today).length || 0
-    const runsThisWeek = runs?.length || 0
+    const runsData = runs as unknown as Array<{ started_at: string; status: string; task_id: string; id: string }> | null
+    const runsToday = runsData?.filter(r => new Date(r.started_at) >= today).length || 0
+    const runsThisWeek = runsData?.length || 0
 
-    const successfulRuns = runs?.filter(r => r.status === 'completed').length || 0
+    const successfulRuns = runsData?.filter(r => r.status === 'completed').length || 0
     const successRate = runsThisWeek > 0 ? Math.round((successfulRuns / runsThisWeek) * 100) : 100
 
     // Get notifications sent today
@@ -63,18 +64,19 @@ app.get('/dashboard', authMiddleware(), async (c) => {
     // Build task type stats
     const byTaskType: Record<string, { count: number; active: number; last_run?: string }> = {}
     const taskTypes = ['price_alert', 'risk_monitor', 'news_brief', 'portfolio_health', 'opportunity_finder']
+    const tasksData = tasks as unknown as Array<{ id: string; task_type?: string; type?: string; status: string }> | null
     
     for (const type of taskTypes) {
-      const typeTasks = tasks?.filter(t => t.task_type === type || t.type === type) || []
-      const typeRuns = runs?.filter(r => {
-        const task = tasks?.find(t => t.id === r.task_id)
+      const typeTasks = tasksData?.filter(t => t.task_type === type || t.type === type) || []
+      const typeRuns = runsData?.filter(r => {
+        const task = tasksData?.find(t => t.id === r.task_id)
         return task && (task.task_type === type || task.type === type)
       }) || []
 
       byTaskType[type] = {
         count: typeTasks.length,
         active: typeTasks.filter(t => t.status === 'active').length,
-        last_run: typeRuns[0]?.started_at
+        last_run: typeRuns[0]?.started_at as string | undefined
       }
     }
 

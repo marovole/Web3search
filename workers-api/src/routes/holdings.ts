@@ -216,9 +216,9 @@ holdings.get('/summary', authMiddleware(), async (c) => {
     return c.json({ error: { code: 'DATABASE_ERROR', message: 'Failed to fetch holdings', status: 500 } }, 500)
   }
 
-  const coingeckoIds = holdingsData
+  const coingeckoIds = (holdingsData as unknown as Array<{ coingecko_id?: string }>)
     ?.filter(h => h.coingecko_id)
-    .map(h => h.coingecko_id)
+    .map(h => h.coingecko_id as string)
     .join(',')
 
   let prices: Record<string, { usd: number; usd_24h_change?: number }> = {}
@@ -237,7 +237,8 @@ holdings.get('/summary', authMiddleware(), async (c) => {
   }
 
   let totalValue = 0
-  const holdingsWithValue = holdingsData?.map(h => {
+  const holdingsTyped = holdingsData as unknown as Array<{ coingecko_id?: string; symbol: string; name: string; quantity: string }> | null
+  const holdingsWithValue = holdingsTyped?.map(h => {
     const price = h.coingecko_id ? prices[h.coingecko_id]?.usd : undefined
     const value = price ? Number(h.quantity) * price : undefined
     if (value) totalValue += value

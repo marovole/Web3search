@@ -50,7 +50,7 @@ app.post('/', authMiddleware(), async (c) => {
       .limit(10)
     
     if (messages) {
-      conversationHistory = messages
+      conversationHistory = messages as unknown as { role: string; content: string }[]
     }
   }
 
@@ -288,18 +288,19 @@ async function executeIntent(
       .select()
       .single()
 
-    if (error) {
+    if (error || !task) {
       return {
         success: false,
-        message: `创建任务失败: ${error.message}`
+        message: `创建任务失败: ${error?.message || 'Unknown error'}`
       }
     }
 
+    const taskData = task as { id: string }
     return {
       success: true,
-      taskId: task.id,
+      taskId: taskData.id,
       taskType,
-      message: generateSuccessMessage(intent, task.id)
+      message: generateSuccessMessage(intent, taskData.id)
     }
   }
 

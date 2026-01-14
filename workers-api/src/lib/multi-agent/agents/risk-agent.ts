@@ -172,9 +172,9 @@ export class RiskAgent extends BaseSubAgent {
     if (priceData && priceData.marketCap > 0) {
       // In a real implementation, this would call an API for holder data
       assessment.holderDistribution = {
-        top10HolderPercent: undefined,
-        totalHolders: undefined,
-        deployerBalancePercent: undefined,
+        top10HolderPercent: 0,
+        totalHolders: 0,
+        deployerBalancePercent: 0,
       }
     }
 

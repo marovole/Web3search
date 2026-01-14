@@ -62,7 +62,8 @@ watchlist.post('/', authMiddleware(), checkWatchlistQuota(), async (c) => {
     .limit(1)
     .single()
 
-  const nextPosition = (maxPos?.position ?? -1) + 1
+  const maxPosData = maxPos as { position?: number } | null
+  const nextPosition = (maxPosData?.position ?? -1) + 1
 
   const { data, error } = await supabase
     .from('watchlist')

@@ -59,7 +59,7 @@ billing.post('/checkout', authMiddleware(), async (c) => {
   const baseUrl = c.req.header('origin') || 'https://web3search.pages.dev'
 
   const session = await stripe.checkout.sessions.create({
-    customer: customerId,
+    customer: customerId as string,
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: body.success_url || `${baseUrl}/settings/billing?success=true`,
@@ -80,7 +80,8 @@ billing.post('/portal', authMiddleware(), async (c) => {
   const supabase = getSupabaseClient(c.env)
   const { data: profile } = await supabase.from('user_profiles').select('stripe_customer_id').eq('id', user.id).single()
 
-  if (!profile?.stripe_customer_id) {
+  const profileData = profile as { stripe_customer_id?: string } | null
+  if (!profileData?.stripe_customer_id) {
     return c.json({ error: { code: 'NO_SUBSCRIPTION', message: 'No active subscription found', status: 404 } }, 404)
   }
 
@@ -88,7 +89,7 @@ billing.post('/portal', authMiddleware(), async (c) => {
   const baseUrl = c.req.header('origin') || 'https://web3search.pages.dev'
 
   const session = await stripe.billingPortal.sessions.create({
-    customer: profile.stripe_customer_id,
+    customer: profileData.stripe_customer_id,
     return_url: `${baseUrl}/settings/billing`,
   })
 

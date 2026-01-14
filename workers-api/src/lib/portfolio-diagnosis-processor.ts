@@ -54,10 +54,11 @@ export async function processPortfolioDiagnosis(env: Env): Promise<void> {
   console.log(`[PortfolioDiagnosis] Processing ${tasks.length} tasks`)
 
   for (const task of tasks) {
+    const t = task as { id: string; user_id: string; config: unknown }
     try {
-      await processUserPortfolio(env, task.id, task.user_id, task.config as DiagnosisConfig)
+      await processUserPortfolio(env, t.id, t.user_id, t.config as DiagnosisConfig)
     } catch (taskError) {
-      console.error(`[PortfolioDiagnosis] Task ${task.id} failed:`, taskError)
+      console.error(`[PortfolioDiagnosis] Task ${t.id} failed:`, taskError)
     }
   }
 

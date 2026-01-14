@@ -219,7 +219,8 @@ agents.post('/tasks/:id/resume', authMiddleware(), async (c) => {
 
   const { data: task } = await supabase.from('agent_tasks').select('schedule').eq('id', id).eq('user_id', user.id).single()
 
-  const nextRunAt = task?.schedule ? calculateNextRun(task.schedule) : null
+  const taskData = task as { schedule?: string } | null
+  const nextRunAt = taskData?.schedule ? calculateNextRun(taskData.schedule) : null
 
   const { data, error } = await supabase
     .from('agent_tasks')
