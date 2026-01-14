@@ -145,7 +145,7 @@ async function verifyLocalJwt(c: Context<{ Bindings: Env }>, token: string) {
     throw new Error('JWT_SECRET is not configured')
   }
 
-  const jwtMiddleware = jwt({ secret })
+  const jwtMiddleware = jwt({ secret, alg: 'HS256' })
 
   let verified = false
   const mockNext = async () => {

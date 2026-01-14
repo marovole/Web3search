@@ -1,12 +1,12 @@
 # Web3search API - Cloudflare Workers
 
-Web3search 的后端 API 服务，基于 Cloudflare Workers + Supabase 架构。
+Web3search 的后端 API 服务，基于 Cloudflare Workers + Convex 架构。
 
 ## 🏗️ 技术栈
 
 - **Runtime**: Cloudflare Workers (Edge Computing)
 - **Framework**: Hono (轻量级 Web 框架)
-- **Database**: Supabase (PostgreSQL)
+- **Database**: Convex (Serverless Database)
 - **Cache**: Cloudflare KV
 - **Language**: TypeScript
 - **AI**: OpenRouter API
@@ -32,8 +32,9 @@ cp .dev.vars.example .dev.vars
 ```
 
 编辑 `.dev.vars` 并填入：
-- Supabase URL 和 Keys
+- Convex URL 和 Deploy Key
 - OpenRouter API Key
+- JWT Secret (用于认证)
 
 ### 2. 启动本地开发服务器
 
@@ -155,9 +156,10 @@ npx wrangler kv:namespace create CACHE --preview
 ### 3. 设置 Secrets
 
 ```bash
-npx wrangler secret put SUPABASE_URL
-npx wrangler secret put SUPABASE_ANON_KEY
+npx wrangler secret put CONVEX_URL
+npx wrangler secret put CONVEX_DEPLOY_KEY
 npx wrangler secret put OPENROUTER_API_KEY
+npx wrangler secret put JWT_SECRET
 ```
 
 ### 4. 部署
@@ -196,7 +198,12 @@ workers-api/
 │   ├── utils/            # 工具函数
 │   ├── types/            # TypeScript 类型
 │   └── lib/              # 第三方库配置
-│       └── supabase.ts   # Supabase 客户端
+│       └── supabase.ts   # Convex HTTP 适配器 (Supabase API 兼容层)
+├── convex/               # Convex 数据库函数
+│   ├── schema.ts         # 数据库 schema
+│   ├── users.ts          # 用户相关函数
+│   ├── conversations.ts  # 对话相关函数
+│   └── ...
 ├── wrangler.toml         # Cloudflare 配置
 ├── package.json
 └── tsconfig.json
@@ -216,20 +223,12 @@ npm run test:watch
 
 - [Cloudflare Workers Docs](https://developers.cloudflare.com/workers/)
 - [Hono Framework](https://hono.dev/)
-- [Supabase Docs](https://supabase.com/docs)
+- [Convex Docs](https://docs.convex.dev/)
 - [OpenRouter API](https://openrouter.ai/docs)
 
-## ✅ Week 1 进度
+## ✅ 数据库迁移进度
 
-- [x] Day 1-2: Supabase 数据库迁移
-- [x] Day 3-4: Cloudflare Workers 项目搭建
-- [x] Day 5: 实现只读 API（搜索自动完成）
-
-## 🚧 接下来的工作
-
-- Week 2: OpenRouter 集成 + 聊天 API
-  - Day 6-7: OpenRouter API 集成
-  - Day 8-9: 实现聊天 API
-  - Day 10: 缓存层优化
-- Week 3: 报告生成 + 后台任务
-- Week 4: E2E 测试 + 灰度发布
+- [x] Supabase to Convex 迁移完成
+- [x] Convex Schema 定义
+- [x] Convex HTTP 适配器 (Supabase API 兼容层)
+- [x] TypeScript 类型检查通过

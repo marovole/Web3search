@@ -9,8 +9,9 @@ Instructions for AI coding agents working in this codebase.
 Web3search/                    # Monorepo root
 ├── frontend/                  # React 18 + Vite + TailwindCSS
 ├── workers-api/               # Cloudflare Workers + Hono (main API)
+├── convex/                    # Convex database schema and functions
 ├── openspec/                  # Spec-driven development
-└── supabase/                  # Database migrations
+└── supabase/                  # Legacy - Database migrations (deprecated)
 ```
 
 ### Build/Test Commands
@@ -170,7 +171,7 @@ const app = new Hono<{ Bindings: Env }>()
 
 // Route handlers return Response via context
 app.get('/endpoint', async (c) => {
-  const data = await fetchData(c.env.SUPABASE_URL)
+  const data = await fetchData(c.env.CONVEX_URL)
   return c.json({ data })
 })
 
@@ -278,8 +279,9 @@ openspec validate --strict # Validate changes
 
 ### Workers API (Cloudflare Secrets)
 ```bash
-wrangler secret put SUPABASE_URL
-wrangler secret put SUPABASE_ANON_KEY
+wrangler secret put CONVEX_URL
+wrangler secret put CONVEX_DEPLOY_KEY
+wrangler secret put JWT_SECRET
 wrangler secret put OPENROUTER_API_KEY
 wrangler secret put BRAVE_SEARCH_API_KEY
 ```

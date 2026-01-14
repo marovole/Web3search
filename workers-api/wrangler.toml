@@ -52,13 +52,13 @@ id = "edb34a61693d46ce8d0894534f0ce9b3"
 # ============================================
 # Environment Variables (Secrets)
 # ============================================
-# Set secrets using: wrangler secret put VARIABLE_NAME
+# Set secrets using: npx wrangler secret put VARIABLE_NAME
 #
 # Required secrets:
-# - SUPABASE_URL                  : Supabase project URL
-# - SUPABASE_ANON_KEY            : Supabase anonymous key
-# - SUPABASE_SERVICE_ROLE_KEY    : (optional) For admin operations
+# - CONVEX_URL                   : Convex project URL (from dashboard.convex.dev)
+# - CONVEX_DEPLOY_KEY            : Convex deployment key
 # - OPENROUTER_API_KEY           : OpenRouter LLM API key
+# - JWT_SECRET                   : Secret for JWT authentication
 #
 # Search Provider API Keys (at least one required):
 # - BRAVE_SEARCH_API_KEY         : Brave Search API (primary provider)

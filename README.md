@@ -63,8 +63,8 @@ Web3search 是一款专为加密货币投资者和研究人员打造的 **AI 智
 
 ```
 ┌─────────────────────┐     ┌──────────────────────┐     ┌─────────────┐
-│      Frontend       │────▶│    Workers API       │────▶│  Supabase   │
-│  Cloudflare Pages   │     │ Cloudflare Workers   │     │ PostgreSQL  │
+│      Frontend       │────▶│    Workers API       │────▶│   Convex    │
+│  Cloudflare Pages   │     │ Cloudflare Workers   │     │  Database   │
 │  React + Vite       │     │    Hono + TS         │     └─────────────┘
 └─────────────────────┘     └──────────────────────┘
                                       │
@@ -85,7 +85,7 @@ Web3search 是一款专为加密货币投资者和研究人员打造的 **AI 智
 | Frontend | Cloudflare Pages | https://web3search.pages.dev | ✅ Live |
 | API | Cloudflare Workers | https://web3search-api.marovole.workers.dev | ✅ Live |
 | Custom Domain | Cloudflare | api.lulaai.xyz | ✅ Active |
-| Database | Supabase | PostgreSQL + Realtime | ✅ Active |
+| Database | Convex | Real-time Database | ✅ Active |
 
 ### CI/CD Pipeline
 
@@ -185,7 +185,7 @@ Base URL: `https://web3search-api.marovole.workers.dev/api/v1`
 | **运行时** | Cloudflare Workers | - | 边缘计算 |
 | **框架** | Hono | 4.10 | 轻量级 Web 框架 |
 | **语言** | TypeScript | 5.7 | 类型安全 |
-| **数据库客户端** | Supabase JS | 2.47 | PostgreSQL 访问 |
+| **数据库客户端** | Convex | latest | Real-time 数据库访问 |
 | **缓存** | Cloudflare KV | - | 边缘键值存储 |
 | **错误追踪** | Toucan.js | 4.1 | Workers 环境 Sentry |
 | **CLI** | Wrangler | 4.53 | 开发和部署工具 |
@@ -195,8 +195,8 @@ Base URL: `https://web3search-api.marovole.workers.dev/api/v1`
 
 | 服务 | 说明 |
 |------|------|
-| **Supabase** | PostgreSQL 15 托管服务 |
-| **功能** | Row Level Security (RLS)、Realtime 订阅、自动 API |
+| **Convex** | Real-time 数据库服务 |
+| **功能** | 实时订阅、自动 API、TypeScript 原生支持 |
 
 ### 测试工具
 
@@ -260,9 +260,9 @@ Base URL: `https://web3search-api.marovole.workers.dev/api/v1`
 
 ```bash
 # Set via: wrangler secret put <NAME>
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...  # Optional
+CONVEX_URL=https://xxx.convex.cloud
+CONVEX_DEPLOY_KEY=prod:xxx...
+JWT_SECRET=your-jwt-secret
 OPENROUTER_API_KEY=sk-or-...
 BRAVE_SEARCH_API_KEY=BSA...
 TAVILY_API_KEY=tvly-...           # Optional failover
@@ -345,7 +345,7 @@ Web3search/
 │   │   ├── ci.yml           # CI/CD Pipeline
 │   │   └── deploy.yml       # Multi-Environment Deployment
 │   └── workflows-disabled/  # Disabled workflows
-├── supabase/                 # Database migrations
+├── convex/                   # Convex database schema and functions
 └── docs/                     # Documentation
 ```
 
