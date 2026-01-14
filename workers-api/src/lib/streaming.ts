@@ -75,7 +75,7 @@ export async function* parseStreamResponse(
   const decoder = new TextDecoder()
 
   let buffer = ''
-  let isCancelled = false
+  const isCancelled = false
 
   try {
     while (!isCancelled) {
@@ -123,7 +123,7 @@ export async function aggregateStream(
   onChunk?: (chunk: StreamChunk, aggregated: Partial<AggregatedStream>) => void
 ): Promise<AggregatedStream> {
   const generator = parseStreamResponse(body)
-  let aggregated: Partial<AggregatedStream> = {
+  const aggregated: Partial<AggregatedStream> = {
     content: '',
     tokens: {
       prompt: 0,

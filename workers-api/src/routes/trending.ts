@@ -140,7 +140,7 @@ trending.get('/hotspots', async (c) => {
 
     // Wait for all API calls and filter out failures
     const hotspotResults = await Promise.all(hotspotPromises)
-    let validHotspots = hotspotResults
+    const validHotspots = hotspotResults
       .filter((h): h is NonNullable<typeof h> => h !== null)
       .sort((a, b) => b.total_score - a.total_score) // Sort by total score
       .slice(0, limit) // Get top N
