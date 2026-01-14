@@ -33,6 +33,19 @@ interface PlatformComparisonProps {
   className?: string;
 }
 
+interface BarDataItem {
+  platform: string;
+  score: number;
+  volume: number;
+  fullPlatform: string;
+}
+
+interface PieDataItem {
+  name: string;
+  value: number;
+  fullPlatform: string;
+}
+
 const PLATFORM_COLORS = {
   twitter: '#1DA1F2',
   reddit: '#FF4500',
@@ -61,8 +74,8 @@ export function PlatformComparison({ stats, className }: PlatformComparisonProps
   }
 
   // 准备柱状图数据
-  const barData = Object.entries(stats).map(([platform, data]) => {
-    const normalizedScore = coerceFiniteNumber(data.score);
+  const barData: BarDataItem[] = Object.entries(stats).map(([platform, data]) => {
+    const normalizedScore = coerceFiniteNumber(data.score)
 
     return {
       platform: PLATFORM_LABELS[platform as keyof typeof PLATFORM_LABELS] || platform,
@@ -71,8 +84,18 @@ export function PlatformComparison({ stats, className }: PlatformComparisonProps
         : 0,
       volume: data.volume,
       fullPlatform: platform
-    };
-  });
+    }
+  })
+
+  // 准备饼图数据
+  const totalVolume = Object.values(stats).reduce((sum, data) => sum + data.volume, 0)
+  const pieData: PieDataItem[] = Object.entries(stats).map(([platform, data]) => {
+    return {
+      name: PLATFORM_LABELS[platform as keyof typeof PLATFORM_LABELS] || platform,
+      value: totalVolume > 0 ? (data.volume / totalVolume) * 100 : 0,
+      fullPlatform: platform
+    }
+  })
 
   // 准备饼图数据
   const pieData = Object.entries(stats).map(([platform, data]) => {

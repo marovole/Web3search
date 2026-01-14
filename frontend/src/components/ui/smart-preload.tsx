@@ -294,7 +294,8 @@ export const useSmartPreload = () => {
 /**
  * 缓存Hook
  */
-export const useCache = <T>(key: string, fetcher: () => Promise<T>, ttl?: number) => {
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export function useCache<T>(key: string, fetcher: () => Promise<T>, ttl?: number) {
   const [data, setData] = useState<T | null>(() => cacheManager.get<T>(key))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)

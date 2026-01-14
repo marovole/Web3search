@@ -172,12 +172,13 @@ function calculateStats(sentimentData: Record<string, SentimentData>): Sentiment
   let neutralCount = 0;
 
   symbols.forEach(symbol => {
-    const data = sentimentData[symbol];
-    totalScore += data.data.sentiment_score;
-    totalVolume += data.data.volume;
-    totalEngagement += data.data.engagement;
+    const data = sentimentData[symbol]
+    if (!data?.data) return
+    totalScore += data.data.sentiment_score
+    totalVolume += data.data.volume
+    totalEngagement += data.data.engagement
 
-    const classification = data.data.classification;
+    const classification = data.data.classification
     if (classification === 'positive' || classification === 'strong_positive') {
       positiveCount++;
     } else if (classification === 'negative' || classification === 'strong_negative') {
@@ -211,18 +212,19 @@ function calculatePlatformStats(sentimentData: Record<string, SentimentData>): P
   const platformTotals: Record<string, { score: number; volume: number; count: number }> = {};
 
   symbols.forEach(symbol => {
-    const data = sentimentData[symbol];
-    const platformDistribution = data.data.platform_distribution;
+    const data = sentimentData[symbol]
+    if (!data?.data) return
+    const platformDistribution = data.data.platform_distribution
 
     Object.entries(platformDistribution).forEach(([platform, score]) => {
       if (!platformTotals[platform]) {
-        platformTotals[platform] = { score: 0, volume: 0, count: 0 };
+        platformTotals[platform] = { score: 0, volume: 0, count: 0 }
       }
-      platformTotals[platform].score += score;
-      platformTotals[platform].volume += data.data.volume;
-      platformTotals[platform].count++;
-    });
-  });
+      platformTotals[platform].score += score
+      platformTotals[platform].volume += data.data.volume
+      platformTotals[platform].count++
+    })
+  })
 
   const platformStats: PlatformStats = {};
   let totalVolume = 0;

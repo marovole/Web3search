@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import secureAuthApi from '../../services/secureAuth'
+import { useToast } from '../ui/toast'
 
 interface ExportButtonProps {
   markdownContent: string
@@ -19,6 +20,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   const [copying, setCopying] = useState(false)
   const [exportingPdf, setExportingPdf] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const { toast } = useToast()
 
   // Download Markdown file
   const handleDownloadMarkdown = () => {
@@ -41,7 +43,11 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   // Download PDF from backend
   const handleDownloadPDF = async () => {
     if (!reportId || !isCompleted) {
-      alert('PDF导出仅支持已完成的报告')
+      toast({
+        title: '无法导出PDF',
+        description: 'PDF导出仅支持已完成的报告',
+        variant: 'destructive',
+      })
       return
     }
 
@@ -85,7 +91,11 @@ const ExportButton: React.FC<ExportButtonProps> = ({
       showSuccessMessage()
     } catch (error) {
       console.error('PDF导出失败:', error)
-      alert(`PDF导出失败: ${error instanceof Error ? error.message : '未知错误'}`)
+      toast({
+        title: 'PDF导出失败',
+        description: error instanceof Error ? error.message : '未知错误',
+        variant: 'destructive',
+      })
     } finally {
       setExportingPdf(false)
     }

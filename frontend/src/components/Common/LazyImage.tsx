@@ -43,8 +43,8 @@ export function LazyImage({
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        const [entry] = entries
-        if (entry.isIntersecting) {
+        const entry = entries[0]
+        if (entry?.isIntersecting) {
           setIsInView(true)
           observer.disconnect()
         }

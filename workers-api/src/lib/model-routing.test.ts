@@ -3,12 +3,12 @@
  * Tests for AI model selection and routing logic
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
-  getModelForIntent,
-  getModelForMode,
-  ModelRoute,
-  ModelConfig,
+  MODEL_ROUTING_TABLE,
+  ROUTING_STRATEGIES,
+  getModelConfig,
+  selectModels,
 } from './model-routing'
 
 // Mock environment
@@ -22,111 +22,62 @@ describe('Model Routing', () => {
 
   describe('Model Configuration', () => {
     it('should have correct model configurations', () => {
-      const models: Record<string, ModelConfig> = {
-        'mistralai/devstral-2512:free': {
-          provider: 'mistral',
-          costPerToken: 0,
-          capabilities: ['chat', 'reasoning'],
-        },
-        'deepseek/deepseek-v3.2-speciale': {
-          provider: 'deepseek',
-          costPerToken: 0.5,
-          capabilities: ['chat', 'reasoning', 'code'],
-        },
-        'alibaba/tongyi-deepresearch-30b-a3b': {
-          provider: 'alibaba',
-          costPerToken: 0.2,
-          capabilities: ['research', 'analysis'],
-        },
-      }
-
-      // Verify model structure
-      Object.entries(models).forEach(([name, config]) => {
-        expect(name).toContain('/')
-        expect(config.provider).toBeDefined()
-        expect(Array.isArray(config.capabilities)).toBe(true)
-      })
+      // Verify model structure exists
+      const devstralConfig = getModelConfig('devstral-chat')
+      expect(devstralConfig).not.toBeNull()
+      expect(devstralConfig?.provider).toBe('mistral')
+      expect(devstralConfig?.capabilities).toBeDefined()
     })
 
-    it('should have free models for development', () => {
-      const freeModels = Object.entries({
-        'mistralai/devstral-2512:free': {
-          provider: 'mistral',
-          costPerToken: 0,
-        },
-        'z-ai/glm-4.5-air:free': {
-          provider: 'zhipu',
-          costPerToken: 0,
-        },
-      })
-
-      freeModels.forEach(([name, config]) => {
-        expect(name).toContain(':free')
-        expect(config.costPerToken).toBe(0)
-      })
+    it('should have fallback model configured', () => {
+      const glmConfig = getModelConfig('glm-4-5-air')
+      expect(glmConfig).not.toBeNull()
+      expect(glmConfig?.provider).toBe('zhipu')
+      expect(glmConfig?.isFallback).toBe(true)
     })
   })
 
-  describe('getModelForMode', () => {
-    it('should return correct model for quick chat mode', () => {
-      const model = getModelForMode('quick-chat')
+  describe('Model Selection', () => {
+    it('should select models for quick chat', () => {
+      const models = selectModels('quick-chat')
 
-      expect(model).toContain('deepseek')
-      expect(model).not.toContain('alibaba') // Alibaba is for deep research
+      expect(models).toContain('devstral-chat')
+      expect(models).toContain('glm-4-5-air')
     })
 
-    it('should return correct model for deep research mode', () => {
-      const model = getModelForMode('deep-research')
+    it('should select models for deep research', () => {
+      const models = selectModels('deep-research')
 
-      expect(model).toContain('alibaba')
+      expect(models).toContain('devstral-chat')
+      expect(models).toContain('glm-4-5-air')
     })
 
-    it('should return correct model for summarization', () => {
-      const model = getModelForMode('summarization')
+    it('should select models for summarization', () => {
+      const models = selectModels('summarization')
 
-      expect(model).toContain('deepseek')
+      expect(models).toContain('devstral-chat')
+      expect(models).toContain('glm-4-5-air')
     })
 
-    it('should return correct model for code assistance', () => {
-      const model = getModelForMode('code-assist')
+    it('should select models for code assist', () => {
+      const models = selectModels('code-assist')
 
-      expect(model).toContain('deepseek')
-    })
-
-    it('should throw for unknown mode', () => {
-      expect(() => getModelForMode('unknown-mode' as any)).toThrow()
+      expect(models).toContain('devstral-chat')
+      expect(models).toContain('glm-4-5-air')
     })
   })
 
-  describe('getModelForIntent', () => {
-    it('should detect research intent and return deep research model', () => {
-      const model = getModelForIntent('Analyze Bitcoin smart contracts')
-
-      expect(model).toContain('alibaba')
+  describe('Model Routing Table', () => {
+    it('should have primary and fallback models defined', () => {
+      expect(MODEL_ROUTING_TABLE['devstral-chat']).toBeDefined()
+      expect(MODEL_ROUTING_TABLE['glm-4-5-air']).toBeDefined()
     })
 
-    it('should detect casual intent and return quick chat model', () => {
-      const model = getModelForIntent('What is the price of ETH?')
-
-      expect(model).toContain('deepseek')
-    })
-
-    it('should detect comparison intent', () => {
-      const model = getModelForIntent('Compare Bitcoin and Ethereum')
-
-      expect(model).toBeDefined()
-    })
-
-    it('should detect price inquiry intent', () => {
-      const model = getModelForIntent('How much is SOL worth right now?')
-
-      expect(model).toBeDefined()
-    })
-
-    it('should default to quick chat for unrecognized intents', () => {
-      const model = getModelForIntent('Tell me a joke')
-
-      expect(model).toContain('deepseek')
+    it('should have routing strategies for all use cases', () => {
+      expect(ROUTING_STRATEGIES['quick-chat']).toBeDefined()
+      expect(ROUTING_STRATEGIES['deep-research']).toBeDefined()
+      expect(ROUTING_STRATEGIES['summarization']).toBeDefined()
+      expect(ROUTING_STRATEGIES['code-assist']).toBeDefined()
     })
   })
 
@@ -160,44 +111,26 @@ describe('Model Routing', () => {
 
   describe('Model Capabilities', () => {
     it('should support chat capability', () => {
-      const chatModels = [
-        'deepseek/deepseek-v3.2-speciale',
-        'mistralai/devstral-2512:free',
-      ]
-
-      chatModels.forEach((model) => {
-        expect(model).toBeDefined()
-      })
+      const devstralConfig = getModelConfig('devstral-chat')
+      expect(devstralConfig?.capabilities).toBeDefined()
     })
 
-    it('should support research capability', () => {
-      const researchModels = [
-        'alibaba/tongyi-deepresearch-30b-a3b',
-        'deepseek/deepseek-v3.2-speciale',
-      ]
-
-      researchModels.forEach((model) => {
-        expect(model).toBeDefined()
-      })
+    it('should support streaming capability', () => {
+      const devstralConfig = getModelConfig('devstral-chat')
+      expect(devstralConfig?.capabilities.streaming).toBe(true)
     })
 
-    it('should support code capability', () => {
-      const codeModels = ['deepseek/deepseek-v3.2-speciale']
-
-      codeModels.forEach((model) => {
-        expect(model).toBeDefined()
-      })
+    it('should support reasoning capability', () => {
+      const devstralConfig = getModelConfig('devstral-chat')
+      expect(devstralConfig?.capabilities.reasoning).toBe(true)
     })
   })
 
   describe('Cost Optimization', () => {
-    it('should prefer free models when available', () => {
-      const freeModel = 'mistralai/devstral-2512:free'
-      const paidModel = 'deepseek/deepseek-v3.2-speciale'
-
-      // In test environment, prefer free model
-      expect(freeModel).toContain(':free')
-      expect(paidModel).not.toContain(':free')
+    it('should prefer primary models', () => {
+      const models = selectModels('quick-chat', true)
+      // Primary model should come first
+      expect(models[0]).toBe('devstral-chat')
     })
 
     it('should calculate token cost correctly', () => {
@@ -214,14 +147,14 @@ describe('Model Routing', () => {
 
 describe('Routing Strategy', () => {
   it('should have primary and fallback models', () => {
-    const routes: Record<string, { primary: string; fallback: string }> = {
+    const routes: Record<string, { primary: string[]; fallback: string[] }> = {
       'quick-chat': {
-        primary: 'deepseek/deepseek-v3.2-speciale',
-        fallback: 'openai/gpt-oss-120b:exacto',
+        primary: ['devstral-chat'],
+        fallback: ['glm-4-5-air'],
       },
       'deep-research': {
-        primary: 'alibaba/tongyi-deepresearch-30b-a3b',
-        fallback: 'deepseek/deepseek-v3.2-speciale',
+        primary: ['devstral-chat'],
+        fallback: ['glm-4-5-air'],
       },
     }
 

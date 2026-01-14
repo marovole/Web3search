@@ -256,6 +256,7 @@ type ToastContextType = {
   toasts: Toast[]
   addToast: (toast: ToastWithoutId) => string
   dismissToast: (toastId?: string) => void
+  toast: (toast: ToastWithoutId) => string
 }
 
 const ToastContext = React.createContext<ToastContextType | undefined>(undefined)
@@ -297,6 +298,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       toasts: state.toasts,
       addToast,
       dismissToast,
+      toast: addToast,
     }),
     [state.toasts, addToast, dismissToast]
   )

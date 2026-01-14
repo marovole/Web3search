@@ -20,6 +20,7 @@ import {
   Accessibility
 } from 'lucide-react'
 import { useUserPreferences } from '@/contexts/UserPreferencesContext'
+import { useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
 import { UXEnhancementSettings } from '@/components/ui/ux-enhancement-settings'
 
@@ -175,15 +176,24 @@ export default function SettingsPage() {
   const [showImportDialog, setShowImportDialog] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [activeTab, setActiveTab] = useState<'general' | 'ux'>('general')
+  const { toast } = useToast()
 
   // 导入设置
   const handleImport = () => {
     if (importPreferences(importData)) {
       setShowImportDialog(false)
       setImportData('')
-      alert('设置导入成功！')
+      toast({
+        title: '导入成功',
+        description: '设置已成功导入',
+        variant: 'success',
+      })
     } else {
-      alert('设置导入失败，请检查格式是否正确')
+      toast({
+        title: '导入失败',
+        description: '请检查格式是否正确',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -205,7 +215,11 @@ export default function SettingsPage() {
   const handleReset = () => {
     resetPreferences()
     setShowResetConfirm(false)
-    alert('设置已重置为默认值！')
+    toast({
+      title: '重置成功',
+      description: '设置已重置为默认值',
+      variant: 'success',
+    })
   }
 
   return (

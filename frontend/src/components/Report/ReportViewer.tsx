@@ -27,7 +27,7 @@ const ReportViewer: React.FC<ReportViewerProps> = ({ report }) => {
 
     lines.forEach((line) => {
       const match = line.match(/^(#{2,4})\s+(.+)$/)
-      if (match) {
+      if (match && match[1] && match[2]) {
         const level = match[1].length
         const text = match[2].trim()
         const id = text

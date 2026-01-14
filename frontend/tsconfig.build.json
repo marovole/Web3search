@@ -6,11 +6,7 @@
     "noImplicitReturns": false
   },
   "include": [
-    "src/components/Chat/**/*",
-    "src/services/api.ts",
-    "src/utils/env.ts",
-    "src/types/**/*.d.ts",
-    "src/vite-env.d.ts"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
@@ -18,18 +14,11 @@
     "**/*.test.ts",
     "**/*.test.tsx",
     "src/__tests__/**",
+    "src/__tests__/**/*",
     "tests/**",
     "src/setupTests.ts",
-    "src/components/ui/**",
-    "src/components/Sentiment/**",
-    "src/services/sentry.ts",
-    "src/components/Charts/**",
-    "src/components/code-review/**",
-    "src/components/Search/**",
-    "src/components/Report/**",
-    "src/components/Shared/**",
-    "src/components/Shortcuts/**",
-    "src/hooks/**",
-    "src/services/**"
+    "src/mocks/**",
+    "src/**/*.mock.ts",
+    "src/**/*.mock.tsx"
   ]
 }

@@ -76,6 +76,7 @@ export function VirtualizedList<T>({
       >
         {virtualItems.map((virtualItem) => {
           const item = items[virtualItem.index]
+          if (item === undefined) return null
           return (
             <div
               key={virtualItem.key}

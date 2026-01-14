@@ -2,13 +2,14 @@ import { Hono } from 'hono'
 import type { Env } from '../types/env'
 import { authMiddleware, getCurrentUser } from '../middlewares/auth'
 import { getSupabaseClient } from '../lib/supabase'
+import { ErrorCodes, createErrorResponse } from '../lib/errors'
 
 const app = new Hono<{ Bindings: Env }>()
 
 app.get('/', authMiddleware(), async (c) => {
   const user = getCurrentUser(c)
   if (!user) {
-    return c.json({ error: { code: 'NOT_AUTHENTICATED', message: 'Not authenticated', status: 401 } }, 401)
+    return c.json(createErrorResponse(ErrorCodes.NOT_AUTHENTICATED, 'Not authenticated'), 401)
   }
 
   const supabase = getSupabaseClient(c.env, true)
@@ -31,7 +32,7 @@ app.get('/', authMiddleware(), async (c) => {
   const { data, error, count } = await query
 
   if (error) {
-    return c.json({ error: { code: 'DB_ERROR', message: error.message, status: 500 } }, 500)
+    return c.json(createErrorResponse(ErrorCodes.DATABASE_ERROR, error.message), 500)
   }
 
   return c.json({
@@ -45,7 +46,7 @@ app.get('/', authMiddleware(), async (c) => {
 app.get('/latest', authMiddleware(), async (c) => {
   const user = getCurrentUser(c)
   if (!user) {
-    return c.json({ error: { code: 'NOT_AUTHENTICATED', message: 'Not authenticated', status: 401 } }, 401)
+    return c.json(createErrorResponse(ErrorCodes.NOT_AUTHENTICATED, 'Not authenticated'), 401)
   }
 
   const supabase = getSupabaseClient(c.env, true)
@@ -59,7 +60,7 @@ app.get('/latest', authMiddleware(), async (c) => {
     .limit(10)
 
   if (error) {
-    return c.json({ error: { code: 'DB_ERROR', message: error.message, status: 500 } }, 500)
+    return c.json(createErrorResponse(ErrorCodes.DATABASE_ERROR, error.message), 500)
   }
 
   return c.json({ recommendations: data || [] })
@@ -68,7 +69,7 @@ app.get('/latest', authMiddleware(), async (c) => {
 app.get('/preferences', authMiddleware(), async (c) => {
   const user = getCurrentUser(c)
   if (!user) {
-    return c.json({ error: { code: 'NOT_AUTHENTICATED', message: 'Not authenticated', status: 401 } }, 401)
+    return c.json(createErrorResponse(ErrorCodes.NOT_AUTHENTICATED, 'Not authenticated'), 401)
   }
 
   const supabase = getSupabaseClient(c.env, true)
@@ -80,7 +81,7 @@ app.get('/preferences', authMiddleware(), async (c) => {
     .single()
 
   if (error && error.code !== 'PGRST116') {
-    return c.json({ error: { code: 'DB_ERROR', message: error.message, status: 500 } }, 500)
+    return c.json(createErrorResponse(ErrorCodes.DATABASE_ERROR, error.message), 500)
   }
 
   const defaultPreferences = {
@@ -103,7 +104,7 @@ app.get('/preferences', authMiddleware(), async (c) => {
 app.put('/preferences', authMiddleware(), async (c) => {
   const user = getCurrentUser(c)
   if (!user) {
-    return c.json({ error: { code: 'NOT_AUTHENTICATED', message: 'Not authenticated', status: 401 } }, 401)
+    return c.json(createErrorResponse(ErrorCodes.NOT_AUTHENTICATED, 'Not authenticated'), 401)
   }
 
   const supabase = getSupabaseClient(c.env, true)
@@ -137,7 +138,7 @@ app.put('/preferences', authMiddleware(), async (c) => {
       .single()
     
     if (error) {
-      return c.json({ error: { code: 'DB_ERROR', message: error.message, status: 500 } }, 500)
+      return c.json(createErrorResponse(ErrorCodes.DATABASE_ERROR, error.message), 500)
     }
     result = data
   } else {
@@ -148,7 +149,7 @@ app.put('/preferences', authMiddleware(), async (c) => {
       .single()
     
     if (error) {
-      return c.json({ error: { code: 'DB_ERROR', message: error.message, status: 500 } }, 500)
+      return c.json(createErrorResponse(ErrorCodes.DATABASE_ERROR, error.message), 500)
     }
     result = data
   }
@@ -159,7 +160,7 @@ app.put('/preferences', authMiddleware(), async (c) => {
 app.get('/:id', authMiddleware(), async (c) => {
   const user = getCurrentUser(c)
   if (!user) {
-    return c.json({ error: { code: 'NOT_AUTHENTICATED', message: 'Not authenticated', status: 401 } }, 401)
+    return c.json(createErrorResponse(ErrorCodes.NOT_AUTHENTICATED, 'Not authenticated'), 401)
   }
 
   const id = c.req.param('id')
@@ -174,9 +175,9 @@ app.get('/:id', authMiddleware(), async (c) => {
 
   if (error) {
     if (error.code === 'PGRST116') {
-      return c.json({ error: { code: 'NOT_FOUND', message: 'Recommendation not found', status: 404 } }, 404)
+      return c.json(createErrorResponse(ErrorCodes.NOT_FOUND, 'Recommendation not found'), 404)
     }
-    return c.json({ error: { code: 'DB_ERROR', message: error.message, status: 500 } }, 500)
+    return c.json(createErrorResponse(ErrorCodes.DATABASE_ERROR, error.message), 500)
   }
 
   const recData = data as { viewed_at?: string } | null
@@ -193,7 +194,7 @@ app.get('/:id', authMiddleware(), async (c) => {
 app.patch('/:id/feedback', authMiddleware(), async (c) => {
   const user = getCurrentUser(c)
   if (!user) {
-    return c.json({ error: { code: 'NOT_AUTHENTICATED', message: 'Not authenticated', status: 401 } }, 401)
+    return c.json(createErrorResponse(ErrorCodes.NOT_AUTHENTICATED, 'Not authenticated'), 401)
   }
 
   const id = c.req.param('id')
@@ -227,9 +228,9 @@ app.patch('/:id/feedback', authMiddleware(), async (c) => {
 
   if (error) {
     if (error.code === 'PGRST116') {
-      return c.json({ error: { code: 'NOT_FOUND', message: 'Recommendation not found', status: 404 } }, 404)
+      return c.json(createErrorResponse(ErrorCodes.NOT_FOUND, 'Recommendation not found'), 404)
     }
-    return c.json({ error: { code: 'DB_ERROR', message: error.message, status: 500 } }, 500)
+    return c.json(createErrorResponse(ErrorCodes.DATABASE_ERROR, error.message), 500)
   }
 
   return c.json({ recommendation: data })
@@ -238,7 +239,7 @@ app.patch('/:id/feedback', authMiddleware(), async (c) => {
 app.delete('/:id', authMiddleware(), async (c) => {
   const user = getCurrentUser(c)
   if (!user) {
-    return c.json({ error: { code: 'NOT_AUTHENTICATED', message: 'Not authenticated', status: 401 } }, 401)
+    return c.json(createErrorResponse(ErrorCodes.NOT_AUTHENTICATED, 'Not authenticated'), 401)
   }
 
   const id = c.req.param('id')
@@ -251,7 +252,7 @@ app.delete('/:id', authMiddleware(), async (c) => {
     .eq('user_id', user.id)
 
   if (error) {
-    return c.json({ error: { code: 'DB_ERROR', message: error.message, status: 500 } }, 500)
+    return c.json(createErrorResponse(ErrorCodes.DATABASE_ERROR, error.message), 500)
   }
 
   return c.json({ success: true })

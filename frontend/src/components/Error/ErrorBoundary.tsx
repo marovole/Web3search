@@ -51,12 +51,12 @@ class ErrorBoundary extends Component<Props, State> {
     this.state = { hasError: false, errorType: 'unknown' }
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static override getDerivedStateFromError(error: Error): State {
     // 更新 state 使下一次渲染能够显示降级后的 UI
     return { hasError: true, error, errorType: categorizeError(error) }
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // 记录错误信息
     console.error('ErrorBoundary caught an error:', error, errorInfo)
     this.setState({

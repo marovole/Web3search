@@ -21,6 +21,23 @@ export interface CoinGeckoError {
 }
 
 /**
+ * CoinGecko API Response Types
+ */
+interface CoinGeckoMarketData {
+  current_price?: Record<string, number>
+  price_change_percentage_24h?: number
+  market_cap?: Record<string, number>
+  market_cap_rank?: number | null
+}
+
+interface CoinGeckoCoinData {
+  id: string
+  symbol: string
+  name: string
+  market_data?: CoinGeckoMarketData
+}
+
+/**
  * CoinGecko API 客户端
  * 免费版 API，无需 API Key，每分钟限制 10-50 次请求
  */
@@ -149,7 +166,7 @@ export class CoinGeckoClient {
         }
       }
 
-      const data = await response.json() as Record<string, unknown>
+      const data = await response.json() as CoinGeckoCoinData
 
       if (!data.market_data || !data.market_data.current_price) {
         return {
@@ -158,7 +175,7 @@ export class CoinGeckoClient {
         }
       }
 
-      const priceUsd = data.market_data.current_price.usd
+      const priceUsd = data.market_data.current_price?.usd
       if (priceUsd === undefined || priceUsd === null) {
         return {
           error: 'NO_PRICE',

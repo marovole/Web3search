@@ -51,10 +51,10 @@ export function PerformanceMonitor({
 
   const {
     isConnected,
-    connectionStatus,
     lastMessage,
     error,
-    reconnect
+    connect,
+    disconnect
   } = useWebSocket({
     symbols,
     autoConnect: false
