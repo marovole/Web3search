@@ -19,7 +19,7 @@ export async function onRequest(context: {
 
   // API 请求代理到后端
   if (pathname.startsWith('/api/')) {
-    const backendUrl = 'https://api.lulaai.xyz' + pathname + url.search;
+    const backendUrl = 'https://web3search-api.marovole.workers.dev' + pathname + url.search;
 
     try {
       // 创建新的请求，保留原始请求的方法、头部和body
