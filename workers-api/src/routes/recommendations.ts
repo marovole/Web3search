@@ -1,10 +1,73 @@
 import { Hono } from 'hono'
+import type { Context } from 'hono'
+import { z } from 'zod'
+
 import type { Env } from '../types/env'
 import { authMiddleware, getCurrentUser } from '../middlewares/auth'
-import { getSupabaseClient } from '../lib/supabase'
 import { ErrorCodes, createErrorResponse } from '../lib/errors'
+import { getSupabaseClient } from '../lib/supabase'
 
 const app = new Hono<{ Bindings: Env }>()
+
+const RecommendationStatusSchema = z.enum([
+  'active',
+  'viewed',
+  'liked',
+  'disliked',
+  'dismissed',
+  'expired',
+  'all',
+])
+
+const RecommendationQuerySchema = z.object({
+  status: RecommendationStatusSchema.optional().default('active'),
+  limit: z.preprocess(
+    (value) => (value === undefined ? undefined : Number(value)),
+    z.number().int().min(1).max(50).optional().default(20)
+  ),
+  offset: z.preprocess(
+    (value) => (value === undefined ? undefined : Number(value)),
+    z.number().int().min(0).optional().default(0)
+  ),
+})
+
+const RecommendationIdSchema = z.string().uuid()
+
+const PreferencesUpdateSchema = z
+  .object({
+    risk_tolerance: z.enum(['conservative', 'medium', 'aggressive', 'very_aggressive']).optional(),
+    investment_horizon: z.enum(['short', 'medium', 'long']).optional(),
+    preferred_sectors: z.array(z.string()).optional(),
+    excluded_sectors: z.array(z.string()).optional(),
+    preferred_chains: z.array(z.string()).optional(),
+    min_market_cap: z.enum(['any', 'micro', 'small', 'medium', 'large']).optional(),
+    interest_tags: z.array(z.string()).optional(),
+    notification_enabled: z.boolean().optional(),
+    discovery_frequency: z.enum(['daily', 'weekly', 'biweekly']).optional(),
+    max_recommendations_per_batch: z.number().int().min(1).max(50).optional(),
+  })
+  .strict()
+
+const FeedbackSchema = z
+  .object({
+    feedback: z.enum(['like', 'dislike', 'not_interested', 'already_own', 'will_research']),
+    notes: z.string().max(2000).optional(),
+  })
+  .strict()
+
+const errorFromZod = (error: z.ZodError): string =>
+  error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join(', ')
+
+const parseJsonBody = async <T,>(
+  c: Context<{ Bindings: Env }>
+): Promise<{ data?: T; error?: string }> => {
+  try {
+    const data = await c.req.json<T>()
+    return { data }
+  } catch {
+    return { error: 'Invalid JSON in request body' }
+  }
+}
 
 app.get('/', authMiddleware(), async (c) => {
   const user = getCurrentUser(c)
@@ -12,11 +75,22 @@ app.get('/', authMiddleware(), async (c) => {
     return c.json(createErrorResponse(ErrorCodes.NOT_AUTHENTICATED, 'Not authenticated'), 401)
   }
 
+  const parsedQuery = RecommendationQuerySchema.safeParse({
+    status: c.req.query('status'),
+    limit: c.req.query('limit'),
+    offset: c.req.query('offset'),
+  })
+
+  if (!parsedQuery.success) {
+    return c.json(
+      createErrorResponse(ErrorCodes.INVALID_INPUT, errorFromZod(parsedQuery.error)),
+      400
+    )
+  }
+
   const supabase = getSupabaseClient(c.env, true)
   
-  const status = c.req.query('status') || 'active'
-  const limit = Math.min(parseInt(c.req.query('limit') || '20'), 50)
-  const offset = parseInt(c.req.query('offset') || '0')
+  const { status, limit, offset } = parsedQuery.data
 
   let query = supabase
     .from('recommendations')
@@ -109,18 +183,26 @@ app.put('/preferences', authMiddleware(), async (c) => {
 
   const supabase = getSupabaseClient(c.env, true)
 
-  const body = await c.req.json<{
-    risk_tolerance?: string
-    investment_horizon?: string
-    preferred_sectors?: string[]
-    excluded_sectors?: string[]
-    preferred_chains?: string[]
-    min_market_cap?: string
-    interest_tags?: string[]
-    notification_enabled?: boolean
-    discovery_frequency?: string
-    max_recommendations_per_batch?: number
-  }>()
+  const parsedBody = await parseJsonBody<unknown>(c)
+  if (parsedBody.error) {
+    return c.json(createErrorResponse(ErrorCodes.INVALID_JSON, parsedBody.error), 400)
+  }
+
+  const validatedBody = PreferencesUpdateSchema.safeParse(parsedBody.data)
+  if (!validatedBody.success) {
+    return c.json(
+      createErrorResponse(ErrorCodes.INVALID_INPUT, errorFromZod(validatedBody.error)),
+      400
+    )
+  }
+
+  const body = Object.fromEntries(
+    Object.entries(validatedBody.data).filter(([, value]) => value !== undefined)
+  )
+
+  if (Object.keys(body).length === 0) {
+    return c.json(createErrorResponse(ErrorCodes.NO_UPDATES, 'No valid fields to update'), 400)
+  }
 
   const { data: existing } = await supabase
     .from('user_preferences')
@@ -164,6 +246,10 @@ app.get('/:id', authMiddleware(), async (c) => {
   }
 
   const id = c.req.param('id')
+  const parsedId = RecommendationIdSchema.safeParse(id)
+  if (!parsedId.success) {
+    return c.json(createErrorResponse(ErrorCodes.INVALID_INPUT, 'Invalid recommendation id'), 400)
+  }
   const supabase = getSupabaseClient(c.env, true)
 
   const { data, error } = await supabase
@@ -186,6 +272,7 @@ app.get('/:id', authMiddleware(), async (c) => {
       .from('recommendations')
       .update({ viewed_at: new Date().toISOString(), status: 'viewed' })
       .eq('id', id)
+      .eq('user_id', user.id)
   }
 
   return c.json({ recommendation: data })
@@ -198,12 +285,24 @@ app.patch('/:id/feedback', authMiddleware(), async (c) => {
   }
 
   const id = c.req.param('id')
+  const parsedId = RecommendationIdSchema.safeParse(id)
+  if (!parsedId.success) {
+    return c.json(createErrorResponse(ErrorCodes.INVALID_INPUT, 'Invalid recommendation id'), 400)
+  }
   const supabase = getSupabaseClient(c.env, true)
 
-  const body = await c.req.json<{
-    feedback: 'like' | 'dislike' | 'not_interested' | 'already_own' | 'will_research'
-    notes?: string
-  }>()
+  const parsedBody = await parseJsonBody<unknown>(c)
+  if (parsedBody.error) {
+    return c.json(createErrorResponse(ErrorCodes.INVALID_JSON, parsedBody.error), 400)
+  }
+
+  const validatedBody = FeedbackSchema.safeParse(parsedBody.data)
+  if (!validatedBody.success) {
+    return c.json(
+      createErrorResponse(ErrorCodes.INVALID_INPUT, errorFromZod(validatedBody.error)),
+      400
+    )
+  }
 
   const feedbackToStatus: Record<string, string> = {
     like: 'liked',
@@ -216,10 +315,10 @@ app.patch('/:id/feedback', authMiddleware(), async (c) => {
   const { data, error } = await supabase
     .from('recommendations')
     .update({
-      user_feedback: body.feedback,
+      user_feedback: validatedBody.data.feedback,
       feedback_at: new Date().toISOString(),
-      feedback_notes: body.notes,
-      status: feedbackToStatus[body.feedback] || 'viewed'
+      feedback_notes: validatedBody.data.notes,
+      status: feedbackToStatus[validatedBody.data.feedback] || 'viewed'
     })
     .eq('id', id)
     .eq('user_id', user.id)
@@ -243,6 +342,10 @@ app.delete('/:id', authMiddleware(), async (c) => {
   }
 
   const id = c.req.param('id')
+  const parsedId = RecommendationIdSchema.safeParse(id)
+  if (!parsedId.success) {
+    return c.json(createErrorResponse(ErrorCodes.INVALID_INPUT, 'Invalid recommendation id'), 400)
+  }
   const supabase = getSupabaseClient(c.env, true)
 
   const { error } = await supabase
