@@ -92,6 +92,58 @@ echo "your-serper-api-key" | wrangler secret put SERPER_API_KEY
 
 ---
 
+### 4. Stripe 订阅付费（必需）
+
+**用途**:
+- 用户升级 Pro / Team 计划
+- 订阅状态同步
+
+**获取步骤**:
+
+1. 访问 [Stripe Dashboard](https://dashboard.stripe.com/)
+2. 创建产品：Pro、Team
+3. 为每个产品创建价格（建议：月付 / 年付）
+4. 复制价格 ID（`price_...`）
+5. 在 Developers → Webhooks 创建 webhook 并复制 signing secret（`whsec_...`）
+6. 在 Developers → API keys 复制 Secret key（`sk_live_...`）
+
+**配置命令**:
+```bash
+cd workers-api
+echo "your-stripe-secret-key" | wrangler secret put STRIPE_SECRET_KEY
+echo "your-stripe-webhook-secret" | wrangler secret put STRIPE_WEBHOOK_SECRET
+echo "your-pro-price-id" | wrangler secret put STRIPE_PRO_PRICE_ID
+echo "your-team-price-id" | wrangler secret put STRIPE_TEAM_PRICE_ID
+```
+
+**说明**:
+- 当前实现使用 Pro/Team 价格 ID；如需区分月付/年付，请扩展 billing 路由和环境变量。
+
+---
+
+### 5. 浏览器推送 (VAPID)（必需）
+
+**用途**:
+- 浏览器推送通知签名
+
+**生成步骤**:
+
+1. 安装并生成 VAPID 密钥：
+```bash
+npx web-push generate-vapid-keys
+```
+2. 复制生成的 public/private key
+
+**配置命令**:
+```bash
+cd workers-api
+echo "your-vapid-public-key" | wrangler secret put VAPID_PUBLIC_KEY
+echo "your-vapid-private-key" | wrangler secret put VAPID_PRIVATE_KEY
+echo "mailto:admin@web3search.app" | wrangler secret put VAPID_SUBJECT
+```
+
+---
+
 ## 🚀 快速配置流程
 
 ### 方式1: 使用自动配置脚本（推荐）

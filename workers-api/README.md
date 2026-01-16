@@ -136,6 +136,30 @@ npm run type-check       # TypeScript 类型检查
 - `POST /api/v1/billing/portal` - Create billing portal session
 - `POST /api/v1/billing/webhook` - Stripe webhook handler
 
+## 🧩 Agent Extension Guide
+
+### Add a new task type
+1. Add the task type string to:
+   - `workers-api/src/routes/agents.ts` `validTypes`
+   - `workers-api/src/lib/intent-parser.ts` `getIntentTaskType` (if created via chat)
+   - `workers-api/src/jobs/scheduled.ts` (add a cron mapping or specialized processor)
+2. Update shared types:
+   - `workers-api/src/types/agent-intent.ts` (new intent or mapping)
+   - `frontend/src/hooks/useAgentTasks.ts` `AgentTask['task_type']`
+   - `frontend/src/types/agent-activity.ts` `AgentTaskType` labels/icons
+3. Provide a processor if it runs on cron:
+   - Add a new processor in `workers-api/src/lib/*-processor.ts`
+   - Call it from `runAgentTasks` in `workers-api/src/jobs/scheduled.ts`
+
+### Add a new agent tool
+1. Implement an `AgentTool` in `workers-api/src/lib/agent-tools.ts`.
+2. Register it in `registerAllAgentTools`.
+3. Make sure tool usage is reflected in task prompts as needed.
+
+### Add new notification types (optional)
+- Backend: `workers-api/src/lib/push.ts` and processors that emit notifications.
+- Frontend: `frontend/src/hooks/useNotifications.ts` and notification UI mappings.
+
 ## 🔐 部署到 Cloudflare
 
 ### 1. 登录 Cloudflare

@@ -146,12 +146,36 @@ Base URL: `https://web3search-api.marovole.workers.dev/api/v1`
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
+| `/health` | GET | Health check |
 | `/chat/quick-chat` | POST | AI chat with real-time crypto price data |
 | `/deep-research` | POST | Create async deep research task |
 | `/deep-research/stream` | GET | SSE streaming with Glass Box feedback |
 | `/deep-research/:id` | GET | Get research task status/results |
 | `/reports` | POST | Generate structured reports |
-| `/health` | GET | Health check |
+| `/auth/me` | GET | Get current user session |
+| `/users/profile` | GET/PATCH | Read/update user profile |
+| `/users/quota` | GET | Get quota usage |
+| `/billing/checkout` | POST | Create Stripe checkout session |
+| `/billing/portal` | POST | Create billing portal session |
+| `/billing/webhook` | POST | Stripe webhook handler |
+| `/watchlist` | GET/POST | List or add watchlist items |
+| `/watchlist/:id` | PATCH/DELETE | Update or remove watchlist item |
+| `/agents/tasks` | GET/POST | List or create agent tasks |
+| `/agents/tasks/:id` | GET/PATCH/DELETE | Manage a specific agent task |
+| `/agents/tasks/:id/pause` | POST | Pause an agent task |
+| `/agents/tasks/:id/resume` | POST | Resume an agent task |
+| `/agents/tasks/:id/runs` | GET | Fetch task execution history |
+| `/agents/conversation` | POST | Agent chat intent parsing and task creation |
+| `/agents/conversation/stream` | GET | Agent chat SSE streaming |
+| `/agents/activity/dashboard` | GET | Agent activity stats |
+| `/agents/activity/logs` | GET | Agent activity logs |
+| `/notifications` | GET | List notifications |
+| `/notifications/:id/read` | PATCH | Mark notification as read |
+| `/notifications/read-all` | POST | Mark all notifications as read |
+| `/notifications/:id` | DELETE | Delete notification |
+| `/push/subscribe` | POST | Subscribe to push notifications |
+| `/push/unsubscribe` | DELETE | Unsubscribe from push |
+| `/push/test` | POST | Send test push notification |
 
 ---
 

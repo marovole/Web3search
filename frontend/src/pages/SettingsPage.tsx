@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { motion } from 'framer-motion'
 import {
   Settings,
   Palette,
@@ -10,19 +9,15 @@ import {
   Download,
   Upload,
   RotateCcw,
-  Moon,
-  Sun,
   Monitor,
-  Volume2,
-  VolumeX,
-  Save,
   Zap,
-  Accessibility
+  CreditCard
 } from 'lucide-react'
 import { useUserPreferences } from '@/contexts/UserPreferencesContext'
 import { useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
 import { UXEnhancementSettings } from '@/components/ui/ux-enhancement-settings'
+import { QuotaUsage } from '@/components/Billing/QuotaUsage'
 
 interface SettingsSectionProps {
   icon: React.ReactNode
@@ -62,12 +57,12 @@ function ToggleSetting({ label, description, checked, onChange, disabled }: Togg
   return (
     <div className={cn("flex items-start justify-between", disabled && "opacity-50")}>
       <div className="flex-1">
-        <label className="text-sm font-medium">{label}</label>
+        <span className="text-sm font-medium">{label}</span>
         {description && (
           <p className="text-xs text-muted-foreground mt-1">{description}</p>
         )}
       </div>
-      <button
+      <button type="button"
         onClick={() => onChange(!checked)}
         disabled={disabled}
         className={cn(
@@ -103,7 +98,7 @@ function SelectSetting<T extends string>({ label, description, value, onChange, 
   return (
     <div className={cn("flex items-start justify-between", disabled && "opacity-50")}>
       <div className="flex-1 pr-4">
-        <label className="text-sm font-medium">{label}</label>
+        <span className="text-sm font-medium">{label}</span>
         {description && (
           <p className="text-xs text-muted-foreground mt-1">{description}</p>
         )}
@@ -143,7 +138,7 @@ function RangeSetting({ label, description, value, onChange, min = 0, max = 100,
   return (
     <div className={cn("space-y-2", disabled && "opacity-50")}>
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium">{label}</label>
+        <span className="text-sm font-medium">{label}</span>
         <span className="text-sm text-muted-foreground">{value}{step >= 1 ? '' : 's'}</span>
       </div>
       {description && (
@@ -171,11 +166,11 @@ function RangeSetting({ label, description, value, onChange, min = 0, max = 100,
  * 用户设置页面
  */
 export default function SettingsPage() {
-  const { preferences, updatePreference, updatePreferences, resetPreferences, exportPreferences, importPreferences } = useUserPreferences()
+  const { preferences, updatePreference, resetPreferences, exportPreferences, importPreferences } = useUserPreferences()
   const [importData, setImportData] = useState('')
   const [showImportDialog, setShowImportDialog] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
-  const [activeTab, setActiveTab] = useState<'general' | 'ux'>('general')
+  const [activeTab, setActiveTab] = useState<'general' | 'ux' | 'quota'>('general')
   const { toast } = useToast()
 
   // 导入设置
@@ -238,14 +233,14 @@ export default function SettingsPage() {
 
         {/* 操作按钮 */}
         <div className="flex gap-2">
-          <button
+          <button type="button"
             onClick={handleExport}
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
           >
             <Download size={16} />
             导出设置
           </button>
-          <button
+          <button type="button"
             onClick={() => setShowImportDialog(true)}
             className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
           >
@@ -258,7 +253,7 @@ export default function SettingsPage() {
       {/* 标签页导航 */}
       <div className="border-b border-border">
         <nav className="flex space-x-8">
-          <button
+          <button type="button"
             onClick={() => setActiveTab('general')}
             className={cn(
               "py-2 px-1 border-b-2 font-medium text-sm transition-colors",
@@ -272,7 +267,21 @@ export default function SettingsPage() {
               通用设置
             </div>
           </button>
-          <button
+          <button type="button"
+            onClick={() => setActiveTab('quota')}
+            className={cn(
+              "py-2 px-1 border-b-2 font-medium text-sm transition-colors",
+              activeTab === 'quota'
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <CreditCard size={16} />
+              配额使用
+            </div>
+          </button>
+          <button type="button"
             onClick={() => setActiveTab('ux')}
             className={cn(
               "py-2 px-1 border-b-2 font-medium text-sm transition-colors",
@@ -508,7 +517,7 @@ export default function SettingsPage() {
           {/* 危险操作区域 */}
           <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-destructive mb-4">危险操作</h3>
-            <button
+            <button type="button"
               onClick={() => setShowResetConfirm(true)}
               className="flex items-center gap-2 px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:opacity-90 transition-opacity"
             >
@@ -516,6 +525,12 @@ export default function SettingsPage() {
               重置所有设置
             </button>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'quota' && (
+        <div className="space-y-6">
+          <QuotaUsage showUpgradePrompt={true} />
         </div>
       )}
 
@@ -535,13 +550,13 @@ export default function SettingsPage() {
               className="w-full h-32 px-3 py-2 bg-muted rounded-md text-sm"
             />
             <div className="flex gap-2 mt-4">
-              <button
+              <button type="button"
                 onClick={handleImport}
                 className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
               >
                 导入
               </button>
-              <button
+              <button type="button"
                 onClick={() => {
                   setShowImportDialog(false)
                   setImportData('')
@@ -564,13 +579,13 @@ export default function SettingsPage() {
               此操作将把所有设置重置为默认值，此操作不可撤销。
             </p>
             <div className="flex gap-2">
-              <button
+              <button type="button"
                 onClick={handleReset}
                 className="flex-1 px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:opacity-90 transition-opacity"
               >
                 确认重置
               </button>
-              <button
+              <button type="button"
                 onClick={() => setShowResetConfirm(false)}
                 className="flex-1 px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
               >
