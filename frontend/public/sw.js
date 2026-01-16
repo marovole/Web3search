@@ -1,7 +1,8 @@
 // Service Worker for Web3search Frontend
-const CACHE_NAME = 'web3search-v1.0.0'
-const STATIC_CACHE = 'web3search-static-v1.0.0'
-const API_CACHE = 'web3search-api-v1.0.0'
+const CACHE_VERSION = 'v1.0.1'
+const CACHE_NAME = `web3search-${CACHE_VERSION}`
+const STATIC_CACHE = `web3search-static-${CACHE_VERSION}`
+const API_CACHE = `web3search-api-${CACHE_VERSION}`
 
 // 需要缓存的静态资源
 const STATIC_ASSETS = [
@@ -155,7 +156,22 @@ async function handleStaticRequest(request) {
     return fetch(request)
   }
 
+  const isNavigation = request.mode === 'navigate'
+  const isAsset = ['script', 'style', 'worker'].includes(request.destination)
+  const useNetworkFirst = isNavigation || isAsset
+
   try {
+    if (useNetworkFirst) {
+      const networkResponse = await fetch(request)
+
+      if (networkResponse.ok) {
+        const cache = await caches.open(STATIC_CACHE)
+        cache.put(request, networkResponse.clone())
+      }
+
+      return networkResponse
+    }
+
     // 缓存优先策略
     const cachedResponse = await caches.match(request)
     if (cachedResponse) {
@@ -182,7 +198,7 @@ async function handleStaticRequest(request) {
     }
 
     // 如果是导航请求，返回离线页面
-    if (request.mode === 'navigate') {
+    if (isNavigation) {
       return caches.match('/offline.html')
     }
 
