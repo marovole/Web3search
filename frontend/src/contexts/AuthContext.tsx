@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
-import { useConvexAuth, useMutation, useQuery } from 'convex/react'
+import { useConvexAuth, useQuery } from 'convex/react'
+import { useAuthActions, useAuthToken } from '@convex-dev/auth/react'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
 
@@ -51,6 +52,7 @@ interface AuthContextType {
   quota: UserQuota | null
   loading: boolean
   isAuthenticated: boolean
+  token: string | null
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
@@ -66,6 +68,9 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const { isLoading: convexLoading, isAuthenticated: convexAuthenticated } = useConvexAuth()
+  const { signIn: convexSignIn, signOut: convexSignOut } = useAuthActions()
+  const token = useAuthToken()
+
   const [user, setUser] = useState<ConvexUser | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [quota, setQuota] = useState<UserQuota | null>(null)
@@ -84,26 +89,57 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [convexLoading])
 
-  const signUp = useCallback(async (_email: string, _password: string) => {
-    return { error: new Error('Auth not configured. Use Convex Auth or external provider.') }
-  }, [])
+  const signUp = useCallback(async (email: string, password: string) => {
+    try {
+      const result = await convexSignIn('password', {
+        email,
+        password,
+        flow: 'signUp'
+      })
+      if (!result.signingIn) {
+        return { error: new Error('注册失败，请检查邮箱是否已被使用') }
+      }
+      return { error: null }
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('注册过程中发生错误')
+      return { error }
+    }
+  }, [convexSignIn])
 
-  const signIn = useCallback(async (_email: string, _password: string) => {
-    return { error: new Error('Auth not configured. Use Convex Auth or external provider.') }
-  }, [])
+  const signIn = useCallback(async (email: string, password: string) => {
+    try {
+      const result = await convexSignIn('password', {
+        email,
+        password,
+        flow: 'signIn'
+      })
+      if (!result.signingIn) {
+        return { error: new Error('登录失败，请检查邮箱和密码') }
+      }
+      return { error: null }
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('登录过程中发生错误')
+      return { error }
+    }
+  }, [convexSignIn])
 
   const signOut = useCallback(async () => {
-    setUser(null)
-    setProfile(null)
-    setQuota(null)
-    localStorage.removeItem('client_session_id')
-  }, [])
+    try {
+      await convexSignOut()
+    } finally {
+      setUser(null)
+      setProfile(null)
+      setQuota(null)
+      localStorage.removeItem('client_session_id')
+    }
+  }, [convexSignOut])
 
   const refreshProfile = useCallback(async () => {
-    // Will be implemented with Convex queries when auth is fully configured
+    // Profile is refreshed automatically via Convex reactive queries
   }, [])
 
   const updateProfile = useCallback(async (_updates: Partial<UserProfile>) => {
+    // TODO: Implement profile updates via Convex mutation
     return { error: new Error('Profile updates not implemented yet') }
   }, [])
 
@@ -113,7 +149,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     profile,
     quota,
     loading,
-    isAuthenticated: convexAuthenticated || !!user,
+    isAuthenticated: convexAuthenticated,
+    token,
     signUp,
     signIn,
     signOut,

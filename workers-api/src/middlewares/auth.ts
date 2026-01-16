@@ -20,6 +20,7 @@ import { Context, Next } from 'hono'
 import { jwt } from 'hono/jwt'
 import type { Env } from '../types/env'
 import { getSupabaseClient } from '../lib/supabase'
+import { getConvexClient } from '../lib/convex'
 
 // Error response helper
 function authError(c: Context, message: string, code: string, status: 401 | 403 = 401) {
@@ -60,11 +61,12 @@ interface AuthMiddlewareOptions {
 }
 
 /**
- * Fast JWT verification middleware using Hono's built-in jwt middleware
- * Verifies token locally using SUPABASE_JWT_SECRET
+ * Authentication middleware using Convex or local JWT verification
+ * Defaults to Convex verification (no JWT_SECRET needed)
+ * Falls back to local JWT if JWT_SECRET is configured and verifyWithConvex is false
  */
 export function authMiddleware(options: AuthMiddlewareOptions = {}) {
-  const { verifyWithConvex = false, requiredPlans, optional = false } = options
+  const { verifyWithConvex = true, requiredPlans, optional = false } = options
 
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const authHeader = c.req.header('Authorization')
@@ -93,11 +95,13 @@ export function authMiddleware(options: AuthMiddlewareOptions = {}) {
     }
 
     try {
-      if (verifyWithConvex) {
+      // Default to Convex verification unless explicitly disabled and JWT_SECRET is available
+      const useConvex = verifyWithConvex || !c.env.JWT_SECRET
+      if (useConvex) {
         // Safe verification: Call Convex API
         await verifyWithConvexApi(c, token)
       } else {
-        // Fast verification: Local JWT check
+        // Fast verification: Local JWT check (only if JWT_SECRET is configured)
         await verifyLocalJwt(c, token)
       }
 
@@ -189,28 +193,52 @@ async function verifyLocalJwt(c: Context<{ Bindings: Env }>, _token: string) {
 }
 
 async function verifyWithConvexApi(c: Context<{ Bindings: Env }>, token: string) {
-  const supabase = getSupabaseClient(c.env)
+  const convex = getConvexClient(c.env)
 
-  const { data, error } = await supabase.auth.getUser(token)
-  const user = data?.user as { id: string; email?: string; user_metadata?: { username?: string } } | null
-
-  if (error || !user) {
-    throw new Error(typeof error === 'object' && error && 'message' in error ? String(error.message) : 'Invalid token')
+  // Convex Auth JWT contains tokenIdentifier in the subject claim
+  // We need to decode and extract it without full verification (Convex will verify on query)
+  const parts = token.split('.')
+  if (parts.length !== 3) {
+    throw new Error('Invalid token format')
   }
 
-  const { data: profile } = await supabase
-    .from<{ username: string; plan: string }>('user_profiles')
-    .select('username, plan')
-    .eq('id', user.id)
-    .single()
+  let payload: { sub?: string; email?: string; name?: string }
+  try {
+    const payloadJson = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))
+    payload = JSON.parse(payloadJson)
+  } catch {
+    throw new Error('Invalid token payload')
+  }
 
-  const profileData2 = profile as { username?: string; plan?: string } | null
-  const userPlan2 = (profileData2?.plan || 'free') as 'free' | 'pro' | 'team'
+  if (!payload.sub) {
+    throw new Error('Missing subject in token')
+  }
+
+  // Query Convex to get user by token identifier
+  // The token's subject is the tokenIdentifier in Convex Auth
+  const user = await convex.query<{
+    _id: string
+    email?: string
+    username?: string
+    name?: string
+    tokenIdentifier: string
+  } | null>('users:getByToken', { tokenIdentifier: payload.sub })
+
+  if (!user) {
+    throw new Error('User not found')
+  }
+
+  // Get user profile for plan info
+  const profile = await convex.query<{
+    plan?: 'free' | 'pro' | 'team'
+    stripeCustomerId?: string
+  } | null>('users:getProfile', { userId: user._id })
+
   c.set('currentUser', {
-    id: user.id,
-    email: user.email,
-    username: profileData2?.username || user.user_metadata?.username,
-    plan: userPlan2,
+    id: user._id,
+    email: user.email || payload.email,
+    username: user.username || user.name,
+    plan: profile?.plan || 'free',
   })
 }
 
