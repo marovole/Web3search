@@ -48,6 +48,6 @@ async function initializeServices() {
 // Service Worker注册
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {})
+    navigator.serviceWorker.register('/sw.js?version=1.0.1').catch(() => {})
   })
 }
