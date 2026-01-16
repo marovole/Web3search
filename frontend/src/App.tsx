@@ -16,9 +16,8 @@ import { GlobalSearchDialog } from './components/Search/GlobalSearchDialog'
 import { useSidebar } from './hooks/useSidebar'
 import { useKeyboardShortcutsContext } from './contexts/KeyboardShortcutsContext'
 import Sidebar from './components/Layout/Sidebar'
-import { ConvexProviderWithAuth } from "convex/react";
-import { ConvexAuthProvider, useAuth as useConvexAuth } from "@convex-dev/auth/react";
-import { convex } from "./lib/convex";
+import { ConvexAuthProvider } from '@convex-dev/auth/react'
+import { convex } from './lib/convex'
 
 // 懒加载页面组件
 const ChatPage = React.lazy(() => import('./pages/ChatPage'))
@@ -116,75 +115,73 @@ function App() {
   return (
     <ErrorBoundary>
       <ConvexAuthProvider client={convex}>
-        <ConvexProviderWithAuth client={convex} useAuth={useConvexAuth}>
-          <AuthProvider>
-            <LoadingProvider>
-              <UserPreferencesProvider>
-                <SearchHistoryProvider>
-                  <SearchFavoritesProvider>
-                    <KeyboardShortcutsProvider>
-                      <Router>
-                        <ThemeProvider defaultTheme="dark" storageKey="web3search-theme">
-                          <ToastProvider>
-                            <OfflineIndicator />
-                            <Routes>
-                              <Route path="/auth/login" element={
-                                <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
-                                  <LoginPage />
-                                </Suspense>
-                              } />
-                              <Route path="/auth/register" element={
-                                <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
-                                  <RegisterPage />
-                                </Suspense>
-                              } />
-                              <Route path="/auth/forgot-password" element={
-                                <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
-                                  <ForgotPasswordPage />
-                                </Suspense>
-                              } />
-                              <Route path="/auth/reset-password" element={
-                                <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
-                                  <ResetPasswordPage />
-                                </Suspense>
-                              } />
-                              <Route path="/*" element={
-                                <AppLayout>
-                                  <Routes>
-                                    <Route path="/" element={<Suspense fallback={<AdaptiveSkeleton pageType="chat" />}><ChatPage /></Suspense>} />
-                                    <Route path="/chat" element={<Suspense fallback={<AdaptiveSkeleton pageType="chat" />}><ChatPage /></Suspense>} />
-                                    <Route path="/shared/:shareToken" element={<Suspense fallback={<AdaptiveSkeleton pageType="report" />}><SharedReportPage /></Suspense>} />
-                                    <Route path="/history" element={<Suspense fallback={<AdaptiveSkeleton pageType="history" />}><HistoryPage /></Suspense>} />
-                                    <Route path="/watchlist" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><WatchlistPage /></Suspense>} />
-                                    <Route path="/search" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><SearchPage /></Suspense>} />
-                                    <Route path="/github" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><GitHubSearchPage /></Suspense>} />
-                                    <Route path="/agents" element={<Suspense fallback={<AdaptiveSkeleton pageType="settings" />}><AgentsPage /></Suspense>} />
-                                    <Route path="/upgrade" element={<Suspense fallback={<AdaptiveSkeleton pageType="settings" />}><UpgradePage /></Suspense>} />
-                                    <Route path="/notifications" element={<Suspense fallback={<AdaptiveSkeleton pageType="settings" />}><NotificationsPage /></Suspense>} />
-                                    <Route path="/settings" element={<Suspense fallback={<AdaptiveSkeleton pageType="settings" />}><SettingsPage /></Suspense>} />
-                                    <Route path="/reports" element={<Suspense fallback={<AdaptiveSkeleton pageType="report" />}><ReportsPage /></Suspense>} />
-                                    <Route path="/analytics" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><AnalyticsPage /></Suspense>} />
-                                    <Route path="/holdings" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><HoldingsPage /></Suspense>} />
-                                    <Route path="/portfolio" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><HoldingsPage /></Suspense>} />
-                                    <Route path="/recommendations" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><RecommendationsPage /></Suspense>} />
-                                    <Route path="/discover" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><RecommendationsPage /></Suspense>} />
-                                    <Route path="/agent-chat" element={<Suspense fallback={<AdaptiveSkeleton pageType="chat" />}><AgentChatPage /></Suspense>} />
-                                    <Route path="/assistant" element={<Suspense fallback={<AdaptiveSkeleton pageType="chat" />}><AgentChatPage /></Suspense>} />
-                                    <Route path="/agent-dashboard" element={<Suspense fallback={<AdaptiveSkeleton pageType="settings" />}><AgentDashboardPage /></Suspense>} />
-                                  </Routes>
-                                </AppLayout>
-                              } />
-                            </Routes>
-                          </ToastProvider>
-                        </ThemeProvider>
-                      </Router>
-                    </KeyboardShortcutsProvider>
-                  </SearchFavoritesProvider>
-                </SearchHistoryProvider>
-              </UserPreferencesProvider>
-            </LoadingProvider>
-          </AuthProvider>
-        </ConvexProviderWithAuth>
+        <AuthProvider>
+          <LoadingProvider>
+            <UserPreferencesProvider>
+              <SearchHistoryProvider>
+                <SearchFavoritesProvider>
+                  <KeyboardShortcutsProvider>
+                    <Router>
+                      <ThemeProvider defaultTheme="dark" storageKey="web3search-theme">
+                        <ToastProvider>
+                          <OfflineIndicator />
+                          <Routes>
+                            <Route path="/auth/login" element={
+                              <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
+                                <LoginPage />
+                              </Suspense>
+                            } />
+                            <Route path="/auth/register" element={
+                              <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
+                                <RegisterPage />
+                              </Suspense>
+                            } />
+                            <Route path="/auth/forgot-password" element={
+                              <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
+                                <ForgotPasswordPage />
+                              </Suspense>
+                            } />
+                            <Route path="/auth/reset-password" element={
+                              <Suspense fallback={<AdaptiveSkeleton pageType="settings" />}>
+                                <ResetPasswordPage />
+                              </Suspense>
+                            } />
+                            <Route path="/*" element={
+                              <AppLayout>
+                                <Routes>
+                                  <Route path="/" element={<Suspense fallback={<AdaptiveSkeleton pageType="chat" />}><ChatPage /></Suspense>} />
+                                  <Route path="/chat" element={<Suspense fallback={<AdaptiveSkeleton pageType="chat" />}><ChatPage /></Suspense>} />
+                                  <Route path="/shared/:shareToken" element={<Suspense fallback={<AdaptiveSkeleton pageType="report" />}><SharedReportPage /></Suspense>} />
+                                  <Route path="/history" element={<Suspense fallback={<AdaptiveSkeleton pageType="history" />}><HistoryPage /></Suspense>} />
+                                  <Route path="/watchlist" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><WatchlistPage /></Suspense>} />
+                                  <Route path="/search" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><SearchPage /></Suspense>} />
+                                  <Route path="/github" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><GitHubSearchPage /></Suspense>} />
+                                  <Route path="/agents" element={<Suspense fallback={<AdaptiveSkeleton pageType="settings" />}><AgentsPage /></Suspense>} />
+                                  <Route path="/upgrade" element={<Suspense fallback={<AdaptiveSkeleton pageType="settings" />}><UpgradePage /></Suspense>} />
+                                  <Route path="/notifications" element={<Suspense fallback={<AdaptiveSkeleton pageType="settings" />}><NotificationsPage /></Suspense>} />
+                                  <Route path="/settings" element={<Suspense fallback={<AdaptiveSkeleton pageType="settings" />}><SettingsPage /></Suspense>} />
+                                  <Route path="/reports" element={<Suspense fallback={<AdaptiveSkeleton pageType="report" />}><ReportsPage /></Suspense>} />
+                                  <Route path="/analytics" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><AnalyticsPage /></Suspense>} />
+                                  <Route path="/holdings" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><HoldingsPage /></Suspense>} />
+                                  <Route path="/portfolio" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><HoldingsPage /></Suspense>} />
+                                  <Route path="/recommendations" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><RecommendationsPage /></Suspense>} />
+                                  <Route path="/discover" element={<Suspense fallback={<AdaptiveSkeleton pageType="search" />}><RecommendationsPage /></Suspense>} />
+                                  <Route path="/agent-chat" element={<Suspense fallback={<AdaptiveSkeleton pageType="chat" />}><AgentChatPage /></Suspense>} />
+                                  <Route path="/assistant" element={<Suspense fallback={<AdaptiveSkeleton pageType="chat" />}><AgentChatPage /></Suspense>} />
+                                  <Route path="/agent-dashboard" element={<Suspense fallback={<AdaptiveSkeleton pageType="settings" />}><AgentDashboardPage /></Suspense>} />
+                                </Routes>
+                              </AppLayout>
+                            } />
+                          </Routes>
+                        </ToastProvider>
+                      </ThemeProvider>
+                    </Router>
+                  </KeyboardShortcutsProvider>
+                </SearchFavoritesProvider>
+              </SearchHistoryProvider>
+            </UserPreferencesProvider>
+          </LoadingProvider>
+        </AuthProvider>
       </ConvexAuthProvider>
     </ErrorBoundary>
   )
