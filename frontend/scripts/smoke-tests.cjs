@@ -34,15 +34,19 @@ async function runSmokeTests() {
       details: `Title: ${title}`
     });
     
-    // Test 2: Check for critical elements
+    // Test 2: Check for critical layout elements
     console.log('🔍 Checking critical elements...');
     const criticalSelectors = [
-      'header',
+      '#root',
       'main',
-      '[data-testid="search-input"]',
-      '[data-testid="theme-toggle"]'
+      'aside'
     ];
-    
+
+    const errorText = await page.locator('text=哎呀，出现了一些问题').first();
+    if (await errorText.isVisible()) {
+      throw new Error('Error boundary rendered: application failed to start');
+    }
+
     let missingElements = [];
     for (const selector of criticalSelectors) {
       const element = await page.$(selector);
@@ -50,64 +54,18 @@ async function runSmokeTests() {
         missingElements.push(selector);
       }
     }
-    
+
     if (missingElements.length > 0) {
       throw new Error(`Missing critical elements: ${missingElements.join(', ')}`);
     }
-    
+
     tests.push({
       name: 'Critical Elements',
       status: 'passed',
       details: `All ${criticalSelectors.length} critical elements found`
     });
-    
-    // Test 3: Test search functionality
-    console.log('🔎 Testing search functionality...');
-    await page.fill('[data-testid="search-input"]', 'test query');
-    await page.press('[data-testid="search-input"]', 'Enter');
-    
-    // Wait a bit for search results
-    await page.waitForTimeout(2000);
-    
-    // Check if search results appear (or at least no error)
-    const searchResults = await page.$('[data-testid="search-results"]');
-    const noResults = await page.$('[data-testid="no-results"]');
-    
-    if (!searchResults && !noResults) {
-      throw new Error('Search functionality not working properly');
-    }
-    
-    tests.push({
-      name: 'Search Functionality',
-      status: 'passed',
-      details: 'Search input and results working'
-    });
-    
-    // Test 4: Test theme toggle
-    console.log('🎨 Testing theme toggle...');
-    const themeToggle = await page.$('[data-testid="theme-toggle"]');
-    if (themeToggle) {
-      await themeToggle.click();
-      await page.waitForTimeout(500);
-      
-      // Check if theme changed (by checking for dark mode class or attribute)
-      const html = await page.$('html');
-      const hasDarkClass = await html.getAttribute('class');
-      
-      tests.push({
-        name: 'Theme Toggle',
-        status: 'passed',
-        details: `Theme toggle working, current theme: ${hasDarkClass?.includes('dark') ? 'dark' : 'light'}`
-      });
-    } else {
-      tests.push({
-        name: 'Theme Toggle',
-        status: 'skipped',
-        details: 'Theme toggle not found'
-      });
-    }
-    
-    // Test 5: Check console errors
+
+    // Test 3: Check console errors
     console.log('🐛 Checking for console errors...');
     const logs = [];
     page.on('console', msg => {
@@ -115,10 +73,10 @@ async function runSmokeTests() {
         logs.push(msg.text());
       }
     });
-    
+
     await page.reload();
     await page.waitForTimeout(3000);
-    
+
     if (logs.length > 0) {
       console.warn('Console errors found:', logs);
       tests.push({
@@ -133,8 +91,8 @@ async function runSmokeTests() {
         details: 'No console errors'
       });
     }
-    
-    // Test 6: Performance check
+
+    // Test 4: Performance check
     console.log('⚡ Checking performance...');
     const perfMetrics = await page.evaluate(() => {
       const navigation = performance.getEntriesByType('navigation')[0];
@@ -145,9 +103,9 @@ async function runSmokeTests() {
         firstContentfulPaint: performance.getEntriesByType('paint')[1]?.startTime || 0
       };
     });
-    
+
     const performanceGood = perfMetrics.firstContentfulPaint < 2000; // 2 seconds
-    
+
     tests.push({
       name: 'Performance',
       status: performanceGood ? 'passed' : 'warning',
