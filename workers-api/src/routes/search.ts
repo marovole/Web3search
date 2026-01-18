@@ -5,7 +5,7 @@
 
 import { Hono } from 'hono'
 import type { Env } from '../types/env'
-import { getSupabaseClient } from '../lib/supabase'
+import { searchProjects } from '../lib/convex-http'
 
 const search = new Hono<{ Bindings: Env }>()
 
@@ -49,27 +49,15 @@ search.get('/autocomplete', async (c) => {
   }
 
   try {
-    // Use service role to bypass RLS for backend queries
-    const supabase = getSupabaseClient(c.env, true)
-    // 转义 PostgreSQL ILIKE 特殊字符以防止 SQL 注入
-    const searchTerm = query.replace(/[%_]/g, '\\$&')
+    const { data, error } = await searchProjects(c.env, query, limit)
 
-    // Search in both symbol and name fields
-    // Use ilike for case-insensitive search
-    const { data, error } = await supabase
-      .from('projects')
-      .select('id, symbol, name, coingecko_id, description, blockchain, categories, tags')
-      .or(`symbol.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`)
-      .order('symbol', { ascending: true })
-      .limit(limit)
-
-    if (error) {
+    if (error || !data) {
       console.error('Search query error:', error)
       return c.json(
         {
           error: {
             code: 'SEARCH_ERROR',
-            message: 'Failed to search projects',
+            message: error?.message || 'Failed to search projects',
             status: 500,
           },
         },
@@ -77,19 +65,17 @@ search.get('/autocomplete', async (c) => {
       )
     }
 
-    // Cache the result if KV is available
-    if (c.env.CACHE && data) {
+    if (c.env.CACHE && data.results) {
       const cacheKey = `search:autocomplete:${query}:${limit}`
-      // Cache for 5 minutes (300 seconds)
-      await c.env.CACHE.put(cacheKey, JSON.stringify(data), {
+      await c.env.CACHE.put(cacheKey, JSON.stringify(data.results), {
         expirationTtl: 300,
       })
     }
 
     return c.json({
-      query,
-      count: data?.length || 0,
-      results: data || [],
+      query: data.query,
+      count: data.count,
+      results: data.results,
     })
   } catch (error) {
     console.error('Autocomplete error:', error)

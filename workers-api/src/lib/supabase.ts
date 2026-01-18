@@ -41,6 +41,7 @@ interface QueryState {
   operation: 'select' | 'insert' | 'update' | 'upsert' | 'delete'
   data: unknown
   filters: Filter[]
+  orFilters: Filter[]
   orderBy: { column: string; ascending: boolean } | null
   limitCount: number | null
   selectColumns: string
@@ -65,6 +66,7 @@ const TABLE_TO_CONVEX: Record<string, string> = {
   recommendations: 'recommendations',
   recommendation_history: 'recommendationHistory',
   api_call_logs: 'apiCallLogs',
+  projects: 'projects',
 }
 
 class ConvexQueryBuilder<T = Record<string, unknown>> implements QueryBuilder<T> {
@@ -78,6 +80,7 @@ class ConvexQueryBuilder<T = Record<string, unknown>> implements QueryBuilder<T>
       operation: 'select',
       data: null,
       filters: [],
+      orFilters: [],
       orderBy: null,
       limitCount: null,
       selectColumns: '*',
@@ -166,6 +169,14 @@ class ConvexQueryBuilder<T = Record<string, unknown>> implements QueryBuilder<T>
 
     if (this._state.filters.length > 0) {
       args.filters = this._state.filters.map(f => ({
+        field: f.column,
+        op: f.op,
+        value: f.value,
+      }))
+    }
+
+    if (this._state.orFilters.length > 0) {
+      args.orFilters = this._state.orFilters.map(f => ({
         field: f.column,
         op: f.op,
         value: f.value,
@@ -267,8 +278,38 @@ class ConvexQueryBuilder<T = Record<string, unknown>> implements QueryBuilder<T>
     return this
   }
 
-  or(_filters: string): QueryBuilder<T> {
+  or(filters: string): QueryBuilder<T> {
+    const orFilters = this.parseOrFilters(filters)
+    this._state.orFilters.push(...orFilters)
     return this
+  }
+
+  private parseOrFilters(filterString: string): Filter[] {
+    const filters: Filter[] = []
+    const parts = filterString.split(',')
+    
+    for (const part of parts) {
+      const ilikeSplit = part.split('.ilike.')
+      if (ilikeSplit.length === 2) {
+        filters.push({
+          column: ilikeSplit[0].trim(),
+          op: 'ilike',
+          value: ilikeSplit[1].trim(),
+        })
+        continue
+      }
+      
+      const eqSplit = part.split('.eq.')
+      if (eqSplit.length === 2) {
+        filters.push({
+          column: eqSplit[0].trim(),
+          op: 'eq',
+          value: eqSplit[1].trim(),
+        })
+      }
+    }
+    
+    return filters
   }
 
   order(column: string, options?: { ascending?: boolean }): QueryBuilder<T> {

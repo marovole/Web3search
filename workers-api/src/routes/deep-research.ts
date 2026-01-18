@@ -12,6 +12,7 @@ import type {
   ResearchType,
 } from '../types/deep-research'
 import { getSupabaseClient } from '../lib/supabase'
+import { createDeepResearchTask, getDeepResearchTask, updateDeepResearchTask } from '../lib/convex-http'
 import { ROUTING_STRATEGIES, getModelConfig } from '../lib/model-routing'
 import { createRateLimitMiddleware } from '../middlewares/rate-limit'
 import { ensureConversationExists, persistMessage } from '../lib/conversation'
@@ -84,31 +85,26 @@ deepResearch.post(
       }
 
       const taskId = crypto.randomUUID()
-      const taskData = {
-        id: taskId,
-        user_id: null,
-        client_session_id: c.env.CLIENT_SESSION_ID || null,
-        conversation_id: conversationId,
+      
+      const { data: createResult, error: createError } = await createDeepResearchTask(c.env, {
+        externalId: taskId,
         query,
-        status: 'pending' as ResearchStatus,
-        research_depth: (body.research_depth || DEFAULT_RESEARCH_DEPTH) as ResearchDepth,
-        max_sources: body.max_sources || 10,
-        focus_areas: body.focus_areas || [],
-        model_id: modelConfig.model,
-        model_provider: modelConfig.provider,
-        temperature: body.temperature || 0.7,
+        researchDepth: (body.research_depth || DEFAULT_RESEARCH_DEPTH) as ResearchDepth,
+        maxSources: body.max_sources || 10,
+        focusAreas: body.focus_areas || [],
+        modelId: modelConfig.model,
+        modelProvider: modelConfig.provider,
+        clientSessionId: c.env.CLIENT_SESSION_ID || null,
         metadata: body.metadata || {},
         tags: ['deep-research', modelConfig.provider],
+      })
+
+      if (createError || !createResult) {
+        console.error('Failed to create research task:', createError)
+        return c.json({ error: { code: 'RESEARCH_TASK_ERROR', message: createError?.message || 'Failed to create task', status: 500 } }, 500)
       }
 
-      const { error } = await supabase.from('deep_research_tasks').insert(taskData).select().single()
-
-      if (error) {
-        console.error('Failed to create research task:', error)
-        throw error
-      }
-
-      c.executionCtx.waitUntil(processResearchTask(taskId, query, modelConfig, supabase, c.env))
+      c.executionCtx.waitUntil(processResearchTask(taskId, query, modelConfig, getSupabaseClient(c.env, true), c.env))
 
       return c.json({
         task_id: taskId,
@@ -188,14 +184,15 @@ deepResearch.get('/:id', async (c) => {
   }
 
   try {
-    const supabase = getSupabaseClient(c.env, true)
-    const { data: task, error } = await supabase.from('deep_research_tasks').select('*').eq('id', taskId).single()
+    const { data: task, error } = await getDeepResearchTask(c.env, taskId)
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return c.json({ error: { code: 'TASK_NOT_FOUND', message: 'Research task not found', status: 404 } }, 404)
-      }
-      throw error
+      console.error('Failed to fetch research task:', error)
+      return c.json({ error: { code: 'FETCH_TASK_ERROR', message: error.message, status: 500 } }, 500)
+    }
+
+    if (!task) {
+      return c.json({ error: { code: 'TASK_NOT_FOUND', message: 'Research task not found', status: 404 } }, 404)
     }
 
     return c.json({ task })

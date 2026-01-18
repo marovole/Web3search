@@ -19,11 +19,36 @@ export const list = query({
   args: {
     userId: v.optional(v.id("users")),
     clientSessionId: v.optional(v.string()),
+    externalId: v.optional(v.string()),
     status: v.optional(researchStatusValidator),
     limit: v.optional(v.number()),
+    filters: v.optional(v.array(v.object({
+      field: v.string(),
+      op: v.string(),
+      value: v.any(),
+    }))),
   },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
+
+    if (args.externalId) {
+      const task = await ctx.db
+        .query("deepResearchTasks")
+        .withIndex("by_external_id", (q) => q.eq("externalId", args.externalId))
+        .first();
+      return task ? [task] : [];
+    }
+
+    if (args.filters && args.filters.length > 0) {
+      const externalIdFilter = args.filters.find(f => f.field === "externalId" && f.op === "eq");
+      if (externalIdFilter) {
+        const task = await ctx.db
+          .query("deepResearchTasks")
+          .withIndex("by_external_id", (q) => q.eq("externalId", externalIdFilter.value as string))
+          .first();
+        return task ? [task] : [];
+      }
+    }
 
     if (args.userId) {
       const tasks = await ctx.db
@@ -62,8 +87,19 @@ export const get = query({
   },
 });
 
+export const getByExternalId = query({
+  args: { externalId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("deepResearchTasks")
+      .withIndex("by_external_id", (q) => q.eq("externalId", args.externalId))
+      .first();
+  },
+});
+
 export const create = mutation({
   args: {
+    externalId: v.optional(v.string()),
     userId: v.optional(v.id("users")),
     clientSessionId: v.optional(v.string()),
     conversationId: v.optional(v.id("conversations")),
@@ -79,6 +115,7 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("deepResearchTasks", {
+      externalId: args.externalId,
       userId: args.userId,
       clientSessionId: args.clientSessionId,
       conversationId: args.conversationId,

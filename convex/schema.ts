@@ -17,11 +17,17 @@ export default defineSchema({
    * Linked to Convex Auth via tokenIdentifier
    */
   users: defineTable({
+    // Core fields from @convex-dev/auth
     email: v.optional(v.string()),
-    username: v.optional(v.string()),
     name: v.optional(v.string()),
     image: v.optional(v.string()),
-    tokenIdentifier: v.string(), // External auth provider ID
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+    // Extended fields for Web3Search
+    username: v.optional(v.string()),
+    tokenIdentifier: v.optional(v.string()), // Made optional for Convex Auth compatibility
     emailVerified: v.optional(v.boolean()),
     isActive: v.optional(v.boolean()),
     isSuperuser: v.optional(v.boolean()),
@@ -29,7 +35,8 @@ export default defineSchema({
     deletedAt: v.optional(v.number()),
   })
     .index("by_token", ["tokenIdentifier"])
-    .index("by_email", ["email"]),
+    .index("email", ["email"])  // Required by authTables
+    .index("phone", ["phone"]), // Required by authTables
 
   /**
    * User Profiles - Extended user data
@@ -242,6 +249,7 @@ export default defineSchema({
    * Deep Research Tasks - Long-running research jobs
    */
   deepResearchTasks: defineTable({
+    externalId: v.optional(v.string()),
     userId: v.optional(v.id("users")),
     clientSessionId: v.optional(v.string()),
     conversationId: v.optional(v.id("conversations")),
@@ -295,7 +303,8 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_session", ["clientSessionId"])
     .index("by_status", ["status"])
-    .index("by_conversation", ["conversationId"]),
+    .index("by_conversation", ["conversationId"])
+    .index("by_external_id", ["externalId"]),
 
   /**
    * Reports - Generated research reports
