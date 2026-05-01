@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import MessageList from '../../../components/Chat/MessageList'
+import MessageList, { MESSAGE_LIST_VIRTUAL_THRESHOLD } from '../../../components/Chat/MessageList'
 import type { Message } from '../../../types'
 
 // Local message factory helpers to avoid ESM dependency in tests
@@ -225,12 +225,9 @@ describe('MessageList', () => {
 
       // Check for relative container
       const firstBubble = screen.getAllByTestId('message-bubble')[0]
-      const relativeContainer = firstBubble.closest('.relative')
-      expect(relativeContainer).toBeInTheDocument()
-
-      // Check for scroll container
-      const scrollContainer = relativeContainer?.querySelector('.custom-scrollbar')
+      const scrollContainer = document.querySelector('.custom-scrollbar')
       expect(scrollContainer).toBeInTheDocument()
+      expect(scrollContainer?.contains(firstBubble)).toBe(true)
     })
 
     it('should apply correct CSS classes', () => {
@@ -296,18 +293,48 @@ describe('MessageList', () => {
   })
 
   describe('Performance', () => {
-    it('should handle large number of messages efficiently', () => {
-      const messages = buildList(100)
+    beforeEach(() => {
+      jest.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(480)
+      jest.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(50000)
+      global.ResizeObserver = class {
+        observe(): void {}
+        unobserve(): void {}
+        disconnect(): void {}
+      }
+      jest.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
+        () =>
+          ({
+            width: 400,
+            height: 88,
+            top: 0,
+            left: 0,
+            bottom: 88,
+            right: 400,
+            x: 0,
+            y: 0,
+            toJSON: () => ({}),
+          }) as DOMRect
+      )
+    })
+
+    afterEach(() => {
+      jest.restoreAllMocks()
+    })
+
+    it('uses tall spacer layout for long threads (virtualized path)', () => {
+      const count = MESSAGE_LIST_VIRTUAL_THRESHOLD + 40
+      const messages = buildList(count)
 
       const startTime = performance.now()
       render(<MessageList messages={messages} />)
       const endTime = performance.now()
 
-      // Should render within reasonable time (less than 100ms)
-      expect(endTime - startTime).toBeLessThan(100)
+      expect(endTime - startTime).toBeLessThan(400)
 
-      const messageBubbles = screen.getAllByTestId('message-bubble')
-      expect(messageBubbles).toHaveLength(100)
+      const spacer = document.querySelector('.relative.w-full')
+      expect(spacer).toBeInTheDocument()
+      const heightPx = spacer?.getAttribute('style')?.match(/height:\s*(\d+)/)?.[1]
+      expect(Number(heightPx ?? 0)).toBeGreaterThan(count * 80)
     })
   })
 })

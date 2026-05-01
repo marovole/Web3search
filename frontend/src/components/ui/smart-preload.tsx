@@ -160,9 +160,9 @@ class SmartCacheManager {
 const cacheManager = new SmartCacheManager()
 
 /**
- * 智能预加载Hook
+ * 静态资源预加载队列（与 `hooks/usePreloadRoutes` 的路由预加载区分）
  */
-export const useSmartPreload = () => {
+export const useAssetPreloadQueue = () => {
   const { preloadImage, preloadImages, preloadScript, preloadStylesheet } = useResourcePreload()
   const [preloadingQueue, setPreloadingQueue] = useState<PreloadConfig[]>([])
   const [completedPreloads, setCompletedPreloads] = useState<Set<string>>(new Set())
@@ -340,7 +340,7 @@ export const useNetworkAwarePreload = () => {
     saveData: false
   })
 
-  const { addPreloadTask } = useSmartPreload()
+  const { addPreloadTask } = useAssetPreloadQueue()
 
   useEffect(() => {
     if ('connection' in navigator) {
@@ -412,7 +412,7 @@ export const PreloadManager: React.FC<{
   children: React.ReactNode
   resources?: PreloadConfig[]
 }> = ({ children, resources = [] }) => {
-  const { addPreloadTask, completedPreloads, failedPreloads } = useSmartPreload()
+  const { addPreloadTask, completedPreloads, failedPreloads } = useAssetPreloadQueue()
 
   useEffect(() => {
     resources.forEach(addPreloadTask)

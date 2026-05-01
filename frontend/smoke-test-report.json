@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-01-16T13:51:36.187Z",
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "warnings": 0,
+    "skipped": 0
+  },
+  "tests": [
+    {
+      "name": "Page Load",
+      "status": "passed",
+      "duration": 1515,
+      "details": "Title: LULA | Web3 Intelligence Terminal"
+    },
+    {
+      "name": "Critical Elements",
+      "status": "passed",
+      "details": "All 3 critical elements found"
+    },
+    {
+      "name": "Console Errors",
+      "status": "passed",
+      "details": "No console errors"
+    },
+    {
+      "name": "Performance",
+      "status": "passed",
+      "details": "FCP: 128ms, Load: 0ms"
+    }
+  ]
+}

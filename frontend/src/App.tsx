@@ -14,6 +14,7 @@ import { SearchFavoritesProvider } from './contexts/SearchFavoritesContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { GlobalSearchDialog } from './components/Search/GlobalSearchDialog'
 import { useSidebar } from './hooks/useSidebar'
+import { useSmartPreload } from './hooks/usePreloadRoutes'
 import { useKeyboardShortcutsContext } from './contexts/KeyboardShortcutsContext'
 import Sidebar from './components/Layout/Sidebar'
 import { ConvexAuthProvider } from '@convex-dev/auth/react'
@@ -45,6 +46,7 @@ const ResetPasswordPage = React.lazy(() => import('./pages/Auth/ResetPasswordPag
 
 // Layout component that includes sidebar
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  useSmartPreload()
   const location = useLocation()
   const { isOpen, isMobile, toggle } = useSidebar()
   const { registerShortcut } = useKeyboardShortcutsContext()

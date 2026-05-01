@@ -21,10 +21,10 @@ jest.mock('../../../hooks/useNetworkRetry', () => {
 })
 
 // Mock Sentry
-jest.mock('../../../services/sentry', () => ({
+jest.mock('../../../services/sentry-lite', () => ({
   startTransaction: jest.fn(),
   addBreadcrumb: jest.fn(),
-  captureException: jest.fn()
+  captureException: jest.fn(),
 }))
 
 // Mock child components
@@ -151,8 +151,9 @@ describe('ChatInterface', () => {
   })
 
   describe('Initial rendering', () => {
-    it('should render chat interface with welcome screen', () => {
+    it('should render chat interface with welcome screen', async () => {
       render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
 
       expect(screen.getByTestId('mode-switch')).toBeInTheDocument()
       expect(screen.getByTestId('hotspot-panel')).toBeInTheDocument()
@@ -160,23 +161,26 @@ describe('ChatInterface', () => {
       expect(screen.getByTestId('autocomplete-input')).toBeInTheDocument()
     })
 
-    it('should default to quick mode', () => {
+    it('should default to quick mode', async () => {
       render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
 
       const quickButton = screen.getByTestId('mode-quick')
       expect(quickButton).toHaveClass('active')
     })
 
-    it('should load saved mode from localStorage', () => {
+    it('should load saved mode from localStorage', async () => {
       localStorage.setItem('chatMode', 'deep')
       render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
 
       const deepButton = screen.getByTestId('mode-deep')
       expect(deepButton).toHaveClass('active')
     })
 
-    it('should show correct placeholder based on mode', () => {
+    it('should show correct placeholder based on mode', async () => {
       render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
       
       const input = screen.getByTestId('chat-input')
       expect(input).toHaveAttribute('placeholder', 'Ask anything about crypto...')
@@ -190,6 +194,7 @@ describe('ChatInterface', () => {
   describe('Mode switching', () => {
     it('should switch between quick and deep mode', async () => {
       render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
 
       // Initially in quick mode
       expect(screen.getByTestId('mode-quick')).toHaveClass('active')
@@ -207,6 +212,7 @@ describe('ChatInterface', () => {
 
     it('should save mode to localStorage', async () => {
       render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
 
       await user.click(screen.getByTestId('mode-deep'))
       expect(localStorage.getItem('chatMode')).toBe('deep')
@@ -234,6 +240,7 @@ describe('ChatInterface', () => {
       })
 
       render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
 
       const input = screen.getByTestId('chat-input')
       const sendButton = screen.getByTestId('send-button')
@@ -266,6 +273,7 @@ describe('ChatInterface', () => {
       })
 
       render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
 
       const sendButton = screen.getByTestId('send-button')
       await user.click(sendButton)
@@ -282,6 +290,7 @@ describe('ChatInterface', () => {
       })
 
       render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
 
       const input = screen.getByTestId('chat-input')
       await user.type(input, 'Test message')
@@ -290,8 +299,9 @@ describe('ChatInterface', () => {
       expect(input).toHaveValue('')
     })
 
-    it('should show welcome screen when no messages', () => {
+    it('should show welcome screen when no messages', async () => {
       render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
 
       expect(screen.getByText(/Quick Start/i)).toBeInTheDocument()
       expect(screen.getByTestId('hotspot-panel')).toBeInTheDocument()
@@ -307,6 +317,7 @@ describe('ChatInterface', () => {
       })
 
       render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
 
       const input = screen.getByTestId('chat-input')
       await user.type(input, 'Test')
@@ -322,6 +333,7 @@ describe('ChatInterface', () => {
   describe('Hotspot selection', () => {
     it('should fill input with hotspot data', async () => {
       render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
 
       await user.click(screen.getByTestId('hotspot-btc'))
       
@@ -341,6 +353,7 @@ describe('ChatInterface', () => {
       })
 
       render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
 
       const input = screen.getByTestId('chat-input')
       await user.type(input, 'Test message')
@@ -363,6 +376,7 @@ describe('ChatInterface', () => {
       })
 
       render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
 
       const input = screen.getByTestId('chat-input')
       await user.type(input, 'Test message')
@@ -386,7 +400,8 @@ describe('ChatInterface', () => {
       };
       deepResearchStream.mockReturnValue(mockEventSource);
 
-      render(<ChatInterface />);
+      render(<ChatInterface />)
+      await screen.findByTestId('mode-switch');
 
       // Switch to deep mode
       await user.click(screen.getByTestId('mode-deep'));
@@ -427,6 +442,7 @@ describe('ChatInterface', () => {
       })
 
       render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
 
       const input = screen.getByTestId('chat-input')
       const sendButton = screen.getByTestId('send-button')
@@ -440,8 +456,9 @@ describe('ChatInterface', () => {
   })
 
   describe('Accessibility', () => {
-    it('should have proper ARIA labels', () => {
+    it('should have proper ARIA labels', async () => {
       render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
 
       const input = screen.getByTestId('chat-input')
       expect(input).toHaveAttribute('placeholder')
@@ -460,6 +477,7 @@ describe('ChatInterface', () => {
       })
 
       render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
 
       const input = screen.getByTestId('chat-input') as HTMLInputElement
       input.focus()
@@ -479,7 +497,7 @@ describe('ChatInterface', () => {
   })
 
   describe('Component lifecycle', () => {
-    it('should cleanup EventSource on unmount', () => {
+    it('should cleanup EventSource on unmount', async () => {
       const { deepResearchStream } = require('../../../services/api')
       const mockEventSource = {
         onmessage: jest.fn(),
@@ -489,6 +507,7 @@ describe('ChatInterface', () => {
       deepResearchStream.mockReturnValue(mockEventSource)
 
       const { unmount } = render(<ChatInterface />)
+      await screen.findByTestId('mode-switch')
 
       // Trigger deep research to create EventSource
       fireEvent.click(screen.getByTestId('mode-deep'))

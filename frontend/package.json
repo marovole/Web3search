@@ -26,7 +26,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report",
     "test:e2e:debug": "playwright test --debug",
-    "build:analyze": "tsc && vite build && npx vite-bundle-analyzer dist/stats.html",
+    "build:analyze": "tsc && ANALYZE=true vite build && npx vite-bundle-analyzer dist/stats.html",
     "deploy": "./scripts/deploy.sh",
     "deploy:prod": "./scripts/deploy.sh --prod"
   },

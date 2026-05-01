@@ -8,20 +8,25 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+const analyzeBundle = process.env.ANALYZE === 'true'
+
 // https://vitejs.dev/config/
 
 export default defineConfig({
   base: '/', // Vercel 部署到根路径
   plugins: [
     react(),
-    // Bundle分析插件
-    visualizer({
-      filename: 'dist/stats.html',
-      open: false,
-      gzipSize: true,
-      brotliSize: true,
-      template: 'treemap', // 使用treemap视图更清晰地显示
-    }),
+    ...(analyzeBundle
+      ? [
+          visualizer({
+            filename: 'dist/stats.html',
+            open: false,
+            gzipSize: true,
+            brotliSize: true,
+            template: 'treemap',
+          }),
+        ]
+      : []),
     // 性能预算插件（自定义）
     {
       name: 'performance-budget',
